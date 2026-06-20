@@ -1,0 +1,176 @@
+schema_version: 1
+audit: FInk agent-loop bootstrap
+auditor: Claude Opus 4.8 (Max)
+date: '2026-06-21'
+branch: main
+base_commit: b3803bfa4df0e72a1b8623e271d8f202eba3dbd1
+verdict: REQUEST_CHANGES
+
+# Changes already made in-tree by this audit (uncommitted, branch main).
+applied_fixes:
+  - id: F1
+    severity: major
+    area: task-selection
+    files:
+      - scripts/agent_loop/queue.models.txt
+    finding: >-
+      Queue listed MR-001..MR-014, which match no backlog task ids. The backlog
+      defines FINK-MR-01..FINK-MR-10. select_next drops any id not in the queue,
+      so the model-research queue selected zero tasks.
+    change: Replaced with FINK-MR-01..FINK-MR-10.
+    verified_by: static reading against loop/BACKLOG.yaml task ids
+  - id: F2
+    severity: major
+    area: privacy-gitignore
+    files:
+      - .gitignore
+    finding: >-
+      A trailing unanchored "models/" came after "!configs/models/**". By
+      last-match precedence it re-ignored the configs/models directory, so new
+      configs/models/** files would be silently dropped by "git add -A".
+    change: >-
+      Moved the !configs negations after the "/models/" and "models/" ignores so
+      the negation wins for configs/models/** while weights stay ignored.
+    verified_by: gitignore last-match + parent-reinclusion semantics (git check-ignore was denied)
+  - id: F3
+    severity: moderate
+    area: privacy-gitignore
+    files:
+      - .gitignore
+    finding: >-
+      secret_scan skips files named/suffixed .env, but .env was not gitignored,
+      so a committed .env would evade secret detection.
+    change: Added ".env" and "*.env" ignore patterns.
+    verified_by: static reading of validate_repo.text_files_for_scan
+
+# Defects still open. These touch run-control flow and MUST be execution-tested
+# before acceptance; do not hot-patch blind.
+required_actions:
+  - id: RA-1
+    severity: major
+    title: Gate failure leaves a dirty tree with no scoped rollback.
+    area: orchestration-failure-path
+    files:
+      - scripts/agent_loop/loop_once.sh
+    allowed_paths:
+      - scripts/agent_loop/
+    finding: >-
+      run_gates.sh is invoked as "bash run_gates.sh > log" under "set -e". A gate
+      failure after Codex or after Claude aborts loop_once.sh before any rollback:
+      no FAILED.patch/FAILED.status, allowed paths not restored, main left dirty.
+      This violates the charter ("a failed task ... leaves main clean") and wedges
+      the next run on the clean-tree gate.
+    required_change: >-
+      Capture the gate exit status without aborting and, on failure in a REAL run,
+      roll back within allowed_paths and preserve artifacts (reuse
+      rollback_failed_task.py).
+    constraint: >-
+      MUST NOT roll back in --dry-run. FINK-S0-01 allowed_paths includes scripts/,
+      so a dry-run rollback would git-restore and delete the untracked
+      scripts/agent_loop/* files. Gate the rollback on dry_run != 1.
+    verification:
+      - bash scripts/agent_loop/loop_once.sh --dry-run
+      - a forced-gate-failure real-run fixture that asserts main is clean afterward
+  - id: RA-2
+    severity: major
+    title: Blocked / exhausted tasks are never persisted and retry forever.
+    area: orchestration-state
+    files:
+      - scripts/agent_loop/loop_once.sh
+      - scripts/agent_loop/apply_verdict.py
+    allowed_paths:
+      - scripts/agent_loop/
+    finding: >-
+      On BLOCKED and EXHAUSTED_REQUEST_CHANGES, loop_once.sh calls
+      rollback_failed_task.py but never apply_verdict.py, so the task stays READY
+      and active_task stays null. The next loop_once re-selects the same task with
+      the same inputs, producing an unbounded BLOCK->rollback->retry cycle. The
+      apply_verdict.py BLOCKED branch already exists but is never invoked.
+    required_change: >-
+      Persist BLOCKED status (and surface EXHAUSTED_REQUEST_CHANGES) so the task is
+      excluded from re-selection; keep rollback scoped to allowed_paths.
+    verification:
+      - uv run pytest
+      - unit test that a BLOCKED verdict marks the task BLOCKED in loop/BACKLOG.yaml
+  - id: RA-3
+    severity: moderate
+    title: Privacy/secret/legal scans skip brand-new untracked files.
+    area: gate-coverage
+    files:
+      - scripts/agent_loop/validate_repo.py
+    allowed_paths:
+      - scripts/agent_loop/
+    finding: >-
+      secret_scan, legal_verdict_scan, and private_quote_scan iterate
+      tracked_files() only. Files Codex newly creates are untracked at gate time
+      and are first scanned only on the next task's gates, after git_checkpoint's
+      "git add -A" has already committed them. A secret/legal/private violation in
+      a new file is committed before it is ever scanned.
+    required_change: >-
+      Extend the scan set to untracked-non-ignored files
+      (git ls-files --others --exclude-standard), keeping the .env skip and the
+      .fink/ + binary exclusions. Strengthening only; weakens no gate.
+    verification:
+      - bash scripts/agent_loop/run_gates.sh
+      - fixture with an untracked file containing a secret pattern fails secret_scan
+  - id: RA-4
+    severity: minor
+    title: Duplicate model-gate source of truth.
+    area: human-gates
+    files:
+      - loop/MODEL_RESEARCH_HUMAN_GATES.yaml
+      - loop/HUMAN_GATES.yaml
+    allowed_paths:
+      - loop/
+    finding: >-
+      loop/MODEL_RESEARCH_HUMAN_GATES.yaml duplicates the four MODEL_* gates that
+      already live in loop/HUMAN_GATES.yaml (the file the loop loads), with a
+      different schema. The two can drift.
+    required_change: >-
+      Consolidate into loop/HUMAN_GATES.yaml or clearly mark the other file as
+      informational-only.
+    verification:
+      - bash scripts/agent_loop/run_gates.sh
+  - id: RA-5
+    severity: minor
+    title: Unused active_task / path_locks; flock is the only concurrency guard.
+    area: observability
+    files:
+      - scripts/agent_loop/loop_once.sh
+      - scripts/agent_loop/_common.py
+    allowed_paths:
+      - scripts/agent_loop/
+    finding: >-
+      active_task is never set during a run and path_locks is always {}, so the
+      path-lock conflict branch in select_eligible_task is dead code; single-run
+      mutual exclusion relies solely on the .fink/agent-loop.lock flock.
+    required_change: >-
+      Either set/clear active_task around a run (and populate path_locks) or
+      document that the flock writer lock is the sole concurrency guard.
+    verification:
+      - bash scripts/agent_loop/loop_once.sh --dry-run
+
+# Commands the audit could not execute (held for approval by the session
+# permission mode and not granted). The operator must run them to confirm
+# dynamic behavior; this audit did not execute them.
+verification_blocked:
+  - git branch --show-current   # ran OK -> main
+  - git branch --list           # ran OK -> only main
+  - bash scripts/agent_loop/doctor.sh --no-llm
+  - bash scripts/agent_loop/run_gates.sh
+  - uv run pytest
+  - bash scripts/agent_loop/loop_once.sh --dry-run
+  - bash scripts/agent_loop/loop_run.sh scripts/agent_loop/queue.s0.txt 1 --dry-run
+  - git check-ignore -v configs/models/sample_new.yaml
+
+boundaries_respected:
+  product_feature_implemented: false
+  gate_weakened: false
+  human_gate_approved: false
+  committed: false
+  pushed: false
+  deployed: false
+  dns_changed: false
+  icml_template_touched: false
+  test_success_fabricated: false
+  branch_created: false

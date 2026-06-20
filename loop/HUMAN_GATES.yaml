@@ -1,0 +1,62 @@
+schema_version: 1
+gates:
+  HR-01:
+    status: OPEN
+    approved: false
+    priority: P0
+    notes: "A0 current-law verification blocks current-law claims and webtoon grounded score."
+  HR-02:
+    status: OPEN
+    approved: false
+    priority: P0
+    notes: "2025 webtoon handbook and 2023 fair-guide extraction blocks webtoon-specific grounded scoring."
+  HR-03:
+    status: OPEN
+    approved: false
+    priority: P1
+    notes: "Sensitive Korean-English legal alias sign-off blocks cross-lingual legal claims."
+  HR-04:
+    status: OPEN
+    approved: false
+    priority: P2
+    notes: "Missing artist-welfare source; cross-cutting only and never score-eligible."
+  HR-05:
+    status: OPEN
+    approved: false
+    priority: P1
+    notes: "Dated 2018-2021 figures cannot be used as current."
+  HR-06:
+    status: OPEN
+    approved: false
+    priority: P2
+    notes: "Glossary risk_category spot-check."
+  HR-07:
+    status: RESOLVED
+    approved: true
+    priority: P1
+    notes: "Governing offering 2026 Spring IE412 AI for Finance; deadline 2026-06-24 23:59 KST."
+  HR-08:
+    status: OPEN
+    approved: false
+    priority: P1
+    notes: "AI-use log and human-verification attestation blocks release."
+  MODEL_METADATA_NETWORK_APPROVED:
+    status: APPROVED
+    approved: true
+    priority: P1
+    notes: "Metadata and dry-run size checks may use Hugging Face with cached token through run_with_hf_auth.sh."
+  MODEL_LICENSES_APPROVED:
+    status: OPEN
+    approved: false
+    priority: P1
+    notes: "Human review of public-open license shortlist required before download."
+  MODEL_DOWNLOAD_APPROVED:
+    status: OPEN
+    approved: false
+    priority: P1
+    notes: "Human approval required before any model weight download."
+  MODEL_PROFILE_APPROVED:
+    status: OPEN
+    approved: false
+    priority: P1
+    notes: "Human approval required for selected local model profile."

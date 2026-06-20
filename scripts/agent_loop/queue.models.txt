@@ -1,0 +1,11 @@
+# MR model research (downloads/licenses/profile gated by human approval)
+FINK-MR-01
+FINK-MR-02
+FINK-MR-03
+FINK-MR-04
+FINK-MR-05
+FINK-MR-06
+FINK-MR-07
+FINK-MR-08
+FINK-MR-09
+FINK-MR-10

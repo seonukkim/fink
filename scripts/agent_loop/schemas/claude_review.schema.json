@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fink.local/schemas/claude_review.schema.json",
+  "type": "object",
+  "required": [
+    "verdict",
+    "summary",
+    "blocking_issues",
+    "major_issues",
+    "minor_issues",
+    "fixes_applied",
+    "required_codex_actions",
+    "required_tests",
+    "financial_reasoning_concerns",
+    "legal_language_concerns",
+    "authority_source_concerns",
+    "privacy_copyright_concerns",
+    "bilingual_concerns",
+    "ui_concerns",
+    "paper_claim_concerns",
+    "changed_files",
+    "confidence"
+  ],
+  "properties": {
+    "verdict": {
+      "enum": ["APPROVE", "REQUEST_CHANGES", "BLOCKED"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "blocking_issues": {
+      "type": "array"
+    },
+    "major_issues": {
+      "type": "array"
+    },
+    "minor_issues": {
+      "type": "array"
+    },
+    "fixes_applied": {
+      "type": "array"
+    },
+    "required_codex_actions": {
+      "type": "array"
+    },
+    "required_tests": {
+      "type": "array"
+    },
+    "financial_reasoning_concerns": {
+      "type": "array"
+    },
+    "legal_language_concerns": {
+      "type": "array"
+    },
+    "authority_source_concerns": {
+      "type": "array"
+    },
+    "privacy_copyright_concerns": {
+      "type": "array"
+    },
+    "bilingual_concerns": {
+      "type": "array"
+    },
+    "ui_concerns": {
+      "type": "array"
+    },
+    "paper_claim_concerns": {
+      "type": "array"
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": ["string", "number"]
+    }
+  },
+  "additionalProperties": false
+}

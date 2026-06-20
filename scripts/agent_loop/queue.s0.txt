@@ -1,0 +1,9 @@
+# S0 foundation and data validation
+FINK-S0-01
+FINK-S0-02
+FINK-S0-03
+FINK-S0-04
+FINK-S0-05
+FINK-S0-06
+FINK-S0-07
+FINK-S0-08

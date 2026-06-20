@@ -1,0 +1,1 @@
+Create `loop/STOP` to ask `loop_run.sh` to stop before selecting another task.

@@ -1,0 +1,8 @@
+# S3 scoring and monetary/time exposure
+FINK-S3-01
+FINK-S3-02
+FINK-S3-03
+FINK-S3-04
+FINK-S3-05
+FINK-S3-06
+FINK-S3-07

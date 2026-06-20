@@ -4,16 +4,29 @@
 # Never publish source scans or archives
 *.pdf
 *.zip
+# Environment files — never commit; loaders read them from outside Git only.
+.env
+*.env
 # Runtime/private material
 contracts/
 uploads/
 /models/
+models/
 indexes/
 data/private/
 data/raw/
 data/unsanitized/
-# Public model registry configs are allowed.
+# Public model registry configs are allowed. These negations come AFTER the
+# broad `models/` ignore so that new configs/models/** files stay tracked; a
+# trailing `models/` would otherwise re-ignore the configs/models directory.
 !configs/
 !configs/models/
 !configs/models/**
-models/
+
+# Python/tooling caches
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage

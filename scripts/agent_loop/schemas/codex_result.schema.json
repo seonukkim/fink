@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fink.local/schemas/codex_result.schema.json",
+  "type": "object",
+  "required": ["status", "summary", "changed_files", "tests_run", "blocked_reason"],
+  "properties": {
+    "status": {
+      "enum": ["SUCCESS", "DRY_RUN", "FAILED", "BLOCKED"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tests_run": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked_reason": {
+      "type": ["string", "null"]
+    }
+  },
+  "additionalProperties": false
+}

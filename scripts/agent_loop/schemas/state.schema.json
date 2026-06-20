@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fink.local/schemas/state.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "created_at",
+    "active_task",
+    "path_locks",
+    "latest_successful_commit",
+    "base_commit",
+    "round",
+    "icml_template_hashes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "active_task": {
+      "type": ["string", "null"]
+    },
+    "path_locks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "last_run_id": {
+      "type": ["string", "null"]
+    },
+    "last_run_dir": {
+      "type": ["string", "null"]
+    },
+    "last_verdict": {
+      "type": ["string", "null"]
+    },
+    "latest_successful_commit": {
+      "type": "string"
+    },
+    "base_commit": {
+      "type": "string"
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "icml_template_hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    }
+  },
+  "additionalProperties": true
+}

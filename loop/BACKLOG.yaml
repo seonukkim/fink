@@ -1,0 +1,1235 @@
+schema_version: 1
+generated_from: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+generated_at: '2026-06-20T20:49:59+00:00'
+source_sha256: 0d25210c0318ca45ad4d173182b7459697a29f398572219626845314d49d88d4
+status_legend:
+  READY: candidate status; dependencies and gates are still checked at selection time
+  DONE: accepted and committed on main
+  BLOCKED: failed or exhausted and rolled back within allowed paths
+tasks:
+- id: FINK-S0-01
+  phase: S0
+  priority: P0
+  depends_on: []
+  scope: M
+  allowed_paths:
+  - data/corpus/
+  - scripts/
+  - src/fink/data/
+  description: 'Import upstream Stage 0-2 record files (01-03, 10-16, 20-24) into
+    the local (git-ignored) corpus dir and validate record counts against the Stage-3
+    index: 35 sources, 156 glossary terms, 20 evidence records, 64 cards, 52 checklist
+    items, 29+3 features, taxonomy 9F+5X.
+
+    '
+  acceptance_criteria:
+  - All referenced upstream files load; counts match 32_FINAL_FILE_INDEX.csv.
+  - Loader refuses to run if a mandatory file is missing (mirrors SPEC_BLOCKERS logic).
+  machine_gates:
+  - count_check
+  - schema_load_ok
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S0-02
+  phase: S0
+  priority: P0
+  depends_on:
+  - FINK-S0-01
+  scope: S
+  allowed_paths:
+  - data/corpus/
+  - config/
+  description: Reconcile reconstructed F1-F9/X1-X5 labels (master spec §3) against
+    10_MASTER_RISK_TAXONOMY (AQ-01).
+  acceptance_criteria:
+  - Final taxonomy IDs match the upstream taxonomy file exactly.
+  - X1-X5 flagged never-score-eligible; F1-F9 score-eligible only with A0-A2.
+  machine_gates:
+  - taxonomy_match
+  - eligibility_flags
+  paper_sections:
+  - 03_method.md
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S0-03
+  phase: S0
+  priority: P0
+  depends_on:
+  - FINK-S0-01
+  scope: M
+  allowed_paths:
+  - data/corpus/
+  - config/
+  - src/fink/finance/
+  description: Bind 29 canonical + 3 auxiliary financial features and map FIM-1..8
+    inputs to canonical IDs (AQ-03).
+  acceptance_criteria:
+  - Every FIM input references a canonical/aux feature_id present in 12.
+  - Auxiliary fields flagged score_input=false.
+  machine_gates:
+  - feature_binding_complete
+  paper_sections:
+  - 03_method.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S0-04
+  phase: S0
+  priority: P0
+  depends_on:
+  - FINK-S0-01
+  scope: S
+  allowed_paths:
+  - data/corpus/
+  - src/fink/data/
+  description: Load 20 A1/A2 evidence records; enforce excerpt < 15 words, verification_status=UNVERIFIED,
+    score_eligible from tier.
+  acceptance_criteria:
+  - 0 evidence rows with excerpt >= 15 words.
+  - 0 evidence rows asserted VERIFIED while HR-01 open.
+  machine_gates:
+  - excerpt_len_lt_15
+  - no_verified_before_a0
+  paper_sections:
+  - 04_data_and_implementation.md
+  - 08_responsible_ai.md
+  human_gate: HR-01
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S0-05
+  phase: S0
+  priority: P0
+  depends_on:
+  - FINK-S0-01
+  scope: S
+  allowed_paths:
+  - data/corpus/
+  - src/fink/data/
+  description: Load 64 B/C cards + 52 checklist items; enforce score_eligible=false
+    and public_export=false throughout.
+  acceptance_criteria:
+  - 0 B/C cards or glossary terms with score_eligible=true.
+  - 0 B/C cards with public_export=true.
+  machine_gates:
+  - bc_non_scoring
+  - bc_non_public
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S0-06
+  phase: S0
+  priority: P0
+  depends_on:
+  - FINK-S0-01
+  scope: L
+  allowed_paths:
+  - src/fink/schemas/
+  - tests/schemas/
+  description: Implement the 18 typed schemas (spec 02) with validators, units, nullability,
+    provenance, bilingual fields, privacy class tags.
+  acceptance_criteria:
+  - All 18 schemas instantiate + validate; low<=base<=high enforced; money>=0 enforced
+    where required.
+  - Privacy class present on every field; P3 fields excluded from any serializer used
+    for logs.
+  machine_gates:
+  - schema_validation_suite
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S0-07
+  phase: S0
+  priority: P0
+  depends_on:
+  - FINK-S0-02
+  - FINK-S0-03
+  scope: S
+  allowed_paths:
+  - config/
+  description: Create config/scoring_config.yaml with heuristic weights/thresholds
+    (severity_weight, authority_factor, k_F, w_F, conf weights, FIM defaults, pathway
+    thresholds), all flagged heuristic + versioned.
+  acceptance_criteria:
+  - scoring_config_version present; every weight documented as heuristic (INV-9).
+  machine_gates:
+  - config_versioned
+  - weights_flagged_heuristic
+  paper_sections:
+  - 03_method.md
+  - 07_discussion_and_limitations.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S0-08
+  phase: S0
+  priority: P0
+  depends_on:
+  - FINK-S0-04
+  - FINK-S0-05
+  - FINK-S0-06
+  scope: M
+  allowed_paths:
+  - tests/invariants/
+  - scripts/
+  description: 'CI invariant gates: authority gate (eligible iff A0-A2), no B/C scoring,
+    excerpt length, no public private material, no contract text in logs.'
+  acceptance_criteria:
+  - Invariant suite fails on any violation of INV-1/INV-8; passes on clean corpus.
+  machine_gates:
+  - invariant_suite
+  paper_sections:
+  - 08_responsible_ai.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S1-01
+  phase: S1
+  priority: P0
+  depends_on:
+  - FINK-S0-06
+  scope: L
+  allowed_paths:
+  - src/fink/ingest/
+  - uploads/
+  - tests/ingest/
+  description: 'Ingestion: camera/image/PDF/paste into ephemeral workspace; PDF rasterized
+    locally; deletion on clear/session-end; filename hashed.'
+  acceptance_criteria:
+  - AC-IN-1/AC-IN-2 pass; PDFs processed with zero network calls.
+  - 'AC-PV-1: uploads deleted at session end; never under a git-tracked path.'
+  machine_gates:
+  - ingest_tests
+  - ephemeral_delete_test
+  - no_network_on_ingest
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S1-02
+  phase: S1
+  priority: P0
+  depends_on:
+  - FINK-S1-01
+  scope: L
+  allowed_paths:
+  - src/fink/ocr/
+  - tests/ocr/
+  description: Local OCR (KO+EN) producing OCRPage/OCRSpan with bbox + per-span confidence;
+    fully offline.
+  acceptance_criteria:
+  - OCR runs offline; spans carry confidence + lang; EV-OCR-CER/WER computable.
+  machine_gates:
+  - ocr_offline_test
+  - ocr_schema_ok
+  paper_sections:
+  - 04_data_and_implementation.md
+  - 05_experiments.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S1-03
+  phase: S1
+  priority: P0
+  depends_on:
+  - FINK-S1-02
+  scope: M
+  allowed_paths:
+  - src/fink/ingest/
+  - src/fink/web/
+  - tests/ingest/
+  description: Page reorder/rotate and OCR preview/inline correction producing HumanCorrection
+    records.
+  acceptance_criteria:
+  - AC-OCR-2 pass; corrections update downstream extraction and feed review-time heuristic.
+  machine_gates:
+  - correction_flow_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S1-04
+  phase: S1
+  priority: P0
+  depends_on:
+  - FINK-S1-02
+  scope: M
+  allowed_paths:
+  - src/fink/segment/
+  - tests/segment/
+  description: Clause/sub-clause segmentation referencing source spans; produces Clause
+    records.
+  acceptance_criteria:
+  - EV-SEG computable; each Clause links >=1 source_span_id.
+  machine_gates:
+  - segmentation_tests
+  paper_sections:
+  - 03_method.md
+  - 05_experiments.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S1-05
+  phase: S1
+  priority: P0
+  depends_on:
+  - FINK-S1-04
+  - FINK-S0-03
+  scope: L
+  allowed_paths:
+  - src/fink/extract/
+  - tests/extract/
+  description: Financial-term extraction (money/%/dates/durations) -> ExtractedFinancialTerms
+    with normalization, units, is_open_ended.
+  acceptance_criteria:
+  - EV-EXACT-* computable; open-ended/opaque numerics flagged (value_norm null).
+  machine_gates:
+  - extract_tests
+  - exact_match_harness
+  paper_sections:
+  - 03_method.md
+  - 05_experiments.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S1-06
+  phase: S1
+  priority: P0
+  depends_on:
+  - FINK-S1-01
+  - FINK-S1-02
+  scope: M
+  allowed_paths:
+  - src/fink/ingest/
+  - src/fink/ocr/
+  - tests/ingest/
+  description: 'PDF ingestion (mandatory MVP, HD-2): local MIME + magic-byte validation;
+    configurable max pages/bytes; reject corrupted/unsupported/oversized and (default)
+    encrypted PDFs with an optional local password flow; local rasterization + text-layer
+    extraction + local OCR fallback for image-only pages; per-page provenance (OCRPage.text_source);
+    accept text-layer/image-only/mixed/multi-page; delete source PDF, page rasters,
+    and OCR intermediates on clear/session-end; no network call at any stage.
+
+    '
+  acceptance_criteria:
+  - AC-PDF-TEXT/AC-PDF-OCR/AC-PDF-MIXED/AC-PDF-MULTIPAGE pass on KO and EN fixtures
+    (text-layer, image-only, mixed, multi-page).
+  - 'AC-PDF-MIME/AC-PDF-CORRUPT/AC-PDF-LIMITS/AC-PDF-ENCRYPTED: invalid PDFs rejected
+    locally with validation_status set; nothing transmitted.'
+  - 'AC-PDF-RASTER/AC-PDF-PROVENANCE/AC-PDF-PAGEOPS/AC-PDF-OCRCORRECT: local raster
+    only; per-page text_source recorded; preview/reorder/rotate/delete/correct work.'
+  - 'AC-PDF-WORKSPACE/AC-PDF-DELETE/AC-PDF-LOG/AC-PDF-OFFLINE/AC-PDF-TESTS: least-privilege
+    workspace; source PDF + rasters + OCR intermediates deleted; no raw filename/contract
+    text in logs; offline + PDF-specific unit/integration tests pass.'
+  machine_gates:
+  - pdf_validation_tests
+  - pdf_textlayer_ocr_tests
+  - pdf_offline_test
+  - pdf_ephemeral_delete_test
+  - pdf_log_redaction_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S2-01
+  phase: S2
+  priority: P0
+  depends_on:
+  - FINK-S0-01
+  - FINK-S0-04
+  - FINK-S0-05
+  scope: L
+  allowed_paths:
+  - src/fink/retrieval/
+  - indexes/
+  - tests/retrieval/
+  description: Local hierarchical corpus + index (keyword/BM25 + optional local embeddings);
+    no cloud RAG.
+  acceptance_criteria:
+  - Index builds and queries offline; EV-R@3/R@5 computable.
+  machine_gates:
+  - retrieval_offline_test
+  - recall_harness
+  paper_sections:
+  - 03_method.md
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S2-02
+  phase: S2
+  priority: P0
+  depends_on:
+  - FINK-S2-01
+  scope: M
+  allowed_paths:
+  - src/fink/retrieval/
+  - tests/retrieval/
+  description: 'Bilingual canonical-ID resolution: KO and EN queries/aliases resolve
+    to the same canonical_id.'
+  acceptance_criteria:
+  - EV-KOEN computable; KO and EN paired queries return same concept/top-k.
+  - 8 non-equivalence terms carry caveats; EN never labeled evidence.
+  machine_gates:
+  - koen_consistency_harness
+  paper_sections:
+  - 03_method.md
+  - 08_responsible_ai.md
+  human_gate: HR-03
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S2-03
+  phase: S2
+  priority: P0
+  depends_on:
+  - FINK-S2-01
+  scope: M
+  allowed_paths:
+  - src/fink/retrieval/
+  - src/fink/grounding/
+  - tests/grounding/
+  description: 'Authority-gated retrieval: B/C cards for explanation, A0-A2 for grounding;
+    conflicting sources preserved with precedence (2025 > 2018), never silently merged.'
+  acceptance_criteria:
+  - AC-AUTH-1/AC-AUTH-3 pass; every returned record carries source_id/authority_tier/verification_status.
+  machine_gates:
+  - authority_tag_present
+  - conflict_preserved_test
+  paper_sections:
+  - 03_method.md
+  human_gate: HR-02
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S2-04
+  phase: S2
+  priority: P0
+  depends_on:
+  - FINK-S2-03
+  scope: S
+  allowed_paths:
+  - src/fink/grounding/
+  - tests/grounding/
+  description: 'Score-eligibility wiring: a signal is score-eligible iff >=1 A0-A2
+    evidence id grounds it; B/C-only => practice_reference, contributes 0.'
+  acceptance_criteria:
+  - AC-AUTH-2 pass (mirrors PASS-gate 1); unit test SC-AGG-T1 passes.
+  machine_gates:
+  - eligibility_gate_test
+  paper_sections:
+  - 03_method.md
+  - 08_responsible_ai.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S3-01
+  phase: S3
+  priority: P0
+  depends_on:
+  - FINK-S2-04
+  - FINK-S1-05
+  scope: L
+  allowed_paths:
+  - src/fink/signals/
+  - config/
+  - tests/signals/
+  description: Rule-based risk signals (presence + missing-protection) per F1-F9;
+    deterministic; config-driven severity.
+  acceptance_criteria:
+  - Signals fire on labeled synthetic clauses; missing-protection requires A0-A2 grounding
+    to score.
+  machine_gates:
+  - signal_rule_tests
+  paper_sections:
+  - 03_method.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S3-02
+  phase: S3
+  priority: P0
+  depends_on:
+  - FINK-S3-01
+  - FINK-S0-07
+  scope: M
+  allowed_paths:
+  - src/fink/scoring/
+  - tests/scoring/
+  description: Clause/document aggregation -> category scores (saturating, 0-100)
+    and Review-Priority Score (0-100); B/C contributes 0.
+  acceptance_criteria:
+  - SC-AGG-T1/T2/T3 pass; score bounded 0-100; config-driven.
+  machine_gates:
+  - aggregation_tests
+  paper_sections:
+  - 03_method.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S3-03
+  phase: S3
+  priority: P0
+  depends_on:
+  - FINK-S0-03
+  - FINK-S0-06
+  scope: L
+  allowed_paths:
+  - src/fink/finance/
+  - tests/finance/
+  description: Implement FIM-1, FIM-2, FIM-3, FIM-7 with low/base/high; keep nominal
+    vs PV vs deferral vs liability separate.
+  acceptance_criteria:
+  - Unit tests FIM-1-T1, FIM-2-T1, FIM-3-T1, FIM-7-T1, FIM-7-T2 pass within tolerance.
+  - 'SC-SEP-T1: no cross-exposure-type summation.'
+  machine_gates:
+  - fim_core_unit_tests
+  - exposure_separation_test
+  paper_sections:
+  - 03_method.md
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S3-04
+  phase: S3
+  priority: P0
+  depends_on:
+  - FINK-S3-03
+  scope: M
+  allowed_paths:
+  - src/fink/finance/
+  - tests/finance/
+  description: Implement FIM-4, FIM-5, FIM-6 (user-assumption modules); blank until
+    inputs supplied; defaults labeled synthetic.
+  acceptance_criteria:
+  - Unit tests FIM-4-T1, FIM-5-T1, FIM-6-T1 pass; modules blank when inputs absent
+    (INV-6).
+  machine_gates:
+  - fim_scenario_unit_tests
+  - blank_without_inputs_test
+  paper_sections:
+  - 03_method.md
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S3-05
+  phase: S3
+  priority: P0
+  depends_on:
+  - FINK-S3-03
+  scope: M
+  allowed_paths:
+  - src/fink/finance/
+  - src/fink/scoring/
+  - tests/finance/
+  description: FIM-8 evidence-opacity uncertainty + ConfidenceBreakdown; widen bands
+    around unchanged base; lower confidence; never raise amount/score.
+  acceptance_criteria:
+  - 'FIM-8-T1 passes: base unchanged, high up, low down, score unchanged, data_completeness
+    down.'
+  machine_gates:
+  - fim8_uncertainty_test
+  paper_sections:
+  - 03_method.md
+  - 07_discussion_and_limitations.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S3-06
+  phase: S3
+  priority: P0
+  depends_on:
+  - FINK-S3-03
+  - FINK-S1-03
+  scope: M
+  allowed_paths:
+  - src/fink/time/
+  - tests/time/
+  description: Time exposure fields + human-review-minutes heuristic + categorical
+    pathway label; no court/negotiation duration numbers.
+  acceptance_criteria:
+  - AC-TIME-1/AC-TIME-2 pass; pathway label categorical; runtime measured.
+  machine_gates:
+  - time_exposure_tests
+  - no_duration_number_test
+  paper_sections:
+  - 03_method.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S3-07
+  phase: S3
+  priority: P2
+  depends_on:
+  - FINK-S3-02
+  scope: L
+  allowed_paths:
+  - src/fink/model/
+  - models/
+  - tests/model/
+  description: 'Stretch: small local ONNX risk classifier (model_only arm) + hybrid
+    merge with rules; keep authority gate.'
+  acceptance_criteria:
+  - model_only and hybrid arms produce ExperimentResult rows; no remote calls.
+  machine_gates:
+  - model_arm_offline_test
+  paper_sections:
+  - 03_method.md
+  - 05_experiments.md
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S4-01
+  phase: S4
+  priority: P0
+  depends_on:
+  - FINK-S0-06
+  scope: L
+  allowed_paths:
+  - src/fink/web/
+  - tests/web/
+  description: FastAPI app + responsive frontend skeleton; loopback default; explicit
+    opt-in LAN binding with trusted-LAN warning; persistent privacy + not-legal-advice
+    banners.
+  acceptance_criteria:
+  - AC-UX-RESP/AC-UX-DISC pass; no outbound calls; LAN binding gated by opt-in.
+  machine_gates:
+  - web_smoke_test
+  - no_network_runtime_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S4-02
+  phase: S4
+  priority: P0
+  depends_on:
+  - FINK-S4-01
+  - FINK-S1-03
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  - tests/web/
+  description: Ingestion + OCR preview/correction + page reorder/rotate UI (camera/image/PDF/paste);
+    PDF upload reachable on mobile browser + desktop.
+  acceptance_criteria:
+  - All four ingestion modes reachable; correction + reorder/rotate work on phone
+    + desktop layouts.
+  - 'AC-PDF-MOBILE: PDF upload + page ops work from a mobile browser and desktop;
+    rejected PDFs show a clear local error.'
+  machine_gates:
+  - ui_ingest_tests
+  - ui_pdf_upload_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S4-03
+  phase: S4
+  priority: P0
+  depends_on:
+  - FINK-S4-01
+  - FINK-S3-02
+  - FINK-S3-05
+  scope: L
+  allowed_paths:
+  - src/fink/web/
+  - tests/web/
+  description: 'Four-dimension report UI: score + category cards + highlighted evidence
+    + official-source comparison + questions; X1-X5 in non-scoring section.'
+  acceptance_criteria:
+  - AC-UX-EXPL/AC-UX-Q pass; four dimensions never merged; practice-reference badge
+    shown.
+  machine_gates:
+  - report_ui_tests
+  - four_dimension_present_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S4-04
+  phase: S4
+  priority: P0
+  depends_on:
+  - FINK-S4-03
+  - FINK-S3-04
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  - tests/web/
+  description: Editable assumptions panel with live recompute (FIM-1..7); synthetic-assumption
+    labels; blanks until inputs supplied.
+  acceptance_criteria:
+  - AC-FIN-EDIT pass; recompute live; no guessed numbers shown.
+  machine_gates:
+  - assumptions_recompute_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S4-05
+  phase: S4
+  priority: P0
+  depends_on:
+  - FINK-S4-03
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  - src/fink/report/
+  - tests/report/
+  description: Local report export (HTML/MD/JSON), disclaimers embedded, raw image
+    bytes excluded by default; no network.
+  acceptance_criteria:
+  - AC-OUT-1 pass; export local-only; disclaimers present; contains_raw_image=false
+    default.
+  machine_gates:
+  - export_local_test
+  - export_no_raw_image_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S5-01
+  phase: S5
+  priority: P0
+  depends_on:
+  - FINK-S0-06
+  scope: L
+  allowed_paths:
+  - data/eval/
+  - scripts/eval/
+  - tests/eval/
+  description: Build synthetic datasets DR-6/7/8/11/12/13 + frozen_eval split (hashed,
+    immutable); no real contract data.
+  acceptance_criteria:
+  - All EvaluationExample are is_synthetic=true; frozen split hashed; dev/frozen separated.
+  machine_gates:
+  - synthetic_only_test
+  - frozen_split_hash_test
+  paper_sections:
+  - 04_data_and_implementation.md
+  - 05_experiments.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S5-02
+  phase: S5
+  priority: P0
+  depends_on:
+  - FINK-S5-01
+  - FINK-S1-05
+  scope: M
+  allowed_paths:
+  - scripts/eval/
+  - tests/eval/
+  description: 'OCR/extraction/segmentation metrics: EV-OCR-CER/WER, EV-EXACT-*, EV-SEG.'
+  acceptance_criteria:
+  - Metrics computed and logged to RESULT_LEDGER with status=measured.
+  machine_gates:
+  - ocr_extract_metric_run
+  paper_sections:
+  - 05_experiments.md
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S5-03
+  phase: S5
+  priority: P0
+  depends_on:
+  - FINK-S5-01
+  - FINK-S2-03
+  scope: M
+  allowed_paths:
+  - scripts/eval/
+  - tests/eval/
+  description: 'Retrieval/grounding/KO-EN metrics: EV-R@3/R@5, EV-AUTH, EV-SPAN, EV-KOEN.'
+  acceptance_criteria:
+  - Metrics computed; authority-tier correctness verified; KO/EN consistency measured.
+  machine_gates:
+  - retrieval_metric_run
+  paper_sections:
+  - 05_experiments.md
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S5-04
+  phase: S5
+  priority: P0
+  depends_on:
+  - FINK-S5-01
+  - FINK-S3-02
+  scope: L
+  allowed_paths:
+  - scripts/eval/
+  - tests/eval/
+  description: 'Risk metrics + ablations: EV-F1, EV-BENIGN-FPR, EV-SEV, across rule_only/model_only/hybrid
+    arms.'
+  acceptance_criteria:
+  - Three arms reported; benign-FPR measured; no arm claimed optimal beyond measured
+    result.
+  machine_gates:
+  - risk_metric_run
+  - ablation_three_arms
+  paper_sections:
+  - 05_experiments.md
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S5-05
+  phase: S5
+  priority: P0
+  depends_on:
+  - FINK-S3-03
+  - FINK-S3-04
+  - FINK-S3-05
+  scope: M
+  allowed_paths:
+  - tests/finance/
+  - scripts/eval/
+  description: 'Formula unit tests + financial-scenario correctness: EV-UNIT, EV-FINSCEN
+    (all FIM-*-T*, SC-*-T*).'
+  acceptance_criteria:
+  - All registered unit tests pass within tolerance; results logged.
+  machine_gates:
+  - formula_unit_suite
+  paper_sections:
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S5-06
+  phase: S5
+  priority: P0
+  depends_on:
+  - FINK-S4-01
+  - FINK-S1-01
+  scope: M
+  allowed_paths:
+  - tests/runtime/
+  - scripts/eval/
+  description: 'Latency/memory + offline + privacy tests: EV-LAT, EV-MEM, EV-OFFLINE,
+    EV-PRIV.'
+  acceptance_criteria:
+  - Offline test passes (zero outbound); logs/exports contain no contract text/upload
+    paths; latency+memory measured.
+  machine_gates:
+  - offline_integration_test
+  - privacy_redaction_test
+  - latency_memory_run
+  paper_sections:
+  - 05_experiments.md
+  - 06_results.md
+  - 08_responsible_ai.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S5-07
+  phase: S5
+  priority: P2
+  depends_on:
+  - FINK-S5-04
+  - FINK-S5-01
+  scope: L
+  allowed_paths:
+  - scripts/eval/
+  - tests/eval/
+  description: 'Stretch: decision-focused utility (EV-DFU), usability checklist (EV-USAB),
+    calibration (EV-CALIB), stability (EV-STAB).'
+  acceptance_criteria:
+  - EV-DFU vs baseline reported on synthetic; usability rubric executed; calibration/stability
+    measured-on-synthetic.
+  machine_gates:
+  - dfu_run
+  - stability_run
+  paper_sections:
+  - 05_experiments.md
+  - 06_results.md
+  - 07_discussion_and_limitations.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S6-01
+  phase: S6
+  priority: P1
+  depends_on:
+  - FINK-S5-04
+  - FINK-S4-03
+  scope: M
+  allowed_paths:
+  - site/
+  - docs/paper/FIGURE_REGISTRY.csv
+  description: Static project page (synthetic demo only), disclaimers, metric table
+    sourced from RESULT_LEDGER/FIGURE_REGISTRY; public-safe only.
+  acceptance_criteria:
+  - No real contracts/private-book text/long official excerpts/keys; figures registered;
+    disclaimers present.
+  machine_gates:
+  - site_public_safe_scan
+  - figure_registry_consistent
+  paper_sections:
+  - 06_results.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S7-01
+  phase: S7
+  priority: P1
+  depends_on:
+  - FINK-S5-02
+  - FINK-S5-03
+  - FINK-S5-04
+  - FINK-S5-05
+  - FINK-S5-06
+  scope: M
+  allowed_paths:
+  - docs/paper/
+  description: Populate paper notes per course-section mapping; fill CLAIM_LEDGER/RESULT_LEDGER/FIGURE_REGISTRY
+    from measured results.
+  acceptance_criteria:
+  - Every results claim traces to a measured RESULT_LEDGER row; no fabricated values;
+    DFL-inspired wording.
+  machine_gates:
+  - paper_claim_trace
+  - no_fabricated_value
+  paper_sections:
+  - 00_abstract.md
+  - 01_problem_and_motivation.md
+  - 02_related_work.md
+  - 03_method.md
+  - 04_data_and_implementation.md
+  - 05_experiments.md
+  - 06_results.md
+  - 07_discussion_and_limitations.md
+  - 09_conclusion.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S7-02
+  phase: S7
+  priority: P1
+  depends_on:
+  - FINK-S7-01
+  scope: M
+  allowed_paths:
+  - scripts/
+  - tests/paper/
+  description: paper-sync checker (rules 1-6 in spec 07) + assert paper/template/icml2026
+    byte-unchanged.
+  acceptance_criteria:
+  - Checker fails on unsupported claim/fabricated value/orphan figure/template modification;
+    passes on clean state.
+  machine_gates:
+  - paper_sync_checker
+  - template_untouched_gate
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S7-03
+  phase: S7
+  priority: P1
+  depends_on:
+  - FINK-S7-01
+  scope: S
+  allowed_paths:
+  - docs/ai-use-log.md
+  - docs/paper/08_responsible_ai.md
+  description: Maintain ai-use log + responsible-AI note (review-priority framing,
+    authority gate, uncertainty, privacy, synthetic-data limits, no validated weights).
+  acceptance_criteria:
+  - ai-use log current; responsible-AI note covers all required points; HR-08 attestation
+    recorded.
+  machine_gates:
+  - aiuse_present
+  paper_sections:
+  - 08_responsible_ai.md
+  human_gate: HR-08
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S8-01
+  phase: S8
+  priority: P0
+  depends_on:
+  - FINK-S5-06
+  - FINK-S4-05
+  scope: M
+  allowed_paths:
+  - scripts/
+  - tests/release/
+  description: Privacy preflight (scripts/public_repo_preflight.sh -> PREFLIGHT_OK)
+    + secret scan + .gitignore enforcement (.fink/, *.pdf, *.zip, uploads/, contracts/,
+    models/, indexes/, data/private|raw|unsanitized).
+  acceptance_criteria:
+  - PREFLIGHT_OK; no prohibited files in commit candidate; no API keys; no contract
+    text in logs.
+  machine_gates:
+  - preflight_ok
+  - secret_scan
+  - gitignore_enforced
+  paper_sections:
+  - 08_responsible_ai.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S8-02
+  phase: S8
+  priority: P0
+  depends_on:
+  - FINK-S0-04
+  - FINK-S0-05
+  scope: S
+  allowed_paths:
+  - scripts/
+  - tests/release/
+  description: 'Copyright/license audit: official excerpts < 15 words, public_export=false
+    where license UNKNOWN, B/C never public, no long private-book passages.'
+  acceptance_criteria:
+  - 0 violations; license_status surfaced; export artifacts public-safe.
+  machine_gates:
+  - copyright_audit
+  paper_sections:
+  - 08_responsible_ai.md
+  human_gate: null
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-S8-03
+  phase: S8
+  priority: P0
+  depends_on:
+  - FINK-S8-01
+  - FINK-S8-02
+  - FINK-S7-02
+  scope: S
+  allowed_paths:
+  - docs/specs/09_ACCEPTANCE_CHECKLIST.md
+  - docs/paper/
+  description: 'Run pre-submission checklist; resolve or explicitly defer-with-rationale
+    HR P0/P1 items. Course term/deadline already RESOLVED (HD-3): 2026 Spring IE412
+    AI for Finance, deadline 2026-06-24 23:59 KST.'
+  acceptance_criteria:
+  - Acceptance checklist green or deferrals justified; HR-01/02/03/05/06/08 status
+    recorded; HR-07 confirmed resolved; no current-law claim before HR-01.
+  machine_gates:
+  - acceptance_checklist_run
+  paper_sections:
+  - 07_discussion_and_limitations.md
+  - 08_responsible_ai.md
+  human_gate: HR-01;HR-02;HR-03;HR-05;HR-08
+  status: READY
+  source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+- id: FINK-MR-01
+  phase: MR
+  priority: P1
+  depends_on: []
+  scope: S
+  allowed_paths:
+  - docs/model-card.md
+  - configs/models/
+  - scripts/model_research/
+  description: Record hardware and software inventory for local model research.
+  acceptance_criteria:
+  - Inventory records CPU, memory, GPU, OS, Python, and local runtime constraints.
+  machine_gates:
+  - model_research_metadata_parse
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+- id: FINK-MR-02
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-01
+  scope: M
+  allowed_paths:
+  - configs/models/
+  - docs/model-card.md
+  - scripts/model_research/
+  description: Inventory Hugging Face metadata, licenses, gated status, and exact
+    revisions.
+  acceptance_criteria:
+  - Every candidate has metadata, license, gated status, and pinned revision.
+  machine_gates:
+  - open_license_policy_check
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: MODEL_METADATA_NETWORK_APPROVED
+  status: READY
+- id: FINK-MR-03
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-02
+  scope: S
+  allowed_paths:
+  - configs/models/
+  - docs/model-card.md
+  - scripts/model_research/
+  description: Record download-size dry runs without downloading weights.
+  acceptance_criteria:
+  - Dry-run records exact revisions and estimated disk size; no model weights enter
+    Git.
+  machine_gates:
+  - model_size_dry_run_records
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: MODEL_METADATA_NETWORK_APPROVED
+  status: READY
+- id: FINK-MR-04
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-03
+  scope: S
+  allowed_paths:
+  - configs/models/
+  - docs/model-card.md
+  description: Produce an open-license filtered shortlist using the public_open floor.
+  acceptance_criteria:
+  - Unknown, missing, gated, custom, noncommercial, and research-only licenses are
+    rejected by default.
+  machine_gates:
+  - open_license_shortlist
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: MODEL_LICENSES_APPROVED
+  status: READY
+- id: FINK-MR-05
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-04
+  scope: M
+  allowed_paths:
+  - docs/model-card.md
+  - scripts/model_research/
+  description: Download selected private model weights only after human approval.
+  acceptance_criteria:
+  - Weights are stored under PRIVATE_ROOT/models or Hugging Face cache, never Git.
+  machine_gates:
+  - model_weight_tracking_scan
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: MODEL_DOWNLOAD_APPROVED
+  status: READY
+- id: FINK-MR-06
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-05
+  scope: M
+  allowed_paths:
+  - docs/model-card.md
+  - tests/model_research/
+  - scripts/model_research/
+  description: Run offline local-load smoke tests for approved model profiles.
+  acceptance_criteria:
+  - Selected models load with runtime offline flags and no remote API calls.
+  machine_gates:
+  - model_offline_load_smoke
+  paper_sections:
+  - 04_data_and_implementation.md
+  human_gate: null
+  status: READY
+- id: FINK-MR-07
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-06
+  scope: M
+  allowed_paths:
+  - docs/model-card.md
+  - tests/model_research/
+  description: Benchmark OCR extraction for money, percentages, dates, durations,
+    and article numbers.
+  acceptance_criteria:
+  - Benchmark summary uses synthetic/sanitized inputs and records exact model revisions.
+  machine_gates:
+  - ocr_benchmark_summary
+  paper_sections:
+  - 05_experiments.md
+  human_gate: null
+  status: READY
+- id: FINK-MR-08
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-06
+  scope: M
+  allowed_paths:
+  - docs/model-card.md
+  - tests/model_research/
+  description: Benchmark Korean/English retrieval consistency.
+  acceptance_criteria:
+  - KO and EN paired queries resolve to the same canonical IDs on synthetic/sanitized
+    data.
+  machine_gates:
+  - ko_en_retrieval_benchmark
+  paper_sections:
+  - 05_experiments.md
+  human_gate: null
+  status: READY
+- id: FINK-MR-09
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-06
+  scope: M
+  allowed_paths:
+  - docs/model-card.md
+  - tests/model_research/
+  description: Benchmark local explanation quality while preserving evidence boundaries.
+  acceptance_criteria:
+  - Local LLM explains retrieved evidence but does not create legal evidence or set
+    production risk scores.
+  machine_gates:
+  - local_explanation_boundary_test
+  paper_sections:
+  - 05_experiments.md
+  - 08_responsible_ai.md
+  human_gate: null
+  status: READY
+- id: FINK-MR-10
+  phase: MR
+  priority: P1
+  depends_on:
+  - FINK-MR-07
+  - FINK-MR-08
+  - FINK-MR-09
+  scope: S
+  allowed_paths:
+  - docs/model-card.md
+  - configs/models/
+  description: Write selected-profile report with licenses, revisions, configs, and
+    benchmark summaries.
+  acceptance_criteria:
+  - Public Git contains only model IDs, licenses, revisions, configs, benchmark summaries,
+    and selected profiles.
+  machine_gates:
+  - selected_profile_report
+  paper_sections:
+  - 04_data_and_implementation.md
+  - 05_experiments.md
+  human_gate: MODEL_PROFILE_APPROVED
+  status: READY

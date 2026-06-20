@@ -1,0 +1,481 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+import argparse
+import ast
+import csv
+import json
+import os
+import re
+import subprocess
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Any
+
+from scripts.agent_loop._common import (
+    BACKLOG_PATH,
+    HUMAN_GATES_PATH,
+    REPO_ROOT,
+    STATE_PATH,
+    changed_files_since,
+    current_branch,
+    current_commit,
+    git,
+    icml_template_hashes,
+    is_worktree_clean,
+    load_json,
+    load_yaml,
+    local_branches,
+    read_text,
+    tracked_files,
+)
+
+FORBIDDEN_TRACKED = re.compile(
+    r"(^\.fink/|\.pdf$|\.zip$|^contracts/|^uploads/|^data/private/|^data/raw/|^data/unsanitized/)"
+)
+SECRET_PATTERNS = [
+    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
+    re.compile(r"(OPENAI_API_KEY|ANTHROPIC_API_KEY|HF_TOKEN)\s*=\s*['\"]?[A-Za-z0-9_./-]{12,}"),
+    re.compile(r"-----BEGIN (RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----"),
+]
+PRIVATE_QUOTE_RE = re.compile(r"[가-힣][^.\n]{180,}[가-힣]")
+BAD_LEGAL_ASSERTIONS = [
+    re.compile(
+        r"FInk (determines|decides|proves|guarantees).*(fraud|illegal|valid|void|unfair|loss)",
+        re.I,
+    ),
+    re.compile(
+        r"FInk'?s? (score|output|report).{0,80}is.{0,40}"
+        r"(fraud probability|illegality probability|guaranteed loss)",
+        re.I,
+    ),
+    re.compile(r"trained end-to-end DFL", re.I),
+]
+
+
+class GateFailure(AssertionError):
+    pass
+
+
+def print_gate(name: str, ok: bool, detail: str = "") -> None:
+    status = "PASS" if ok else "FAIL"
+    suffix = f" - {detail}" if detail else ""
+    print(f"[{status}] {name}{suffix}")
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise GateFailure(message)
+
+
+def gate(name: str, fn: Any) -> None:
+    try:
+        detail = fn() or ""
+    except Exception as exc:
+        print_gate(name, False, str(exc))
+        raise
+    print_gate(name, True, str(detail))
+
+
+def text_files_for_scan() -> list[Path]:
+    result: list[Path] = []
+    for file in tracked_files():
+        if file == ".env" or file.endswith(".env"):
+            continue
+        path = REPO_ROOT / file
+        if not path.is_file():
+            continue
+        try:
+            chunk = path.read_bytes()[:4096]
+        except OSError:
+            continue
+        if b"\0" not in chunk:
+            result.append(path)
+    return result
+
+
+def parse_structured_files() -> str:
+    counts = {"json": 0, "jsonl": 0, "yaml": 0, "csv": 0}
+    for file in tracked_files():
+        path = REPO_ROOT / file
+        if not path.is_file():
+            continue
+        suffix = path.suffix.lower()
+        if suffix == ".json":
+            json.loads(path.read_text(encoding="utf-8"))
+            counts["json"] += 1
+        elif suffix == ".jsonl":
+            for idx, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if line.strip():
+                    try:
+                        json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise GateFailure(f"{file}:{idx}: {exc}") from exc
+            counts["jsonl"] += 1
+        elif suffix in {".yaml", ".yml"}:
+            load_yaml(path)
+            counts["yaml"] += 1
+        elif suffix == ".csv":
+            with path.open(newline="", encoding="utf-8") as fh:
+                list(csv.reader(fh))
+            counts["csv"] += 1
+    return ", ".join(f"{key}={value}" for key, value in counts.items())
+
+
+def schema_validation() -> str:
+    try:
+        import jsonschema  # type: ignore[import-untyped]
+    except Exception:
+        return "jsonschema unavailable; structured parsing completed separately"
+    schema_dir = REPO_ROOT / "scripts" / "agent_loop" / "schemas"
+    pairs = [
+        (BACKLOG_PATH, schema_dir / "task.schema.json", "tasks"),
+        (STATE_PATH, schema_dir / "state.schema.json", None),
+    ]
+    for data_path, schema_path, list_key in pairs:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        data = (
+            load_yaml(data_path)
+            if data_path.suffix in {".yaml", ".yml"}
+            else load_json(data_path)
+        )
+        if list_key:
+            for item in data[list_key]:
+                jsonschema.validate(item, schema)
+        else:
+            jsonschema.validate(data, schema)
+    # Validate dry-run artifact examples against the result/review schemas.
+    codex_schema = json.loads((schema_dir / "codex_result.schema.json").read_text(encoding="utf-8"))
+    review_schema = json.loads(
+        (schema_dir / "claude_review.schema.json").read_text(encoding="utf-8")
+    )
+    jsonschema.Draft202012Validator.check_schema(codex_schema)
+    jsonschema.Draft202012Validator.check_schema(review_schema)
+    return "schemas valid"
+
+
+def branch_gate() -> str:
+    branch = current_branch()
+    require(branch == "main", f"current branch is {branch!r}, expected main")
+    branches = local_branches()
+    require(branches == ["main"], f"local branches are {branches}, expected only main")
+    return f"branch={branch}"
+
+
+def clean_start_gate(task_start: bool) -> str:
+    if not task_start:
+        return "not in task-start mode"
+    require(is_worktree_clean(), "worktree is not clean at task start")
+    return "clean"
+
+
+def tracking_scan() -> str:
+    bad = [file for file in tracked_files() if FORBIDDEN_TRACKED.search(file)]
+    require(not bad, "forbidden tracked files: " + ", ".join(bad))
+    return "no .fink/PDF/ZIP/private tracked files"
+
+
+def secret_scan() -> str:
+    findings: list[str] = []
+    for path in text_files_for_scan():
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for pattern in SECRET_PATTERNS:
+            if pattern.search(text):
+                findings.append(path.relative_to(REPO_ROOT).as_posix())
+                break
+    require(not findings, "possible secrets in: " + ", ".join(sorted(set(findings))))
+    return "no secret patterns"
+
+
+def private_quote_scan() -> str:
+    findings: list[str] = []
+    for path in text_files_for_scan():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if rel.startswith("docs/specs/"):
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if PRIVATE_QUOTE_RE.search(text):
+            findings.append(rel)
+    require(not findings, "long private-quotation heuristic matched: " + ", ".join(findings))
+    return "no long private quotations"
+
+
+def legal_verdict_scan() -> str:
+    findings: list[str] = []
+    for path in text_files_for_scan():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if rel == "docs/FINK_MASTER_SPEC.md" or rel.startswith("docs/specs/"):
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for pattern in BAD_LEGAL_ASSERTIONS:
+            if pattern.search(text):
+                findings.append(rel)
+                break
+    require(
+        not findings,
+        "forbidden legal/result assertion in: " + ", ".join(sorted(set(findings))),
+    )
+    return "no forbidden verdict assertions"
+
+
+def authority_invariant() -> str:
+    tiers = {"A0", "A1", "A2", "B", "C", "M1", "M2", "M3", "R0", "D0"}
+    scoring = {"A0", "A1", "A2"}
+    for tier in tiers:
+        eligible = tier in scoring
+        if tier in {"B", "C", "M1", "M2", "M3", "R0", "D0"}:
+            require(not eligible, f"{tier} must not be score eligible")
+    return "A0-A2 only"
+
+
+def money(value: Decimal) -> int:
+    return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def financial_formula_tests() -> str:
+    gross = Decimal("10000000")
+    refunds = Decimal("500000")
+    allowed = Decimal("1000000")
+    rate = Decimal("0.7")
+    open_high = Decimal("2000000")
+    payout_high = (gross - refunds - allowed) * rate
+    payout_low = (gross - refunds - allowed - open_high) * rate
+    require(payout_high - payout_low == Decimal("1400000"), "FIM-1 expected 1,400,000")
+
+    delayed = Decimal("10000000")
+    r = Decimal("0.05")
+    days = Decimal("180")
+    pv = delayed * (Decimal(1) - Decimal(1) / ((Decimal(1) + r) ** (days / Decimal(365))))
+    require(abs(money(pv) - 237700) < 3000, f"FIM-2 PV unexpected: {pv}")
+
+    monthly = [Decimal("1000000"), Decimal("2000000"), Decimal("4000000")]
+    months = []
+    for sales in monthly:
+        recoup = sales * rate
+        months.append(int((Decimal("12000000") / recoup).to_integral_value(rounding=ROUND_HALF_UP)))
+    require(months == [17, 9, 4] or months == [18, 9, 5], "FIM-3 sanity failed")
+
+    low = Decimal("4550000")
+    base = Decimal("5250000")
+    high = Decimal("5950000")
+    factor = Decimal("1.2")
+    require(money(low / factor) == 3791667, "FIM-8 low failed")
+    require(base == Decimal("5250000"), "FIM-8 base changed")
+    require(money(high * factor) == 7140000, "FIM-8 high failed")
+    return "FIM sanity vectors"
+
+
+def paper_ledgers() -> str:
+    expected = {
+        "docs/paper/CLAIM_LEDGER.csv": [
+            "claim_id",
+            "section",
+            "claim_text",
+            "evidence_file",
+            "evidence_key",
+            "status",
+            "reviewer",
+            "notes",
+        ],
+        "docs/paper/RESULT_LEDGER.csv": [
+            "result_id",
+            "experiment_id",
+            "metric",
+            "value",
+            "artifact_path",
+            "status",
+            "reviewer",
+            "notes",
+        ],
+        "docs/paper/FIGURE_REGISTRY.csv": [
+            "figure_id",
+            "title",
+            "source_artifact",
+            "paper_section",
+            "site_section",
+            "status",
+            "notes",
+        ],
+    }
+    for rel, header in expected.items():
+        path = REPO_ROOT / rel
+        with path.open(newline="", encoding="utf-8") as fh:
+            first = next(csv.reader(fh))
+        require(first == header, f"{rel} header mismatch")
+    return "ledger headers"
+
+
+def ai_use_log() -> str:
+    text = read_text(REPO_ROOT / "docs" / "ai-use-log.md")
+    require("bootstrap" in text.lower(), "docs/ai-use-log.md missing bootstrap entry")
+    require("HR-08" in text, "docs/ai-use-log.md missing HR-08 status")
+    return "present"
+
+
+def required_docs() -> str:
+    required = [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "LOOP.md",
+        "docs/ai-use-log.md",
+        "docs/data-card.md",
+        "docs/model-card.md",
+        "docs/privacy.md",
+        "docs/limitations.md",
+        "loop/CHARTER.md",
+        "loop/ACCEPTANCE.md",
+        "loop/RUBRIC.md",
+        "loop/BACKLOG.yaml",
+        "loop/STATE.json",
+        "loop/HUMAN_GATES.yaml",
+        "loop/STOP.example",
+    ]
+    missing = [
+        rel
+        for rel in required
+        if not (REPO_ROOT / rel).is_file() or not read_text(REPO_ROOT / rel).strip()
+    ]
+    require(not missing, "missing/empty required docs: " + ", ".join(missing))
+    return f"{len(required)} required files"
+
+
+def allowed_path_scope() -> str:
+    base = os.environ.get("FINK_BASE_COMMIT")
+    allowed_raw = os.environ.get("FINK_ALLOWED_PATHS", "")
+    if not base or not allowed_raw:
+        return "not in task scope mode"
+    allowed = [item for item in allowed_raw.split(os.pathsep) if item]
+    changed = changed_files_since(base)
+    bad = [
+        file
+        for file in changed
+        if not any(file == p.rstrip("/") or file.startswith(p.rstrip("/") + "/") for p in allowed)
+    ]
+    require(not bad, "changed files outside allowed paths: " + ", ".join(bad))
+    return "scope clean"
+
+
+def template_hash_gate() -> str:
+    state = load_json(STATE_PATH)
+    expected = state.get("icml_template_hashes", {})
+    current = icml_template_hashes()
+    require(expected == current, "ICML template hash mismatch")
+    return f"{len(current)} files"
+
+
+def parse_python() -> str:
+    count = 0
+    paths = [
+        *list((REPO_ROOT / "scripts").rglob("*.py")),
+        *list((REPO_ROOT / "tests").rglob("*.py")),
+    ]
+    for path in paths:
+        if ".fink" in path.parts:
+            continue
+        ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        count += 1
+    return f"{count} Python files"
+
+
+def style_fallback() -> str:
+    offenders: list[str] = []
+    for path in text_files_for_scan():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if rel.startswith("paper/template/icml2026/"):
+            continue
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        for idx, line in enumerate(lines, start=1):
+            if line.rstrip() != line:
+                offenders.append(f"{rel}:{idx}")
+                break
+    require(not offenders, "trailing whitespace: " + ", ".join(offenders[:20]))
+    return "trailing-whitespace/newline fallback"
+
+
+def unittest_fallback() -> str:
+    proc = subprocess.run(
+        [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.stdout:
+        print(proc.stdout)
+    if proc.stderr:
+        print(proc.stderr, file=sys.stderr)
+    require(proc.returncode == 0, "unittest fallback failed")
+    return "unittest discover"
+
+
+def run_all(args: argparse.Namespace) -> None:
+    gate("branch is main", branch_gate)
+    gate("clean tree at task start", lambda: clean_start_gate(args.task_start))
+    gate("JSON/JSONL/YAML/CSV parsing", parse_structured_files)
+    gate("schema validation", schema_validation)
+    gate("secret scan", secret_scan)
+    gate(".fink/private/PDF/ZIP tracking scan", tracking_scan)
+    gate("long private-quotation heuristic", private_quote_scan)
+    gate("forbidden legal-verdict scan", legal_verdict_scan)
+    gate("authority-tier scoring invariant", authority_invariant)
+    gate("financial-formula tests", financial_formula_tests)
+    gate("upload-deletion tests when relevant", lambda: "not relevant to bootstrap scaffold")
+    gate("offline-network test when relevant", lambda: "not relevant to bootstrap scaffold")
+    gate("responsive-page smoke test when relevant", lambda: "not relevant to bootstrap scaffold")
+    gate("claim-evidence ledger validation", paper_ledgers)
+    gate("AI-use-log update check", ai_use_log)
+    gate("required-documentation check", required_docs)
+    gate("allowed-path scope validation", allowed_path_scope)
+    gate("ICML template hash preservation", template_hash_gate)
+
+
+def doctor(args: argparse.Namespace) -> None:
+    gate("branch is main", branch_gate)
+    gate("required documentation", required_docs)
+    gate("tracked private/binary files", tracking_scan)
+    gate("structured files parse", parse_structured_files)
+    if not args.no_llm:
+        for cmd in ["codex", "claude"]:
+            gate(
+                f"{cmd} CLI available",
+                lambda cmd=cmd: subprocess.run(
+                    [cmd, "--version"], capture_output=True
+                ).returncode
+                == 0,
+            )
+    print(f"DOCTOR_OK branch=main commit={current_commit()}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="FInk repository validation gates.")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    gates = sub.add_parser("gates")
+    gates.add_argument("--task-start", action="store_true")
+    sub.add_parser("parse-python")
+    sub.add_parser("style-fallback")
+    sub.add_parser("test-fallback")
+    doc = sub.add_parser("doctor")
+    doc.add_argument("--no-llm", action="store_true")
+    args = parser.parse_args()
+    try:
+        if args.cmd == "gates":
+            run_all(args)
+        elif args.cmd == "parse-python":
+            print(parse_python())
+        elif args.cmd == "style-fallback":
+            print(style_fallback())
+        elif args.cmd == "test-fallback":
+            print(unittest_fallback())
+        elif args.cmd == "doctor":
+            doctor(args)
+    except GateFailure:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

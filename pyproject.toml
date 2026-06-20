@@ -1,0 +1,27 @@
+[project]
+name = "fink-contracts"
+version = "0.0.0"
+description = "FInk local-first financial contract review scaffold and agent-loop infrastructure."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".fink", "paper/template/icml2026"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+exclude = ["^paper/template/icml2026/", "^.fink/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
