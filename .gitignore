@@ -22,7 +22,6 @@ data/unsanitized/
 !configs/
 !configs/models/
 !configs/models/**
-
 # Python/tooling caches
 .venv/
 __pycache__/
