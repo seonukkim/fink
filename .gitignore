@@ -1,0 +1,14 @@
+
+# FInk local-only inputs and run artifacts
+.fink/
+# Never publish source scans or archives
+*.pdf
+*.zip
+# Runtime/private material
+contracts/
+uploads/
+models/
+indexes/
+data/private/
+data/raw/
+data/unsanitized/
