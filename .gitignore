@@ -7,8 +7,13 @@
 # Runtime/private material
 contracts/
 uploads/
-models/
+/models/
 indexes/
 data/private/
 data/raw/
 data/unsanitized/
+# Public model registry configs are allowed.
+!configs/
+!configs/models/
+!configs/models/**
+models/

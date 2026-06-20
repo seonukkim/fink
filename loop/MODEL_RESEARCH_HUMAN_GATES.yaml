@@ -1,0 +1,22 @@
+schema_version: 1
+
+gates:
+  MODEL_METADATA_NETWORK_APPROVED:
+    approved: true
+    approved_by: human
+    notes: "Metadata and dry-run size checks may use Hugging Face with cached token."
+
+  MODEL_LICENSES_APPROVED:
+    approved: false
+    approved_by: null
+    notes: "Review public/open license filter results before download."
+
+  MODEL_DOWNLOAD_APPROVED:
+    approved: false
+    approved_by: null
+    notes: "Review disk usage and candidate shortlist before downloading weights."
+
+  MODEL_PROFILE_APPROVED:
+    approved: false
+    approved_by: null
+    notes: "Approve selected local model profile after measured benchmarks."

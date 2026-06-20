@@ -1,0 +1,50 @@
+schema_version: 1
+
+license_policy:
+  default_floor: public_open
+  public_open_allowlist:
+    - apache-2.0
+    - mit
+    - bsd-2-clause
+    - bsd-3-clause
+    - isc
+    - cc0-1.0
+    - cc-by-4.0
+  reject_by_default:
+    - unknown
+    - missing
+    - custom
+    - other
+    - gated
+    - noncommercial
+    - research-only
+
+candidates:
+  ocr_document:
+    - id: paddleocr_vl
+      repo_id: PaddlePaddle/PaddleOCR-VL
+      role: primary_document_ocr_layout
+    - id: qwen3_vl_4b
+      repo_id: Qwen/Qwen3-VL-4B-Instruct
+      role: difficult_image_vlm_fallback
+
+  embedding:
+    - id: qwen3_embedding_0_6b
+      repo_id: Qwen/Qwen3-Embedding-0.6B
+      role: primary_ko_en_embedding
+    - id: bge_m3
+      repo_id: BAAI/bge-m3
+      role: multilingual_retrieval_baseline
+
+  reranker:
+    - id: qwen3_reranker_0_6b
+      repo_id: Qwen/Qwen3-Reranker-0.6B
+      role: primary_ko_en_reranker
+
+  explanation:
+    - id: qwen3_4b
+      repo_id: Qwen/Qwen3-4B
+      role: primary_local_explanation
+    - id: qwen3_8b
+      repo_id: Qwen/Qwen3-8B
+      role: optional_high_quality_explanation

@@ -1,0 +1,101 @@
+requirement_id,requirement_summary,source_spec,acceptance_ids,task_ids,metric_ids,data_requirements,human_gate,paper_section,project_page_section,evidence_artifact,status,notes
+INV-1,"Authority chain; only A0-A2 score-eligible; B/C contribute 0",master-2;02-2.2,AC-INV-1;AC-AUTH-2,FINK-S0-08;FINK-S2-04,EV-AUTH,DR-6,HR-01,03_method.md;08_responsible_ai.md,method,invariant_suite,MVP-traced,"PASS-gate 1"
+INV-2,"Review priority, never a verdict",master-2;01-1.1,AC-INV-2;AC-UX-DISC,FINK-S4-03,—,—,—,08_responsible_ai.md,four-dimension-output,four_dimension_present_test,MVP-traced,"deny fraud/illegality/validity/loss"
+INV-3,"Four independent dimensions, never collapsed",master-2;01-1.2,AC-INV-3;AC-FIN-SEP,FINK-S4-03;FINK-S3-03,—,—,—,03_method.md,four-dimension-output,four_dimension_present_test,MVP-traced,—
+INV-4,"Korean canonical; English generated alias",master-2;02-7,AC-INV-4;AC-KOEN-1,FINK-S2-02,EV-KOEN,DR-8,HR-03,08_responsible_ai.md,method,koen_consistency_harness,MVP-traced,—
+INV-5,"Local-first runtime; offline test passes",master-2;04-2,AC-INV-5;AC-RT-OFFLINE,FINK-S5-06,EV-OFFLINE,DR-12,—,08_responsible_ai.md,privacy,offline_integration_test,MVP-traced,—
+INV-6,"No invented numbers",master-2;03-6,AC-INV-6;AC-FIN-BLANK,FINK-S3-04,EV-FINSCEN,DR-11,—,07_discussion_and_limitations.md,four-dimension-output,blank_without_inputs_test,MVP-traced,—
+INV-7,"Uncertainty raises uncertainty, not the number",master-2;03-6,AC-INV-7;AC-CONF-1,FINK-S3-05,EV-UNIT,—,—,03_method.md,four-dimension-output,fim8_uncertainty_test,MVP-traced,—
+INV-8,"Privacy and copyright boundary",master-2;02-6;04-3,AC-INV-8;AC-PV-1;AC-PV-2;AC-PV-3,FINK-S8-01;FINK-S8-02,EV-PRIV,DR-12,HR-04,08_responsible_ai.md,privacy,preflight_ok,MVP-traced,—
+INV-9,"No unvalidated claim stated as established",master-2;03-9,AC-INV-9;AC-SC-CONFIG,FINK-S0-07;FINK-S7-02,EV-CALIB,—,HR-01,07_discussion_and_limitations.md,—,weights_flagged_heuristic,MVP-traced,"DFL-inspired only"
+PR-001,"Camera/image/PDF/paste input",01-2.1,AC-IN-1,FINK-S1-01;FINK-S4-02,—,DR-7,—,04_data_and_implementation.md,demo,ingest_tests,MVP-traced,"PDF mandatory (HD-2)"
+PR-002,"Multi-page reorder/rotate before analysis",01-2.1,AC-IN-2,FINK-S1-03,—,DR-7,—,04_data_and_implementation.md,demo,correction_flow_test,MVP-traced,—
+PR-003,"All ingestion local-only",01-2.1,AC-RT-OFFLINE,FINK-S1-01;FINK-S5-06,EV-OFFLINE,DR-12,—,04_data_and_implementation.md,privacy,no_network_on_ingest,MVP-traced,—
+PR-004,"Ephemeral uploads (P3), deleted",01-2.1,AC-PV-1,FINK-S1-01,EV-PRIV,DR-12,—,08_responsible_ai.md,privacy,ephemeral_delete_test,MVP-traced,—
+PR-005,"Accept text-layer/image-only/mixed/multi-page PDF",01-2.1.1,AC-PDF-TEXT;AC-PDF-OCR;AC-PDF-MIXED;AC-PDF-MULTIPAGE,FINK-S1-06,EV-OCR-CER;EV-EXACT-MONEY,DR-7,—,04_data_and_implementation.md,demo,pdf_textlayer_ocr_tests,MVP-traced,"HD-2"
+PR-006,"PDF validation + rejection (MIME/magic/limits/encrypted/corrupt)",01-2.1.1,AC-PDF-MIME;AC-PDF-CORRUPT;AC-PDF-LIMITS;AC-PDF-ENCRYPTED,FINK-S1-06,—,DR-7,—,04_data_and_implementation.md,—,pdf_validation_tests,MVP-traced,"HD-2; encrypted rejected by default"
+PR-007,"Local raster + text-layer + OCR fallback + per-page provenance",01-2.1.1,AC-PDF-RASTER;AC-PDF-TEXT;AC-PDF-OCR;AC-PDF-PROVENANCE,FINK-S1-06,EV-OCR-CER,DR-7,—,04_data_and_implementation.md,demo,pdf_textlayer_ocr_tests,MVP-traced,"HD-2"
+PR-008,"PDF page preview/reorder/rotate/delete + OCR correction",01-2.1.1,AC-PDF-PAGEOPS;AC-PDF-OCRCORRECT,FINK-S4-02;FINK-S1-03,—,DR-7,—,04_data_and_implementation.md,demo,ui_pdf_upload_test,MVP-traced,"HD-2"
+PR-009,"PDF ephemerality/log-redaction/offline/mobile+desktop/KO+EN",01-2.1.1,AC-PDF-WORKSPACE;AC-PDF-DELETE;AC-PDF-LOG;AC-PDF-OFFLINE;AC-PDF-TESTS;AC-PDF-MOBILE;AC-PDF-BILINGUAL,FINK-S1-06;FINK-S5-06,EV-PRIV;EV-OFFLINE,DR-12,—,08_responsible_ai.md,privacy,pdf_ephemeral_delete_test,MVP-traced,"HD-2"
+PR-010,"Local OCR KO+EN, bbox + per-span confidence",01-2.2,AC-OCR-1,FINK-S1-02,EV-OCR-CER;EV-OCR-WER,DR-7,—,04_data_and_implementation.md;05_experiments.md,demo,ocr_offline_test,MVP-traced,—
+PR-011,"OCR preview + inline correction",01-2.2,AC-OCR-2,FINK-S1-03,—,DR-7,—,04_data_and_implementation.md,demo,correction_flow_test,MVP-traced,—
+PR-012,"Clause segmentation with source spans",01-2.2,AC-SEG-1,FINK-S1-04,EV-SEG,DR-7,—,03_method.md;05_experiments.md,method,segmentation_tests,MVP-traced,—
+PR-013,"Numeric/temporal extraction with exact-match + provenance",01-2.2,AC-EXTRACT-1,FINK-S1-05,EV-EXACT-MONEY;EV-EXACT-PCT;EV-EXACT-DATE;EV-EXACT-DUR,DR-6;DR-7,—,03_method.md;05_experiments.md,method,exact_match_harness,MVP-traced,—
+PR-020,"Bilingual keyword + canonical-ID retrieval",01-2.3,AC-KOEN-1,FINK-S2-01;FINK-S2-02,EV-R@3;EV-R@5;EV-KOEN,DR-6;DR-8,HR-03,03_method.md,method,recall_harness,MVP-traced,—
+PR-021,"Return B/C explanation + A0-A2 grounding with provenance",01-2.3,AC-AUTH-1,FINK-S2-03,EV-AUTH;EV-SPAN,DR-6,HR-02,03_method.md,method,authority_tag_present,MVP-traced,—
+PR-022,"Score-eligible only if A0-A2 grounds the signal",01-2.3,AC-AUTH-2,FINK-S2-04,EV-AUTH,DR-6,—,03_method.md;08_responsible_ai.md,method,eligibility_gate_test,MVP-traced,"PASS-gate 1; SC-AGG-T1"
+PR-023,"Conflicting sources preserved with precedence",01-2.3,AC-AUTH-3,FINK-S2-03,—,DR-9,HR-02,03_method.md,method,conflict_preserved_test,MVP-traced,"2025>2018 on overlap"
+PR-030,"Plain-language explanation (B/C, labeled non-scoring)",01-2.4,AC-UX-EXPL,FINK-S4-03,—,—,—,04_data_and_implementation.md,four-dimension-output,report_ui_tests,MVP-traced,—
+PR-031,"Creator questions before signing",01-2.4,AC-UX-Q,FINK-S4-03,—,—,—,04_data_and_implementation.md,four-dimension-output,report_ui_tests,MVP-traced,"from 52-item checklist"
+PR-040,"Low/base/high monetary exposure (FIM-1/2/3/7 + FIM-8)",01-2.5,AC-FIN-FIM1;AC-FIN-FIM2;AC-FIN-FIM3;AC-FIN-FIM7;AC-FIN-FIM8;AC-FIN-BLANK,FINK-S3-03;FINK-S3-04;FINK-S3-05,EV-UNIT;EV-FINSCEN,DR-11,—,03_method.md;06_results.md,four-dimension-output,fim_core_unit_tests,MVP-traced,—
+PR-041,"Exposure-type separation (no grand total)",01-2.5,AC-FIN-SEP,FINK-S3-03,EV-FINSCEN,DR-11,—,03_method.md,four-dimension-output,exposure_separation_test,MVP-traced,"SC-SEP-T1"
+PR-042,"Time exposure typed fields + pathway label",01-2.5,AC-TIME-1,FINK-S3-06,—,—,—,03_method.md,four-dimension-output,no_duration_number_test,MVP-traced,"no fabricated duration"
+PR-043,"Editable assumptions, live recompute, labeled synthetic",01-2.5,AC-FIN-EDIT,FINK-S4-04,—,DR-11,—,04_data_and_implementation.md,four-dimension-output,assumptions_recompute_test,MVP-traced,—
+PR-050,"D4 confidence decomposition; missing widens bands",01-2.6,AC-CONF-1,FINK-S3-05,—,—,—,03_method.md,four-dimension-output,fim8_uncertainty_test,MVP-traced,—
+PR-051,"Human-review guidance + not-legal-advice disclaimer",01-2.6,AC-TIME-2;AC-UX-DISC,FINK-S3-06;FINK-S4-01,—,—,—,07_discussion_and_limitations.md,four-dimension-output,time_exposure_tests,MVP-traced,—
+PR-060,"Local report export (HTML/MD/JSON), no network",01-2.7,AC-OUT-1,FINK-S4-05,—,—,—,04_data_and_implementation.md,demo,export_local_test,MVP-traced,"no raw image bytes default"
+PR-061,"Optional local-LLM narrative (labeled generated)",01-2.7,AC-UX-DISC,FINK-S3-07,—,—,—,03_method.md,—,model_arm_offline_test,Stretch-traced,"never sets a score"
+NFR-LOCAL,"No remote LLM/RAG/legal search at runtime",01-3,AC-RT-OFFLINE;AC-RT-NET;AC-RT-LLM,FINK-S5-06,EV-OFFLINE,DR-12,—,08_responsible_ai.md,privacy,offline_integration_test,MVP-traced,—
+NFR-LATENCY,"Measured latency + peak memory reported",01-3,AC-RT-OFFLINE,FINK-S5-06,EV-LAT;EV-MEM,DR-13,—,06_results.md,metrics-table,latency_memory_run,MVP-traced,"no validated SLA"
+NFR-PRIVACY,"Log redaction; no contract text/paths",01-3,AC-PV-2,FINK-S5-06,EV-PRIV,DR-12,—,08_responsible_ai.md,privacy,privacy_redaction_test,MVP-traced,—
+NFR-PORT,"Profile-neutral, mobile-lite-portable schemas",01-3,AC-PORT-1,FINK-S0-06,—,—,—,04_data_and_implementation.md,—,schema_validation_suite,MVP-traced,—
+NFR-A11Y,"Responsive phone + desktop; touch/contrast",01-3,AC-UX-RESP,FINK-S4-01,EV-USAB,—,—,04_data_and_implementation.md,demo,web_smoke_test,MVP-traced,—
+NFR-I18N,"Full KO + EN UI, KO default",01-3,AC-UX-I18N,FINK-S4-01,EV-KOEN,DR-8,HR-03,08_responsible_ai.md,—,web_smoke_test,MVP-traced,—
+NFR-CONFIG,"Versioned heuristic scoring config",01-3,AC-SC-CONFIG,FINK-S0-07,—,—,—,03_method.md;07_discussion_and_limitations.md,—,config_versioned,MVP-traced,"INV-9"
+RT-001,"Desktop-full FastAPI app + LAN phone upload",04-1.1;04-8,AC-UX-RESP;AC-RT-NET,FINK-S4-01,EV-LAT,DR-13,—,04_data_and_implementation.md,demo,web_smoke_test,MVP-traced,—
+RT-002,"Mobile-lite design-compatible (sanitized pack)",04-1.2;04-8,AC-PORT-1,FINK-S0-06,—,—,—,04_data_and_implementation.md,—,schema_validation_suite,Stretch-traced,—
+RT-003,"No remote LLM/RAG/legal-search at runtime",04-2;04-8,AC-RT-OFFLINE;AC-RT-LLM,FINK-S5-06,EV-OFFLINE,DR-12,—,08_responsible_ai.md,privacy,offline_integration_test,MVP-traced,—
+RT-004,"Ephemeral uploads with deletion",04-3;04-8,AC-PV-1,FINK-S1-01,EV-PRIV,DR-12,—,08_responsible_ai.md,privacy,ephemeral_delete_test,MVP-traced,—
+RT-005,"Log redaction",04-4;04-8,AC-PV-2,FINK-S5-06,EV-PRIV,DR-12,—,08_responsible_ai.md,privacy,privacy_redaction_test,MVP-traced,—
+RT-006,"Offline integration test passes",04-6;04-8,AC-RT-OFFLINE,FINK-S5-06,EV-OFFLINE,DR-12,—,05_experiments.md,privacy,offline_integration_test,MVP-traced,—
+RT-007,"Profile-neutral schemas + sanitization step",04-8,AC-PORT-1,FINK-S0-06,—,—,—,04_data_and_implementation.md,—,schema_validation_suite,MVP-traced,—
+RT-008,"Measured latency + peak memory",04-8,AC-RT-OFFLINE,FINK-S5-06,EV-LAT;EV-MEM,DR-13,—,06_results.md,metrics-table,latency_memory_run,MVP-traced,—
+RT-009,"Local-only PDF lifecycle (raster/text/OCR/delete)",04-8,AC-PDF-OFFLINE;AC-PDF-DELETE;AC-PDF-RASTER,FINK-S1-06,EV-OFFLINE;EV-PRIV,DR-12,—,04_data_and_implementation.md,privacy,pdf_offline_test,MVP-traced,"HD-2"
+UX-LAYOUT,"Responsive layout + privacy/not-legal banners",06-1,AC-UX-RESP,FINK-S4-01,—,—,—,04_data_and_implementation.md,demo,web_smoke_test,MVP-traced,—
+UX-IN-CAMERA,"Phone camera capture flow over LAN",06-2,AC-IN-1,FINK-S4-02,—,DR-7,—,04_data_and_implementation.md,demo,ui_ingest_tests,MVP-traced,—
+UX-IN-IMAGE,"Image upload flow",06-2,AC-IN-1,FINK-S4-02,—,DR-7,—,04_data_and_implementation.md,demo,ui_ingest_tests,MVP-traced,—
+UX-IN-PDF,"PDF upload flow (local, page badges, rejection msg)",06-2,AC-PDF-MOBILE;AC-PDF-PAGEOPS;AC-IN-1,FINK-S4-02;FINK-S1-06,—,DR-7,—,04_data_and_implementation.md,demo,ui_pdf_upload_test,MVP-traced,"HD-2"
+UX-IN-PASTE,"Paste clause text flow",06-2,AC-IN-1,FINK-S4-02,—,—,—,04_data_and_implementation.md,demo,ui_ingest_tests,MVP-traced,—
+UX-PAGE-ORG,"Reorder/rotate/delete pages",06-3,AC-IN-2;AC-PDF-PAGEOPS,FINK-S1-03;FINK-S4-02,—,DR-7,—,04_data_and_implementation.md,demo,correction_flow_test,MVP-traced,—
+UX-OCR-PREVIEW,"OCR overlay + inline correction",06-3,AC-OCR-2;AC-PDF-OCRCORRECT,FINK-S1-03,—,DR-7,—,04_data_and_implementation.md,demo,correction_flow_test,MVP-traced,—
+UX-D1-SCORE,"Review-priority panel + tooltip denials",06-4,AC-INV-2;AC-INV-3,FINK-S4-03,EV-F1,DR-6,—,06_results.md,four-dimension-output,four_dimension_present_test,MVP-traced,—
+UX-D2-MONEY,"Monetary exposure panel (separate types)",06-4,AC-FIN-SEP,FINK-S4-03;FINK-S3-03,EV-FINSCEN,DR-11,—,06_results.md,four-dimension-output,exposure_separation_test,MVP-traced,—
+UX-D3-TIME,"Time exposure panel + pathway label",06-4,AC-TIME-1,FINK-S4-03;FINK-S3-06,—,—,—,06_results.md,four-dimension-output,no_duration_number_test,MVP-traced,—
+UX-D4-CONF,"Confidence panel + drivers",06-4,AC-CONF-1,FINK-S4-03;FINK-S3-05,—,—,—,06_results.md,four-dimension-output,fim8_uncertainty_test,MVP-traced,—
+UX-CARDS,"Risk-category cards; X1-X5 non-scoring section",06-5,AC-UX-CARDS,FINK-S4-03,EV-F1,DR-6,—,06_results.md,four-dimension-output,report_ui_tests,MVP-traced,—
+UX-HILITE,"Highlighted clause evidence linked to page",06-5,AC-UX-HILITE,FINK-S4-03,EV-SPAN,DR-6,—,04_data_and_implementation.md,four-dimension-output,report_ui_tests,MVP-traced,—
+UX-EVID,"Official-source comparison + verification badge",06-5,AC-UX-EVID,FINK-S4-03,EV-AUTH,DR-6,HR-02,03_method.md,four-dimension-output,report_ui_tests,MVP-traced,—
+UX-QUESTIONS,"Questions-before-signing list",06-7,AC-UX-Q,FINK-S4-03,—,—,—,04_data_and_implementation.md,four-dimension-output,report_ui_tests,MVP-traced,—
+UX-ASSUME,"Editable assumptions panel + blanks",06-6,AC-FIN-EDIT;AC-FIN-BLANK,FINK-S4-04,—,DR-11,—,04_data_and_implementation.md,four-dimension-output,assumptions_recompute_test,MVP-traced,—
+UX-EXPORT,"Local report export",06-8,AC-OUT-1,FINK-S4-05,—,—,—,04_data_and_implementation.md,demo,export_local_test,MVP-traced,—
+UX-DISCLAIMER,"Persistent + in-export disclaimers",06-8,AC-UX-DISC,FINK-S4-01,—,—,—,08_responsible_ai.md,four-dimension-output,web_smoke_test,MVP-traced,—
+FIM-1,"Revenue-base & deduction leakage",03-7,AC-FIN-FIM1,FINK-S3-03,EV-UNIT;EV-FINSCEN,DR-11,—,03_method.md;06_results.md,four-dimension-output,fim_core_unit_tests,MVP-traced,"FIM-1-T1"
+FIM-2,"Payment-delay present-value loss",03-7,AC-FIN-FIM2,FINK-S3-03,EV-UNIT,DR-11,—,03_method.md;06_results.md,four-dimension-output,fim_core_unit_tests,MVP-traced,"FIM-2-T1; nominal kept separate"
+FIM-3,"MG & advance recoupment",03-7,AC-FIN-FIM3,FINK-S3-03,EV-UNIT,DR-11,—,03_method.md;06_results.md,four-dimension-output,fim_core_unit_tests,MVP-traced,"FIM-3-T1"
+FIM-4,"Unpaid additional-work cost",03-7,AC-FIN-FIM4,FINK-S3-04,EV-UNIT,DR-11,—,03_method.md,four-dimension-output,fim_scenario_unit_tests,MVP-traced,"FIM-4-T1; user inputs"
+FIM-5,"Exclusivity & renewal opportunity cost",03-7,AC-FIN-FIM5,FINK-S3-04,EV-UNIT,DR-11,—,03_method.md,four-dimension-output,fim_scenario_unit_tests,MVP-traced,"FIM-5-T1; user inputs"
+FIM-6,"IP & secondary-rights scenario value",03-7,AC-FIN-FIM6,FINK-S3-04,EV-UNIT,DR-11,—,03_method.md,four-dimension-output,fim_scenario_unit_tests,MVP-traced,"FIM-6-T1; never auto-valued"
+FIM-7,"Penalty & liability exposure",03-7,AC-FIN-FIM7,FINK-S3-03,EV-UNIT,DR-11,—,03_method.md;06_results.md,four-dimension-output,fim_core_unit_tests,MVP-traced,"FIM-7-T1/T2"
+FIM-8,"Evidence-opacity uncertainty",03-7,AC-FIN-FIM8;AC-CONF-1,FINK-S3-05,EV-UNIT,—,—,03_method.md;07_discussion_and_limitations.md,four-dimension-output,fim8_uncertainty_test,MVP-traced,"FIM-8-T1"
+SC-AGG,"Aggregation + bounded 0-100 priority",03-3,AC-SC-AGG,FINK-S3-02,EV-F1;EV-BENIGN-FPR,DR-6,—,03_method.md,four-dimension-output,aggregation_tests,MVP-traced,"SC-AGG-T1/T2/T3"
+SC-SIGNALS,"Rule-based risk signals (presence + missing-protection)",03-2,AC-AUTH-2,FINK-S3-01,EV-F1;EV-SEV,DR-6,—,03_method.md,method,signal_rule_tests,MVP-traced,—
+PA-MAP,"Course-section to paper-note mapping",07-1,AC-PA-MAP,FINK-S7-01,—,—,—,all-notes,—,paper_claim_trace,MVP-traced,—
+PA-CLAIM,"Claim ledger (every claim referenced)",07-2,AC-PA-CLAIM,FINK-S7-01;FINK-S7-02,—,—,—,06_results.md,metrics-table,paper_sync_checker,MVP-traced,—
+PA-RESULT,"Result ledger (claims to measured results)",07-2,AC-PA-RESULT,FINK-S7-01;FINK-S7-02,all-EV,—,—,06_results.md,metrics-table,no_fabricated_value,MVP-traced,"no fabricated values"
+PA-FIG,"Figure registry",07-2,AC-PA-FIG,FINK-S7-02;FINK-S6-01,—,—,—,06_results.md,metrics-table,figure_registry_consistent,MVP-traced,—
+PA-SYNC,"Paper-sync checker (rules 1-6)",07-2,AC-PA-SYNC,FINK-S7-02,—,—,—,—,—,paper_sync_checker,MVP-traced,—
+PA-TEMPLATE,"ICML template byte-unchanged",07-2,AC-PA-TEMPLATE,FINK-S7-02,—,—,—,—,—,template_untouched_gate,MVP-traced,—
+PA-AIUSE,"AI-use log + HR-08 attestation",07-4,AC-PA-AIUSE,FINK-S7-03,—,DR-15,HR-08,08_responsible_ai.md,—,aiuse_present,MVP-traced,—
+PA-SITE,"Static project page (public-safe)",07-5,AC-PA-SITE,FINK-S6-01,—,—,—,06_results.md,demo,site_public_safe_scan,MVP-traced,—
+PA-COMPLY,"R0 term-project compliance checklist",07-6,AC-PA-COMPLY,FINK-S8-03,EV-USAB,—,HR-08,—,—,acceptance_checklist_run,MVP-traced,"deadline 2026-06-24 23:59 KST"
+REL-PREFLIGHT,"Privacy preflight PREFLIGHT_OK",04-5,AC-REL-PREFLIGHT,FINK-S8-01,EV-PRIV,DR-12,—,08_responsible_ai.md,privacy,preflight_ok,MVP-traced,—
+REL-SECRET,"Secret scan (no API keys)",04-5,AC-REL-SECRET,FINK-S8-01,—,—,—,08_responsible_ai.md,—,secret_scan,MVP-traced,—
+REL-GITIGNORE,"Gitignore enforces private/binary exclusions",04-5,AC-REL-GITIGNORE,FINK-S8-01,—,—,—,08_responsible_ai.md,—,gitignore_enforced,MVP-traced,"includes *.pdf"
+REL-COPYRIGHT,"Copyright/license audit (excerpts <15w)",04-5,AC-REL-COPYRIGHT;AC-PV-3,FINK-S8-02,—,—,HR-02,08_responsible_ai.md,—,copyright_audit,MVP-traced,—
+REL-HR,"HR P0/P1 resolved or deferred-with-rationale",08-S8,AC-REL-HR,FINK-S8-03,—,—,HR-01,07_discussion_and_limitations.md,—,acceptance_checklist_run,MVP-traced,"HR-07 resolved (HD-3)"
+REL-INPUTS,"Record-level inputs present (SPEC_INPUTS_OK)",master-9,AC-REL-INPUTS,FINK-S0-01,—,DR-16,—,04_data_and_implementation.md,—,count_check,MVP-traced,"HD-11"
+EV-FROZEN,"Frozen synthetic split (hashed, immutable)",02-5;05-1,AC-EV-FROZEN;AC-EV-SYNTH,FINK-S5-01,—,DR-6;DR-7;DR-10,—,04_data_and_implementation.md,—,frozen_split_hash_test,MVP-traced,"synthetic only"
+EV-ABLATION,"Three-arm ablation (rule/model/hybrid)",05-5,AC-EV-ABLATION,FINK-S5-04;FINK-S3-07,EV-F1;EV-BENIGN-FPR;EV-SEV;EV-DFU,DR-6,—,05_experiments.md;06_results.md,metrics-table,ablation_three_arms,Stretch-traced,"rule_only is MVP arm"
+EV-DFU-STUDY,"Decision-focused utility study",05-3,AC-EV-CORE,FINK-S5-07,EV-DFU,DR-11,—,05_experiments.md,metrics-table,dfu_run,Stretch-traced,"core variant MVP"
+EV-USAB-RUBRIC,"Usability checklist executed",05-4,AC-EV-CORE,FINK-S5-07,EV-USAB,—,—,06_results.md,demo,—,MVP-traced,"manual rubric"
+EV-CORE-METRICS,"All MVP metrics computed + logged measured",05-2,AC-EV-CORE;AC-EV-UNIT,FINK-S5-02;FINK-S5-03;FINK-S5-04;FINK-S5-05;FINK-S5-06,EV-OCR-CER;EV-OCR-WER;EV-SEG;EV-R@3;EV-R@5;EV-AUTH;EV-KOEN;EV-F1;EV-BENIGN-FPR;EV-SEV;EV-SPAN;EV-STAB;EV-LAT;EV-MEM;EV-OFFLINE;EV-PRIV,DR-6;DR-7;DR-8;DR-12;DR-13,—,05_experiments.md;06_results.md,metrics-table,formula_unit_suite,MVP-traced,"no pre-asserted values"
