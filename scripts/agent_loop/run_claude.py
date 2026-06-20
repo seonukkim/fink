@@ -12,7 +12,17 @@ import json
 import shutil
 import subprocess
 
-from scripts.agent_loop._common import REPO_ROOT, main_wrapper, read_text, write_json, write_text
+from scripts.agent_loop._common import (
+    REPO_ROOT,
+    SCHEMA_DIR,
+    main_wrapper,
+    read_text,
+    validate_against_schema,
+    write_json,
+    write_text,
+)
+
+CLAUDE_REVIEW_SCHEMA = SCHEMA_DIR / "claude_review.schema.json"
 
 REVIEW_FIELDS = [
     "verdict",
@@ -43,6 +53,18 @@ def empty_review(verdict: str, summary: str) -> dict[str, object]:
     return review
 
 
+def emit_review(review_path: Path, review: object) -> None:
+    """Validate a Claude review against its schema, then persist it.
+
+    Mirrors run_codex.py: the structured result is schema-checked before it is
+    written so a malformed review is flagged rather than silently consumed by the
+    orchestrator. Validation is a no-op when ``jsonschema`` is unavailable."""
+    error = validate_against_schema(review, CLAUDE_REVIEW_SCHEMA)
+    if error is not None:
+        print(f"WARNING: claude_review.json failed schema validation: {error}", file=sys.stderr)
+    write_json(review_path, review)
+
+
 def run() -> None:
     parser = argparse.ArgumentParser(description="Invoke Claude review/fix for a loop task.")
     parser.add_argument("--run-dir", required=True)
@@ -59,7 +81,7 @@ def run() -> None:
     write_text(run_dir / "claude_prompt.md", prompt)
 
     if args.dry_run:
-        write_json(
+        emit_review(
             run_dir / "claude_review.json",
             empty_review("APPROVE", "Claude invocation skipped by --dry-run."),
         )
@@ -67,7 +89,7 @@ def run() -> None:
 
     claude = shutil.which("claude")
     if claude is None:
-        write_json(
+        emit_review(
             run_dir / "claude_review.json",
             empty_review("BLOCKED", "claude CLI is not available."),
         )
@@ -78,7 +100,7 @@ def run() -> None:
             claude,
             "-p",
             "--model",
-            "opus",
+            "claude-opus-4-8",
             "--effort",
             "max",
             "--permission-mode",
@@ -95,7 +117,7 @@ def run() -> None:
     write_text(run_dir / "claude_stdout.json", proc.stdout)
     write_text(run_dir / "claude_stderr.log", proc.stderr)
     if proc.returncode != 0:
-        write_json(
+        emit_review(
             run_dir / "claude_review.json",
             empty_review("BLOCKED", "Claude CLI returned a non-zero exit status."),
         )
@@ -104,7 +126,7 @@ def run() -> None:
         parsed = json.loads(proc.stdout)
     except json.JSONDecodeError:
         parsed = empty_review("BLOCKED", "Claude did not return valid JSON.")
-    write_json(run_dir / "claude_review.json", parsed)
+    emit_review(run_dir / "claude_review.json", parsed)
 
 
 if __name__ == "__main__":

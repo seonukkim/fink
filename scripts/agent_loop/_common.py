@@ -126,6 +126,16 @@ def tracked_files() -> list[str]:
     return [line.strip() for line in out.splitlines() if line.strip()]
 
 
+def untracked_files() -> list[str]:
+    """Untracked, non-ignored files (respects .gitignore, so .fink/ is excluded).
+
+    Used by the content scanners so a file a task newly creates is scanned at
+    gate time, before git_checkpoint's ``git add -A`` would otherwise commit it.
+    """
+    out = git(["ls-files", "--others", "--exclude-standard"]).stdout
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
 def changed_files_since(base_commit: str) -> list[str]:
     out = git(["diff", "--name-only", base_commit, "--"]).stdout
     files = [line.strip() for line in out.splitlines() if line.strip()]

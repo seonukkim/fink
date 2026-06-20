@@ -33,12 +33,10 @@ fi
 mkdir -p .fink
 lock_file=".fink/agent-loop.lock"
 
-(
-  flock -n 9 || {
-    echo "ERROR: another loop run holds the writer lock" >&2
-    exit 1
-  }
-
+# The task body runs under the single global writer lock. When a parent runner
+# (run_all_queues.sh) already holds that exact lock, it exports FINK_LOCK_HELD=1
+# so this task does not deadlock by trying to re-acquire the same lock.
+run_task() {
   if [[ -e loop/STOP ]]; then
     echo "STOP_REQUESTED: loop/STOP exists"
     exit 0
@@ -171,4 +169,17 @@ PY
     --run-dir "$task_run_dir" \
     --status "EXHAUSTED_REQUEST_CHANGES"
   exit 1
-) 9>"$lock_file"
+}
+
+if [[ "${FINK_LOCK_HELD:-0}" == "1" ]]; then
+  # Parent runner already holds the single writer lock; do not re-acquire it.
+  run_task
+else
+  (
+    flock -n 9 || {
+      echo "ERROR: another loop run holds the writer lock" >&2
+      exit 1
+    }
+    run_task
+  ) 9>"$lock_file"
+fi

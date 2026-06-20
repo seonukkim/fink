@@ -19,13 +19,11 @@ from typing import Any
 
 from scripts.agent_loop._common import (
     BACKLOG_PATH,
-    HUMAN_GATES_PATH,
     REPO_ROOT,
     STATE_PATH,
     changed_files_since,
     current_branch,
     current_commit,
-    git,
     icml_template_hashes,
     is_worktree_clean,
     load_json,
@@ -33,8 +31,18 @@ from scripts.agent_loop._common import (
     local_branches,
     read_text,
     tracked_files,
+    untracked_files,
 )
 
+SELF_PATH = Path(__file__).resolve()
+
+# FINK-POLICY-DEFINITIONS-START
+# The literals in this sentinel-delimited block are the single source of truth
+# for FInk's forbidden-content patterns. They are policy *definitions*, not
+# violations: scannable_text() strips this block out of this module's own
+# source (keyed on this file's resolved path) before the content scanners read
+# it, so the scanners never flag their own definitions. Every other file - all
+# product code, docs, prompts, and the other scripts - is still scanned in full.
 FORBIDDEN_TRACKED = re.compile(
     r"(^\.fink/|\.pdf$|\.zip$|^contracts/|^uploads/|^data/private/|^data/raw/|^data/unsanitized/)"
 )
@@ -56,6 +64,7 @@ BAD_LEGAL_ASSERTIONS = [
     ),
     re.compile(r"trained end-to-end DFL", re.I),
 ]
+# FINK-POLICY-DEFINITIONS-END
 
 
 class GateFailure(AssertionError):
@@ -84,7 +93,15 @@ def gate(name: str, fn: Any) -> None:
 
 def text_files_for_scan() -> list[Path]:
     result: list[Path] = []
-    for file in tracked_files():
+    seen: set[str] = set()
+    # Tracked files plus untracked-non-ignored files, so a file a task just
+    # created is content-scanned at gate time rather than first scanned (too
+    # late) on the next task's gates. .gitignore is respected, so .fink/,
+    # uploads/, models/, etc. stay excluded.
+    for file in (*tracked_files(), *untracked_files()):
+        if file in seen:
+            continue
+        seen.add(file)
         if file == ".env" or file.endswith(".env"):
             continue
         path = REPO_ROOT / file
@@ -97,6 +114,34 @@ def text_files_for_scan() -> list[Path]:
         if b"\0" not in chunk:
             result.append(path)
     return result
+
+
+def scannable_text(path: Path) -> str:
+    """Return file text for the content scanners (secret/quote/legal).
+
+    This module is the single source of truth for the forbidden-content
+    patterns, so its own sentinel-delimited definition block is policy, not a
+    violation, and is removed from this file before it is scanned. The
+    redaction is keyed strictly on this module's resolved path, so it never
+    relaxes the scan for any other file: all product code, docs, prompts, and
+    the other scripts are returned and scanned in full.
+    """
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    if path.resolve() != SELF_PATH:
+        return text
+    kept: list[str] = []
+    skipping = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == "# FINK-POLICY-DEFINITIONS-START":
+            skipping = True
+            continue
+        if stripped == "# FINK-POLICY-DEFINITIONS-END":
+            skipping = False
+            continue
+        if not skipping:
+            kept.append(line)
+    return "\n".join(kept)
 
 
 def parse_structured_files() -> str:
@@ -183,7 +228,7 @@ def tracking_scan() -> str:
 def secret_scan() -> str:
     findings: list[str] = []
     for path in text_files_for_scan():
-        text = path.read_text(encoding="utf-8", errors="ignore")
+        text = scannable_text(path)
         for pattern in SECRET_PATTERNS:
             if pattern.search(text):
                 findings.append(path.relative_to(REPO_ROOT).as_posix())
@@ -198,7 +243,7 @@ def private_quote_scan() -> str:
         rel = path.relative_to(REPO_ROOT).as_posix()
         if rel.startswith("docs/specs/"):
             continue
-        text = path.read_text(encoding="utf-8", errors="ignore")
+        text = scannable_text(path)
         if PRIVATE_QUOTE_RE.search(text):
             findings.append(rel)
     require(not findings, "long private-quotation heuristic matched: " + ", ".join(findings))
@@ -211,7 +256,7 @@ def legal_verdict_scan() -> str:
         rel = path.relative_to(REPO_ROOT).as_posix()
         if rel == "docs/FINK_MASTER_SPEC.md" or rel.startswith("docs/specs/"):
             continue
-        text = path.read_text(encoding="utf-8", errors="ignore")
+        text = scannable_text(path)
         for pattern in BAD_LEGAL_ASSERTIONS:
             if pattern.search(text):
                 findings.append(rel)
@@ -221,6 +266,46 @@ def legal_verdict_scan() -> str:
         "forbidden legal/result assertion in: " + ", ".join(sorted(set(findings))),
     )
     return "no forbidden verdict assertions"
+
+
+def queue_consistency() -> str:
+    """Every queue line must resolve to a real backlog task.
+
+    Guards the automated lanes against the failure mode that originally
+    corrupted ``queue.models.txt`` (phantom ``MR-001``..``MR-014`` ids that match
+    no backlog task and silently make the lane unreachable). Fails when a queue
+    references an unknown task id, when one task id appears in two queues, or when
+    a task precedes one of its own dependencies inside the same queue.
+    """
+    backlog = load_yaml(BACKLOG_PATH)
+    tasks = backlog.get("tasks", []) if isinstance(backlog, dict) else []
+    by_id = {str(item["id"]): item for item in tasks if isinstance(item, dict) and "id" in item}
+    queues = sorted((REPO_ROOT / "scripts" / "agent_loop").glob("queue.*.txt"))
+    require(bool(queues), "no queue.*.txt files found")
+    seen: dict[str, str] = {}
+    summary: list[str] = []
+    for queue in queues:
+        order: list[str] = []
+        for raw in queue.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            require(line in by_id, f"{queue.name}: unknown task id {line!r}")
+            prior = seen.get(line)
+            require(prior is None, f"{line} appears in both {prior} and {queue.name}")
+            seen[line] = queue.name
+            order.append(line)
+        position = {task_id: index for index, task_id in enumerate(order)}
+        for task_id in order:
+            for dep in by_id[task_id].get("depends_on", []) or []:
+                dep_id = str(dep)
+                if dep_id in position:
+                    require(
+                        position[dep_id] < position[task_id],
+                        f"{queue.name}: {task_id} precedes its dependency {dep_id}",
+                    )
+        summary.append(f"{queue.name}={len(order)}")
+    return ", ".join(summary)
 
 
 def authority_invariant() -> str:
@@ -418,6 +503,7 @@ def run_all(args: argparse.Namespace) -> None:
     gate("clean tree at task start", lambda: clean_start_gate(args.task_start))
     gate("JSON/JSONL/YAML/CSV parsing", parse_structured_files)
     gate("schema validation", schema_validation)
+    gate("queue/backlog task-id consistency", queue_consistency)
     gate("secret scan", secret_scan)
     gate(".fink/private/PDF/ZIP tracking scan", tracking_scan)
     gate("long private-quotation heuristic", private_quote_scan)

@@ -1,6 +1,6 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-20T20:49:59+00:00`
+- Generated: `2026-06-20T23:13:24+00:00`
 - Current branch: `main`
 - Base commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
@@ -44,7 +44,12 @@
 ## Operator Commands
 
 ```bash
+# single task / single queue
 bash scripts/agent_loop/loop_once.sh
 bash scripts/agent_loop/loop_run.sh scripts/agent_loop/queue.s1.txt 8
+# all queues in dependency order (s0 -> models -> s1 -> s2 -> s3)
+bash scripts/agent_loop/run_all_queues.sh --dry-run
+bash scripts/agent_loop/run_all_queues.sh --max-tasks-per-queue 20
+# stop the loop after the current task
 touch loop/STOP
 ```
