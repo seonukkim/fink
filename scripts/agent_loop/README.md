@@ -44,6 +44,23 @@ result (later queues are not run), and when a queue stops cleanly it names the
 exact human gate(s) blocking the remaining tasks. Timestamped logs are written
 under `.fink/runs/full-loop/<UTC>/`. It never pushes and never approves a gate.
 
+Drain the WHOLE backlog (every phase S0..S8 + MR, not just the queue files):
+
+```bash
+bash scripts/agent_loop/run_backlog.sh --dry-run
+bash scripts/agent_loop/run_backlog.sh --max-tasks 100
+nohup bash scripts/agent_loop/run_backlog.sh --max-tasks 100 \
+  > .fink/backlog-loop.out 2>&1 &
+```
+
+`run_backlog.sh` repeatedly runs the *unqueued* `loop_once.sh`, which selects the
+next eligible task from the entire backlog (in dependency / priority / scope
+order) until nothing is eligible. Use it instead of `run_all_queues.sh` when you
+want to run everything, including S4..S8 (which have no queue files). Same single
+writer lock, `loop/STOP`, fail-stop, and timestamped logs; on a clean drain it
+names the human gate(s) blocking the remaining backlog. `--max-tasks` bounds the
+run (default 100; re-run to continue); `--dry-run` runs exactly one iteration.
+
 Dry-run checks:
 
 ```bash

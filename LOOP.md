@@ -1,6 +1,6 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-20T23:13:24+00:00`
+- Generated: `2026-06-20T23:49:40+00:00`
 - Current branch: `main`
 - Base commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
@@ -50,6 +50,9 @@ bash scripts/agent_loop/loop_run.sh scripts/agent_loop/queue.s1.txt 8
 # all queues in dependency order (s0 -> models -> s1 -> s2 -> s3)
 bash scripts/agent_loop/run_all_queues.sh --dry-run
 bash scripts/agent_loop/run_all_queues.sh --max-tasks-per-queue 20
+# drain the WHOLE backlog at once (every phase S0..S8 + MR)
+bash scripts/agent_loop/run_backlog.sh --dry-run
+bash scripts/agent_loop/run_backlog.sh --max-tasks 100
 # stop the loop after the current task
 touch loop/STOP
 ```
