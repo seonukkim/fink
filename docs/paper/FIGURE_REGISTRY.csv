@@ -1,2 +1,5 @@
 figure_id,title,source_artifact,paper_section,site_section,status,notes
 FIG-S6-01-HERO,FInk public project-page hero,site/assets/images/fink-hero.png,06_results.md,hero,registered,"Public-safe brand artwork; no contract text, private-book text, official excerpt, key, or user data."
+FIG-S7-01-RESULT-METRIC-TABLE,Measured synthetic evaluation metrics table,docs/paper/RESULT_LEDGER.csv,06_results.md,metrics-table,registered,"Table source is RESULT_LEDGER rows with status=measured; no unmeasured metric values."
+FIG-S7-01-RISK-ABLATION,Synthetic risk-arm ablation metrics,scripts/eval/risk_metric_suite_results.json,06_results.md,metrics-table,registered,"Source artifact reports rule_only, model_only, and hybrid rows; no generalized optimality claim."
+FIG-S7-01-RUNTIME-PRIVACY,Offline/privacy/runtime measured gate summary,scripts/eval/runtime_gate_suite_results.json,06_results.md,metrics-table,registered,"Source artifact uses synthetic PDF/paste runs; no SLA claim."
