@@ -11,3 +11,17 @@
   reviews and attests AI-assisted outputs for release.
 - Privacy: no `.env`, Hugging Face token value, private books, contracts, model
   weights, PDFs, ZIPs, or `.fink` artifacts were committed.
+
+## 2026-06-21 — README revision
+
+- Tooling: Claude Opus 4.8 (max).
+- Scope: documentation only. Rewrote `README.md` into an academic project README
+  (title "FInk: Evidence-Grounded Financial AI for Creator Contract Review"),
+  added `docs/README_CONTENT_GUIDE.md`, and this log entry. No product feature,
+  model download, or private corpus import.
+- Evidence-checked: hero image and all relative links verified to exist; TODO
+  boxes set from `loop/BACKLOG.yaml` (all 54 tasks READY except the committed
+  agent-loop infrastructure); licensing marked pending (empty license files); no
+  measured result, deployed URL, or completed product feature was claimed.
+- Privacy: no token, contract text, private corpus content, or private path
+  beyond the documented `~/fai/fink` and `~/fai/fink-private` roots appears.
