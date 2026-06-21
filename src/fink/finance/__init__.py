@@ -1,18 +1,44 @@
-"""Financial feature bindings for FInk."""
+"""Financial feature bindings and impact modules for FInk."""
 
-__all__ = [
+_FEATURE_BINDING_EXPORTS = {
     "FeatureBinding",
     "FeatureBindingError",
     "FeatureBindingReport",
     "FimInputBinding",
     "feature_binding_complete",
     "load_feature_bindings",
-]
+}
+
+_IMPACT_EXPORTS = {
+    "DecimalRange",
+    "ExposureSeparationTestReport",
+    "Fim1Result",
+    "Fim2Result",
+    "Fim3Result",
+    "Fim7Result",
+    "FimCoreTestReport",
+    "FinanceImpactError",
+    "RecoupmentTimeline",
+    "exposure_separation_test",
+    "exposure_type_subtotals",
+    "fim1_revenue_base_deduction_leakage",
+    "fim2_payment_delay_present_value_loss",
+    "fim3_mg_advance_recoupment",
+    "fim7_penalty_liability_exposure",
+    "fim_core_unit_tests",
+    "partition_exposures_by_type",
+}
+
+__all__ = sorted(_FEATURE_BINDING_EXPORTS | _IMPACT_EXPORTS)
 
 
 def __getattr__(name: str) -> object:
-    if name in __all__:
+    if name in _FEATURE_BINDING_EXPORTS:
         from fink.finance import feature_bindings
 
         return getattr(feature_bindings, name)
+    if name in _IMPACT_EXPORTS:
+        from fink.finance import impact
+
+        return getattr(impact, name)
     raise AttributeError(name)
