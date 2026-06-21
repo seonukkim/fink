@@ -66,6 +66,17 @@ BAD_LEGAL_ASSERTIONS = [
 ]
 # FINK-POLICY-DEFINITIONS-END
 
+# Canonical open-source license floor. Anchored here (not only in
+# configs/models/candidates.yaml) so the floor cannot be widened by editing the
+# config: candidates.yaml's allowlist must be a SUBSET of this set, and every
+# declared model license must be in it. This backs the auto-resolution of the
+# MODEL_* human gates (HD-12).
+OPEN_LICENSE_FLOOR = frozenset(
+    {"apache-2.0", "mit", "bsd-2-clause", "bsd-3-clause", "isc", "cc0-1.0", "cc-by-4.0"}
+)
+# Model-weight file extensions that must never be tracked in Git.
+WEIGHT_SUFFIXES = (".safetensors", ".gguf", ".onnx", ".pt", ".pth", ".h5")
+
 
 class GateFailure(AssertionError):
     pass
@@ -318,6 +329,48 @@ def authority_invariant() -> str:
     return "A0-A2 only"
 
 
+def _walk_licenses(node: Any, path: str, found: list[tuple[str, str]]) -> None:
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "license" and isinstance(value, str):
+                found.append((path, value))
+            else:
+                _walk_licenses(value, f"{path}/{key}", found)
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            _walk_licenses(value, f"{path}[{index}]", found)
+
+
+def model_license_floor() -> str:
+    """Open-source-only model policy + no tracked weights (backs HD-12).
+
+    - No model-weight file may be tracked in Git.
+    - configs/models/candidates.yaml's allowlist must be a subset of the canonical
+      OPEN_LICENSE_FLOOR (the floor cannot be widened by editing the config).
+    - Every model license declared anywhere in candidates.yaml must be in the floor
+      (gated/unknown/custom/noncommercial/research-only never qualifies).
+    """
+    weights = [f for f in tracked_files() if f.lower().endswith(WEIGHT_SUFFIXES)]
+    require(not weights, "model-weight files tracked in git: " + ", ".join(weights))
+
+    cfg_path = REPO_ROOT / "configs" / "models" / "candidates.yaml"
+    if not cfg_path.is_file():
+        return "no candidates.yaml; no tracked weights"
+    cfg = load_yaml(cfg_path)
+    require(isinstance(cfg, dict), "candidates.yaml must be a mapping")
+    policy = cfg.get("license_policy", {})
+    allowlist = {str(item).lower() for item in policy.get("public_open_allowlist", [])}
+    require(bool(allowlist), "candidates.yaml missing public_open_allowlist")
+    widened = sorted(allowlist - OPEN_LICENSE_FLOOR)
+    require(not widened, "license allowlist widened beyond open-source floor: " + ", ".join(widened))
+
+    declared: list[tuple[str, str]] = []
+    _walk_licenses(cfg.get("candidates", {}), "candidates", declared)
+    bad = sorted({f"{p}={lic}" for p, lic in declared if lic.lower() not in OPEN_LICENSE_FLOOR})
+    require(not bad, "non-open model license(s) declared: " + ", ".join(bad))
+    return f"open-license floor ok ({len(allowlist)} allowed); no tracked weights"
+
+
 def money(value: Decimal) -> int:
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
@@ -540,6 +593,7 @@ def run_all(args: argparse.Namespace) -> None:
     gate("long private-quotation heuristic", private_quote_scan)
     gate("forbidden legal-verdict scan", legal_verdict_scan)
     gate("authority-tier scoring invariant", authority_invariant)
+    gate("open-license floor + no tracked weights", model_license_floor)
     gate("financial-formula tests", financial_formula_tests)
     gate("FINK-S0-01 corpus count/schema gate", fink_stage_corpus_gate)
     gate("upload-deletion tests when relevant", lambda: "not relevant to bootstrap scaffold")

@@ -1,7 +1,12 @@
 schema_version: 1
 
 license_policy:
+  # Open-source-only floor. This allowlist must stay a subset of the canonical
+  # OPEN_LICENSE_FLOOR enforced by the model_license_floor machine gate; it cannot
+  # be widened by editing this file. Backs the auto-resolution of MODEL_* (HD-12).
   default_floor: public_open
+  # Automated downloads are capped; larger models require a human decision.
+  max_download_size_gb: 20
   public_open_allowlist:
     - apache-2.0
     - mit

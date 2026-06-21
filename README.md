@@ -196,8 +196,9 @@ FInk is built by a bounded, auditable agent loop with a human in the loop:
 - **Codex GPT-5.5 (xhigh)** implements one scoped task at a time.
 - **Claude Opus 4.8 (max)** reviews, audits, and makes scoped fixes — and never
   runs concurrently with Codex in the same worktree.
-- A **human** approves licenses, public data, the evaluation split, final
-  claims, and release; the loop never approves its own human gates.
+- Gates auto-resolve under an encoded **conservative + open-license policy**
+  (HD-12), enforced by machine gates on every task; the single remaining human
+  step is the author's **release attestation** (`HR-08`).
 - **One branch only: `main`** — no task branches or worktrees.
 - **No automatic push** — accepted work is committed locally; publishing is a
   human decision.

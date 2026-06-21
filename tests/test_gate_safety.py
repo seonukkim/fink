@@ -181,6 +181,58 @@ class UntrackedScanCoverageTests(unittest.TestCase):
                 vr.REPO_ROOT, vr.tracked_files, vr.untracked_files = saved
 
 
+class ModelLicenseFloorTests(unittest.TestCase):
+    """Open-source-only model policy enforced as a machine gate (HD-12)."""
+
+    def test_real_repo_passes(self) -> None:
+        self.assertIn("open-license floor ok", vr.model_license_floor())
+
+    def test_tracked_weight_fails(self) -> None:
+        saved = vr.tracked_files
+        vr.tracked_files = lambda: ["models/model.safetensors"]
+        try:
+            with self.assertRaises(vr.GateFailure):
+                vr.model_license_floor()
+        finally:
+            vr.tracked_files = saved
+
+    def _isolated(self, candidates_yaml: str) -> str:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "configs" / "models").mkdir(parents=True)
+            (root / "configs" / "models" / "candidates.yaml").write_text(
+                candidates_yaml, encoding="utf-8"
+            )
+            saved_root, saved_tracked = vr.REPO_ROOT, vr.tracked_files
+            vr.REPO_ROOT = root
+            vr.tracked_files = lambda: []
+            try:
+                return vr.model_license_floor()
+            finally:
+                vr.REPO_ROOT, vr.tracked_files = saved_root, saved_tracked
+
+    def test_widened_allowlist_fails(self) -> None:
+        with self.assertRaises(vr.GateFailure):
+            self._isolated(
+                "license_policy:\n  public_open_allowlist: [apache-2.0, research-only]\n"
+                "candidates: {}\n"
+            )
+
+    def test_non_open_declared_license_fails(self) -> None:
+        with self.assertRaises(vr.GateFailure):
+            self._isolated(
+                "license_policy:\n  public_open_allowlist: [apache-2.0]\n"
+                "candidates:\n  ocr:\n    - id: x\n      license: cc-by-nc-4.0\n"
+            )
+
+    def test_open_declared_license_passes(self) -> None:
+        out = self._isolated(
+            "license_policy:\n  public_open_allowlist: [apache-2.0, mit]\n"
+            "candidates:\n  ocr:\n    - id: x\n      license: apache-2.0\n"
+        )
+        self.assertIn("open-license floor ok", out)
+
+
 class ClaudeEnvelopeParsingTests(unittest.TestCase):
     """run_claude must read the review out of the CLI's JSON envelope."""
 

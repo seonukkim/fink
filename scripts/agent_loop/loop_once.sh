@@ -97,6 +97,7 @@ print(os.pathsep.join(str(p) for p in task.get("allowed_paths", [])))' <<<"$sele
     export FINK_ALLOWED_PATHS="$allowed_paths_env"
   fi
 
+  prev_round_dir=""
   for round in 1 2 3 4; do
     round_label="$(printf 'round-%02d' "$round")"
     run_dir="${task_run_dir}/${round_label}"
@@ -105,14 +106,38 @@ print(os.pathsep.join(str(p) for p in task.get("allowed_paths", [])))' <<<"$sele
     cp "$task_run_dir/selection.json" "$run_dir/selection.json"
 
     python3 scripts/agent_loop/build_task_context.py --task-id "$task_id" --run-dir "$run_dir"
+    # Capture tool/gate exit codes instead of letting `set -e` abort the round.
+    # A failure must flow to a bounded repair round (or a clean rollback), never
+    # leave main dirty mid-round.
+    codex_rc=0
     if [[ "$round" -eq 1 ]]; then
-      python3 scripts/agent_loop/run_codex.py --run-dir "$run_dir" "${dry_flag[@]}"
+      python3 scripts/agent_loop/run_codex.py --run-dir "$run_dir" "${dry_flag[@]}" || codex_rc=$?
     else
-      python3 scripts/agent_loop/run_codex.py --run-dir "$run_dir" --mode repair
+      # Feed the prior round's verdict, required actions, and failing gate lines
+      # to the repair so Codex knows exactly what to fix (incl. out-of-scope files).
+      {
+        echo
+        echo "# Repair feedback from ${prev_round_dir##*/}"
+        python3 -c 'import json,sys
+r=json.load(open(sys.argv[1]))
+print("Verdict:", r.get("verdict"))
+print("Summary:", r.get("summary"))
+for k in ("required_codex_actions","required_tests","blocking_issues","major_issues"):
+    v=r.get(k) or []
+    if v: print(k+":", v)' "$prev_round_dir/claude_review.json" 2>/dev/null || true
+        echo "## Failing gate lines (fix these; stay within allowed_paths)"
+        grep -hE "\[FAIL\]|Error|Traceback" \
+          "$prev_round_dir/gates_after_codex.log" "$prev_round_dir/gates_after_claude.log" \
+          2>/dev/null | tail -20 || true
+      } >> "$run_dir/selected_context.txt"
+      python3 scripts/agent_loop/run_codex.py --run-dir "$run_dir" --mode repair || codex_rc=$?
     fi
-    bash scripts/agent_loop/run_gates.sh > "$run_dir/gates_after_codex.log"
-    python3 scripts/agent_loop/run_claude.py --run-dir "$run_dir" "${dry_flag[@]}"
-    bash scripts/agent_loop/run_gates.sh > "$run_dir/gates_after_claude.log"
+    gates_codex_rc=0
+    bash scripts/agent_loop/run_gates.sh > "$run_dir/gates_after_codex.log" 2>&1 || gates_codex_rc=$?
+    claude_rc=0
+    python3 scripts/agent_loop/run_claude.py --run-dir "$run_dir" "${dry_flag[@]}" || claude_rc=$?
+    gates_claude_rc=0
+    bash scripts/agent_loop/run_gates.sh > "$run_dir/gates_after_claude.log" 2>&1 || gates_claude_rc=$?
     git diff --binary "$BASE_COMMIT" -- > "$run_dir/diff.patch"
 
     python3 - <<'PY' "$run_dir"
@@ -137,7 +162,16 @@ PY
     fi
 
     verdict="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("verdict"))' "$run_dir/claude_review.json")"
-    if [[ "$verdict" == "APPROVE" ]]; then
+
+    # An APPROVE may commit ONLY when Codex, Claude, and BOTH gate runs all
+    # succeeded -- never commit on red gates (preserves the CLAUDE.md rule).
+    gates_ok=1
+    if [[ "$codex_rc" != "0" || "$gates_codex_rc" != "0" || "$claude_rc" != "0" \
+        || "$gates_claude_rc" != "0" ]]; then
+      gates_ok=0
+    fi
+
+    if [[ "$verdict" == "APPROVE" && "$gates_ok" == "1" ]]; then
       python3 scripts/agent_loop/apply_verdict.py \
         --task-id "$task_id" \
         --review-json "$run_dir/claude_review.json" \
@@ -157,14 +191,10 @@ PY
       exit 1
     fi
 
-    if [[ "$verdict" != "REQUEST_CHANGES" ]]; then
-      python3 scripts/agent_loop/rollback_failed_task.py \
-        --task-json "$run_dir/task.json" \
-        --base-commit "$BASE_COMMIT" \
-        --run-dir "$task_run_dir" \
-        --status "${verdict:-BLOCKED}"
-      exit 1
-    fi
+    # APPROVE-with-failing-gates, REQUEST_CHANGES, an unknown verdict, or a
+    # tool/gate failure -> bounded repair round on the next iteration.
+    echo "REPAIR_ROUND task=${task_id} round=${round} verdict=${verdict} gates_ok=${gates_ok}"
+    prev_round_dir="$run_dir"
   done
 
   python3 scripts/agent_loop/rollback_failed_task.py \

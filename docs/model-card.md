@@ -19,3 +19,10 @@ Model research policy:
 - The Hugging Face token is loaded only through
   `scripts/model_research/run_with_hf_auth.sh` and is never printed, logged,
   copied, documented, or committed.
+
+Automated enforcement (HD-12): the open-source-only floor and the no-tracked-weights
+rule are enforced on every loop task by the `model_license_floor` machine gate,
+which anchors the allowlist (so it cannot be widened by editing config) and rejects
+any non-allowlisted declared license or any tracked weight file. Model downloads run
+only for allowlisted models within `max_download_size_gb`; the human MODEL_* gates
+are auto-resolved by this policy rather than per-download sign-off.

@@ -78,15 +78,36 @@
 - **Required behavior:** reconcile actual Stage 0–3 and ChatGPT files rather than
   preserving reconstructed counts.
 
+## HD-12 — Automated gate resolution under conservative + open-license policy
+
+- **Status:** APPROVED (owner, supersedes the OPEN status of HD-4..HD-8 and HD-10).
+- **Decision:** The loop runs **fully automatically** except for the final
+  academic-integrity attestation. The legal/authority gates (HR-01, HR-02, HR-03,
+  HR-04, HR-05, HR-06) are **auto-resolved by conservative mode**, and the model
+  gates (MODEL_LICENSES/DOWNLOAD/PROFILE) are **auto-resolved by an open-source-only
+  license floor + size cap**.
+- **Why this is safe (no legal/finance expert needed):** the product is
+  conservative *by construction* — it never asserts current law, fraud, illegality,
+  validity, voidness, unfairness, or guaranteed loss; evidence is `UNVERIFIED` and
+  date-stamped; B/C sources contribute zero to scoring; scoring is A0–A2-only. The
+  gates therefore do not require certifying "the law is verified"; they require the
+  system to stay in that conservative regime, which the **machine gates enforce on
+  every task** (`legal_verdict_scan`, `authority_invariant`, `model_license_floor`,
+  `tracking_scan`, the INV suite, ...). Auto-resolving the human gates does not relax
+  any machine gate.
+- **License floor:** open-source allowlist only — `apache-2.0, mit, bsd-2-clause,
+  bsd-3-clause, isc, cc0-1.0, cc-by-4.0`. Gated, unknown, custom, noncommercial, and
+  research-only are rejected by default. Downloads are capped by
+  `max_download_size_gb`; weights never enter Git.
+- **Still human (NOT auto-resolved):** HD-9 / **HR-08** (AI-use + author attestation
+  before release). The loop completes everything up to release; the author flips
+  HR-08 once at submission after personally reviewing the AI-assisted outputs.
+- **Unchanged:** the Non-negotiable guardrails below and HD-2/HD-3 scope.
+
 ## Decisions intentionally left OPEN
 
-- HD-4 / HR-01: current-law verification
-- HD-5 / HR-02: official webtoon grounding verification
-- HD-6 / HR-03: sensitive KO–EN legal-alias review
-- HD-7 / HR-05: dated-figure verification
-- HD-8 / HR-06: glossary category spot-check
-- HD-9 / HR-08: AI-use and human-verification attestation
-- HD-10 / HR-04: missing artist-welfare source
+- HD-9 / HR-08: AI-use and human-verification attestation (the single final human
+  step; see HD-12).
 
 ## Non-negotiable guardrails
 

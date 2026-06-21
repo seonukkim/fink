@@ -18,11 +18,33 @@ from scripts.agent_loop._common import (
 
 
 class AgentLoopTests(unittest.TestCase):
-    def test_select_next_starts_with_spec_s0_task(self) -> None:
-        selected = select_eligible_task(load_backlog(), load_human_gates(), load_state())
-        self.assertIsNotNone(selected)
+    def test_select_next_orders_by_priority_scope_id(self) -> None:
+        # State-independent: the live backlog mutates as the loop runs (and this
+        # suite runs inside every task's gates), so assert the ordering LOGIC on a
+        # fixture rather than a specific live task id.
+        backlog = {
+            "tasks": [
+                {"id": "FINK-S0-02", "status": "READY", "priority": "P0", "scope": "M",
+                 "depends_on": [], "allowed_paths": ["a/"]},
+                {"id": "FINK-S0-01", "status": "READY", "priority": "P0", "scope": "S",
+                 "depends_on": [], "allowed_paths": ["a/"]},
+                {"id": "FINK-S1-09", "status": "READY", "priority": "P1", "scope": "S",
+                 "depends_on": [], "allowed_paths": ["a/"]},
+            ]
+        }
+        selected = select_eligible_task(backlog, {"gates": {}}, {"active_task": None, "path_locks": {}})
         assert selected is not None
-        self.assertEqual(selected.task["id"], "FINK-S0-01")
+        self.assertEqual(selected.task["id"], "FINK-S0-01")  # P0 + shortest scope wins
+
+    def test_select_next_returns_eligible_task_on_live_backlog(self) -> None:
+        selected = select_eligible_task(load_backlog(), load_human_gates(), load_state())
+        if selected is None:
+            return  # backlog fully drained or only gated tasks remain
+        task = selected.task
+        self.assertEqual(str(task.get("status")), "READY")
+        by_id = {str(t["id"]): t for t in load_backlog()["tasks"]}
+        for dep in task.get("depends_on", []):
+            self.assertEqual(str(by_id[str(dep)].get("status")), "DONE")
 
     def test_backlog_contains_required_model_research_tasks(self) -> None:
         ids = {task["id"] for task in load_backlog()["tasks"]}
