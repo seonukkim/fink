@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FInk icon">
+  <defs>
+    <style>
+      .ink-pink { fill: #E83E8C; }
+      .ink-deep { fill: #B91C5C; }
+      .ink-soft { fill: #FFF1F7; }
+      .ink-dark { fill: #1F2937; }
+      .stroke-dark {
+        fill: none;
+        stroke: #1F2937;
+        stroke-width: 34;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .stroke-soft {
+        fill: none;
+        stroke: #FFF1F7;
+        stroke-width: 25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .stroke-deep {
+        fill: none;
+        stroke: #B91C5C;
+        stroke-width: 12;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+
+  <!-- Single comic-panel corner -->
+  <path class="stroke-dark" d="M126 322V142c0-13 11-24 24-24h190"/>
+  <path fill="none" stroke="#FFF1F7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"
+        d="M154 294V158c0-7 6-12 12-12h148"/>
+
+  <!-- Fountain-pen nib silhouette -->
+  <path class="ink-dark"
+        d="M256 75c66 47 111 132 94 225-10 56-44 100-76 139-8 10-14 18-18 27-4-9-10-17-18-27-32-39-66-83-76-139-17-93 28-178 94-225z"/>
+  <path class="ink-pink"
+        d="M256 108c49 40 82 111 70 185-8 47-37 83-64 117l-6 8-6-8c-27-34-56-70-64-117-12-74 21-145 70-185z"/>
+
+  <!-- Nib center and breather hole -->
+  <path class="ink-deep" d="M246 128h20v174h-20z"/>
+  <circle class="ink-soft" cx="256" cy="205" r="27"/>
+  <circle class="ink-deep" cx="256" cy="205" r="13"/>
+  <path fill="none" stroke="#1F2937" stroke-width="12" stroke-linecap="round"
+        d="M256 218v150"/>
+
+  <!-- Subtle upward financial chart line -->
+  <path class="stroke-soft" d="M199 314l38-32 34 15 49-55"/>
+  <path class="stroke-deep" d="M199 314l38-32 34 15 49-55"/>
+</svg>
