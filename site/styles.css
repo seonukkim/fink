@@ -221,22 +221,74 @@ main {
 }
 .grid4 p, .grid3 p { margin: 0; font-size: 0.92rem; color: #4b5563; }
 
-/* Teaser figure */
-.teaser {
+/* Pipeline flow diagram */
+.flow {
+  list-style: none;
+  margin: 24px auto 0;
+  padding: 0;
+  max-width: 520px;
+}
+.flow li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--pink-line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.flow li + li { margin-top: 28px; }
+.flow li + li::before {
+  content: "";
+  position: absolute;
+  top: -23px;
+  left: 28px;
+  width: 2px;
+  height: 16px;
+  background: var(--pink);
+}
+.flow li + li::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 23px;
+  border: 6px solid transparent;
+  border-top-color: var(--pink);
+}
+.flow li:last-child {
+  border-color: var(--pink);
+  background: var(--pink-pale);
+}
+.step-n {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pink);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+.step-t {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Contained brand image */
+.brand {
   margin: 26px 0 0;
   text-align: center;
 }
-.teaser img {
+.brand img {
   width: 100%;
-  max-width: 720px;
+  max-width: 320px;
   height: auto;
   border: 1px solid var(--pink-line);
   border-radius: var(--radius);
-}
-.teaser figcaption {
-  margin-top: 10px;
-  font-size: 0.84rem;
-  color: var(--muted);
 }
 
 /* Demo run block */
