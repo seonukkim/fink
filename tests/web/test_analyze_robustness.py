@@ -24,6 +24,7 @@ def _web():
 
 
 WEB = _web()
+F5_SAMPLE_KO = "저작권 및 2차적저작물 권리는 회사에 포괄 양도된다."
 
 
 async def _post(app: object, path: str, body: dict) -> tuple[int, dict]:
@@ -52,6 +53,14 @@ async def _post(app: object, path: str, body: dict) -> tuple[int, dict]:
 
 def _app() -> object:
     return WEB.LocalASGIApp(WEB.resolve_bind_settings())
+
+
+def _fim6_audit_exposures(payload: dict) -> list[dict]:
+    return [
+        exposure
+        for exposure in payload["audit_detail"]["monetary_exposures"]
+        if exposure["fim_module"] == "FIM-6"
+    ]
 
 
 class AnalyzeRobustnessTests(unittest.TestCase):
@@ -137,6 +146,80 @@ class AnalyzeRobustnessTests(unittest.TestCase):
         self.assertEqual(
             payload["dimensions"]["monetary"]["quantification_status"]["state"],
             "not_quantified",
+        )
+
+    def test_structured_secondary_rights_reaches_fim6_scenario_value(self) -> None:
+        status, payload = asyncio.run(
+            _post(
+                _app(),
+                "/api/analyze",
+                {
+                    "paste_text": F5_SAMPLE_KO,
+                    "locale": "ko",
+                    "assumptions": {
+                        "secondary_rights": [
+                            {"type": "overseas", "value": "5000000", "prob": "0.4"},
+                            {"type": "merchandise", "value": "3000000", "prob": "0.2"},
+                        ]
+                    },
+                },
+            )
+        )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            payload["dimensions"]["monetary"]["quantification_status"]["state"],
+            "range_available",
+        )
+        self.assertEqual(payload["dimensions"]["monetary"]["ranges"][0]["base"], "2600000.0")
+        fim6 = _fim6_audit_exposures(payload)
+        self.assertEqual(len(fim6), 1)
+        self.assertFalse(fim6[0]["is_user_input_required"])
+        self.assertEqual(fim6[0]["base"], "2600000.0")
+        self.assertIn(
+            "no automatic IP valuation",
+            " ".join(payload["dimensions"]["monetary"]["ranges"][0]["assumptions"]),
+        )
+
+    def test_missing_secondary_rights_values_keep_finding_and_require_input(self) -> None:
+        status, payload = asyncio.run(
+            _post(
+                _app(),
+                "/api/analyze",
+                {
+                    "paste_text": F5_SAMPLE_KO,
+                    "locale": "ko",
+                    "assumptions": {"secondary_rights": [{"type": "overseas"}]},
+                },
+            )
+        )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            payload["dimensions"]["monetary"]["quantification_status"]["state"],
+            "not_quantified",
+        )
+        self.assertTrue(
+            any(
+                finding["source"]["exact_excerpt"] == F5_SAMPLE_KO
+                for finding in payload["findings"]
+            )
+        )
+        self.assertTrue(
+            any(
+                finding["risk_category"] == "F5"
+                for finding in payload["audit_detail"]["technical_findings"]
+            )
+        )
+        fim6 = _fim6_audit_exposures(payload)
+        self.assertEqual(len(fim6), 1)
+        self.assertTrue(fim6[0]["is_user_input_required"])
+        self.assertIsNone(fim6[0]["low"])
+        self.assertIsNone(fim6[0]["base"])
+        self.assertIsNone(fim6[0]["high"])
+        self.assertIn(
+            "missing_user_input:secondary_rights[1].value",
+            fim6[0]["uncertainty_flags"],
         )
 
 

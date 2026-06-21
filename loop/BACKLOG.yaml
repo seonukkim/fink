@@ -1619,8 +1619,9 @@ tasks:
   - web_smoke
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-21T22:21:49+00:00'
 - id: FINK-QA-01
   phase: UX
   priority: P2

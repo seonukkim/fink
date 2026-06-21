@@ -163,6 +163,24 @@ class FinanceImpactTests(unittest.TestCase):
             any("no automatic IP valuation" in item for item in result.scenario_value.assumptions)
         )
 
+    def test_fim_6_missing_valuation_inputs_stays_input_required(self) -> None:
+        result = FINANCE.fim6_ip_secondary_rights_scenario_value(
+            secondary_rights=({"type": "overseas"},)
+        )
+
+        self.assertTrue(result.is_blank)
+        self.assertEqual(
+            result.missing_inputs,
+            ("secondary_rights[1].value", "secondary_rights[1].prob"),
+        )
+        self.assertIsNone(result.scenario_value.low)
+        self.assertIsNone(result.scenario_value.base)
+        self.assertIsNone(result.scenario_value.high)
+        self.assertIn(
+            "missing_user_input:secondary_rights[1].value",
+            result.scenario_value.uncertainty_flags,
+        )
+
     def test_fim_7_t1_capped_liability_with_user_probability(self) -> None:
         result = FINANCE.fim7_penalty_liability_exposure(
             explicit_penalty_cap=Decimal("5000000"),

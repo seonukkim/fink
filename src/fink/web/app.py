@@ -580,12 +580,14 @@ def _assumptions_from_payload(value: Any) -> EditableAssumptions | None:
 
     allowed = {item.name for item in dataclass_fields(EditableAssumptions)}
     int_fields = {"unpaid_revision_units", "exclusivity_duration_months", "renewal_duration_months"}
-    # Non-scalar assumption fields (e.g. secondary_rights is a tuple of rows)
-    # cannot be built from a flat numeric input and would crash the FIM modules.
-    skip_fields = {"secondary_rights"}
     kwargs: dict[str, Any] = {}
     for key, raw in value.items():
-        if key not in allowed or key in skip_fields or raw is None or raw == "":
+        if key not in allowed or raw is None or raw == "":
+            continue
+        if key == "secondary_rights":
+            secondary_rights = _secondary_rights_from_payload(raw)
+            if secondary_rights:
+                kwargs[key] = secondary_rights
             continue
         try:
             if key in int_fields:
@@ -597,6 +599,33 @@ def _assumptions_from_payload(value: Any) -> EditableAssumptions | None:
     if not kwargs:
         return None
     return EditableAssumptions(**kwargs)
+
+
+def _secondary_rights_from_payload(value: Any) -> tuple[dict[str, Any], ...]:
+    """Parse structured FIM-6 rows from JSON without inventing missing values.
+
+    A flat number is not a secondary-rights scenario, so it is ignored. Mapping
+    rows are preserved even when ``value`` or ``prob`` is missing; the finance
+    module then returns an input-required FIM-6 row instead of fabricating a
+    finite rights value.
+    """
+
+    if isinstance(value, dict):
+        rows = (value,)
+    elif isinstance(value, (list, tuple)):
+        rows = tuple(row for row in value if isinstance(row, dict))
+    else:
+        return ()
+
+    parsed: list[dict[str, Any]] = []
+    for row in rows:
+        scenario: dict[str, Any] = {}
+        for key in ("type", "value", "prob", "timing_months"):
+            if key in row and row[key] not in (None, ""):
+                scenario[key] = row[key]
+        if scenario:
+            parsed.append(scenario)
+    return tuple(parsed)
 
 
 def _assumption_value_dict(value: Any) -> dict[str, str]:

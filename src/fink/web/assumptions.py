@@ -630,7 +630,10 @@ def _fim5_row(values: EditableAssumptions) -> AssumptionModuleRow:
 
 
 def _fim6_row(values: EditableAssumptions) -> AssumptionModuleRow:
-    result = fim6_ip_secondary_rights_scenario_value(secondary_rights=values.secondary_rights)
+    result = fim6_ip_secondary_rights_scenario_value(
+        secondary_rights=values.secondary_rights,
+        annual_discount_rate=values.annual_discount_rate,
+    )
     return AssumptionModuleRow(
         module=FimModule.FIM_6,
         exposure_type=result.scenario_value.exposure_type,
