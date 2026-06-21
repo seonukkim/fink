@@ -1173,7 +1173,8 @@ tasks:
   paper_sections:
   - 04_data_and_implementation.md
   human_gate: MODEL_DOWNLOAD_APPROVED
-  status: READY
+  status: DONE
+  completed_at: '2026-06-21T12:59:35+00:00'
 - id: FINK-MR-06
   phase: MR
   priority: P1

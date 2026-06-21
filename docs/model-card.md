@@ -194,3 +194,56 @@ seven model candidates through the `public_open` floor; all seven were accepted,
 zero were rejected, and future unknown, missing, gated, custom, other,
 noncommercial, or research-only licenses remain rejected by default. The
 shortlist is metadata-only and preserves the no-weight-in-public-Git boundary.
+
+## Approved Private Weight Downloads
+
+Downloader: `scripts/model_research/private_model_download.py`.
+
+Captured for task `FINK-MR-05` at `2026-06-21T22:08:00+09:00` from
+`BASE_COMMIT=5d486988e6f2180daa3d286da3b0827f69eb6011`.
+
+FINK-MR-05 converts the FINK-MR-04 open-license shortlist into an approved
+private-download workflow. It validates the live `MODEL_DOWNLOAD_APPROVED` gate
+from `loop/HUMAN_GATES.yaml`, confirms every selected model is still
+`accepted_public_open`, enforces the 20 GB per-model size cap, and scans Git for
+tracked weight suffixes before any download can run. Real downloads require the
+cached Hugging Face token through `scripts/model_research/run_with_hf_auth.sh`
+and an explicit `FINK_MODEL_DOWNLOAD_ALLOWED=true` runtime flag.
+
+Approved storage targets:
+
+- `$PRIVATE_ROOT/models/huggingface/<candidate_id>/<exact_revision>` for
+  private-root storage.
+- The Hugging Face cache (`HF_HUB_CACHE`, or `HF_HOME/hub`, or the default user
+  cache) for cache storage.
+
+The downloader refuses any `PRIVATE_ROOT`, private model root, Hugging Face
+cache, download target, or resolved download result located inside the Git
+repository. Public Git records only model ids, licenses, exact revisions,
+estimated sizes, and plans; model weights stay outside Git.
+
+Operator commands:
+
+```bash
+# Policy self-test; no network and no weight files.
+python3 scripts/model_research/private_model_download.py --self-test
+
+# Plan selected downloads; no network and no weight files.
+python3 scripts/model_research/private_model_download.py \
+  --plan --model-id qwen3_embedding_0_6b --model-id qwen3_reranker_0_6b \
+  --model-id qwen3_4b
+
+# Run a real approved download into $PRIVATE_ROOT/models/huggingface.
+FINK_MODEL_DOWNLOAD_ALLOWED=true scripts/model_research/run_with_hf_auth.sh \
+  python3 scripts/model_research/private_model_download.py \
+  --download --model-id qwen3_embedding_0_6b --model-id qwen3_reranker_0_6b \
+  --model-id qwen3_4b
+```
+
+Paper note for `04_data_and_implementation.md`: report that FINK-MR-05 added an
+approval-gated private download path for the open-allowlisted model shortlist.
+Downloads are permitted only after the live `MODEL_DOWNLOAD_APPROVED` gate,
+open-license floor, exact-revision pin, per-model size cap, and Git
+weight-tracking scan pass. Stored weights are constrained to
+`$PRIVATE_ROOT/models` or the Hugging Face cache and are never committed to
+public Git.

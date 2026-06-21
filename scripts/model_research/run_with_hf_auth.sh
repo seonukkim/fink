@@ -12,5 +12,6 @@ fi
 chmod 600 "$HF_TOKEN_PATH"
 
 export HF_TOKEN="$(tr -d '\r\n' < "$HF_TOKEN_PATH")"
+export FINK_HF_AUTH_WRAPPER="run_with_hf_auth.sh"
 
 exec "$@"
