@@ -1,0 +1,470 @@
+{
+  "cases": [
+    {
+      "description": "Compute retrieval recall, authority-tier correctness, cited evidence-span overlap, and KO/EN canonical-ID consistency on synthetic/sanitized fixtures.",
+      "expected": {
+        "authority_scoring_tiers": [
+          "A0",
+          "A1",
+          "A2"
+        ],
+        "english_aliases_are_not_evidence": true,
+        "no_legal_verdict": true,
+        "practice_reference_tiers_non_scoring": [
+          "B",
+          "C",
+          "B/C"
+        ],
+        "required_metrics": [
+          "EV-R@3",
+          "EV-R@5",
+          "EV-AUTH",
+          "EV-SPAN",
+          "EV-KOEN"
+        ],
+        "result_ledger_status": "measured",
+        "synthetic_only": true
+      },
+      "id": "retrieval_metric_run",
+      "metrics": [
+        "EV-R@3",
+        "EV-R@5",
+        "EV-AUTH",
+        "EV-SPAN",
+        "EV-KOEN"
+      ],
+      "observed": {
+        "authority": {
+          "checks": {
+            "a1_grounded_score_eligible": true,
+            "authority_tag_present": true,
+            "bc_only_zero_contribution": true,
+            "eligibility_gate_mixed_cases": true,
+            "grounding_records_a0_a2": true,
+            "practice_records_bc_non_scoring": true,
+            "returned_records_have_provenance": true,
+            "x_category_non_scoring": true
+          },
+          "eligibility": {
+            "a1_grounded": {
+              "ignored_reference_ids": [],
+              "practice_reference": false,
+              "practice_reference_ids": [],
+              "raw_contribution": 25.0,
+              "risk_categories": [
+                "F2_REVENUE_AND_DEDUCTIONS"
+              ],
+              "score_contribution": 25.0,
+              "score_eligible": true,
+              "scoring_evidence_ids": [
+                "EV-A1-DEDUCTIONS"
+              ],
+              "signal_id": "SIG-F2-A1-GROUNDED"
+            },
+            "bc_only": {
+              "ignored_reference_ids": [],
+              "practice_reference": true,
+              "practice_reference_ids": [
+                "KC-B-DEDUCTIONS"
+              ],
+              "raw_contribution": 25.0,
+              "risk_categories": [
+                "F2"
+              ],
+              "score_contribution": 0.0,
+              "score_eligible": false,
+              "scoring_evidence_ids": [],
+              "signal_id": "SIG-F2-BC-ONLY"
+            },
+            "x_context": {
+              "ignored_reference_ids": [],
+              "practice_reference": false,
+              "practice_reference_ids": [],
+              "raw_contribution": 40.0,
+              "risk_categories": [
+                "X1_EVIDENCE_AND_CURRENCY_GOVERNANCE"
+              ],
+              "score_contribution": 0.0,
+              "score_eligible": false,
+              "scoring_evidence_ids": [
+                "EV-A1-X1-CONTEXT"
+              ],
+              "signal_id": "SIG-X1-A1-CONTEXT"
+            }
+          },
+          "errors": {},
+          "explanation_record_ids": [
+            "KC-F2-DEDUCTIONS"
+          ],
+          "grounding_record_ids": [
+            "EV-F2-DEDUCTIONS",
+            "EV-A2-DEDUCTIONS"
+          ],
+          "passed_checks": 8,
+          "total_checks": 8
+        },
+        "fixture_sha256": "a5beed3e28e14de467de16fb674f6b8b1b6404b3cc1aa70beee89d369d7b09a0",
+        "koen": {
+          "caveat_present_pairs": 8,
+          "caveat_required_pairs": 8,
+          "consistent_pairs": 8,
+          "english_labeled_evidence_violations": 0,
+          "english_never_labeled_evidence": true,
+          "per_query": [
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_ASSIGNMENT_LICENSE_BOUNDARY"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_ASSIGNMENT_LICENSE_BOUNDARY",
+              "ko_canonical_ids": [
+                "CANON_ASSIGNMENT_LICENSE_BOUNDARY"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-assignment-license",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            },
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_RESCISSION"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_RESCISSION",
+              "ko_canonical_ids": [
+                "CANON_RESCISSION"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-rescission",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            },
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_TERMINATION"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_TERMINATION",
+              "ko_canonical_ids": [
+                "CANON_TERMINATION"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-termination",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            },
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_WORK_MADE_FOR_HIRE"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_WORK_MADE_FOR_HIRE",
+              "ko_canonical_ids": [
+                "CANON_WORK_MADE_FOR_HIRE"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-work-made-for-hire",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            },
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_PUBLICITY"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_PUBLICITY",
+              "ko_canonical_ids": [
+                "CANON_PUBLICITY"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-publicity",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            },
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_LIQUIDATED_DAMAGES"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_LIQUIDATED_DAMAGES",
+              "ko_canonical_ids": [
+                "CANON_LIQUIDATED_DAMAGES"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-liquidated-damages",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            },
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_CONSIDERATION"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_CONSIDERATION",
+              "ko_canonical_ids": [
+                "CANON_CONSIDERATION"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-consideration",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            },
+            {
+              "consistent": true,
+              "en_canonical_ids": [
+                "CANON_DEPOSIT"
+              ],
+              "english_labeled_evidence": false,
+              "expected_canonical_id": "CANON_DEPOSIT",
+              "ko_canonical_ids": [
+                "CANON_DEPOSIT"
+              ],
+              "non_equivalence_caveat_present": true,
+              "query_id": "koen-deposit",
+              "requires_non_equivalence_caveat": true,
+              "same_top1": true,
+              "same_top_k": true
+            }
+          ],
+          "top_k_consistent_pairs": 8,
+          "total_pairs": 8
+        },
+        "metric_values": {
+          "EV-AUTH": 1.0,
+          "EV-KOEN": 1.0,
+          "EV-R@3": 1.0,
+          "EV-R@5": 1.0,
+          "EV-SPAN": 0.85
+        },
+        "recall": {
+          "hits_at_k": {
+            "hits@3": 4,
+            "hits@5": 4
+          },
+          "per_query": [
+            {
+              "hit@3": true,
+              "hit@5": true,
+              "query_id": "q-f1-settlement",
+              "ranked_chunk_ids": [
+                "EV-F1-SETTLEMENT"
+              ],
+              "relevant_chunk_ids": [
+                "EV-F1-SETTLEMENT"
+              ]
+            },
+            {
+              "hit@3": true,
+              "hit@5": true,
+              "query_id": "q-f2-deduction",
+              "ranked_chunk_ids": [
+                "EV-F2-DEDUCTIONS",
+                "EV-A2-DEDUCTIONS"
+              ],
+              "relevant_chunk_ids": [
+                "EV-F2-DEDUCTIONS"
+              ]
+            },
+            {
+              "hit@3": true,
+              "hit@5": true,
+              "query_id": "q-f3-payment",
+              "ranked_chunk_ids": [
+                "EV-F3-PAYMENT"
+              ],
+              "relevant_chunk_ids": [
+                "EV-F3-PAYMENT"
+              ]
+            },
+            {
+              "hit@3": true,
+              "hit@5": true,
+              "query_id": "q-f7-termination",
+              "ranked_chunk_ids": [
+                "EV-F7-TERMINATION"
+              ],
+              "relevant_chunk_ids": [
+                "EV-F7-TERMINATION"
+              ]
+            }
+          ],
+          "recall_at_k": {
+            "R@3": 1.0,
+            "R@5": 1.0
+          },
+          "total_cases": 4
+        },
+        "span": {
+          "aggregation": "mean token-set IoU",
+          "case_count": 3,
+          "cases": [
+            {
+              "case_id": "span-deduction-exact",
+              "cited_span_sha256": "51e26a59a35b59b983c1f8c4606080dfc8ffae164d6f2f3838878581fb8bf956",
+              "cited_token_count": 5,
+              "gold_span_sha256": "51e26a59a35b59b983c1f8c4606080dfc8ffae164d6f2f3838878581fb8bf956",
+              "gold_token_count": 5,
+              "intersection_token_count": 5,
+              "token_iou": 1.0,
+              "union_token_count": 5
+            },
+            {
+              "case_id": "span-audit-partial",
+              "cited_span_sha256": "cc5f233262088e2b56dccb666617f5ecb613011d2538411f48dd0e250517e502",
+              "cited_token_count": 4,
+              "gold_span_sha256": "1cdeda828eeae353855103e8f7afa178d42685923308ad35f9580e1728b8413c",
+              "gold_token_count": 5,
+              "intersection_token_count": 4,
+              "token_iou": 0.8,
+              "union_token_count": 5
+            },
+            {
+              "case_id": "span-termination-partial",
+              "cited_span_sha256": "bb367c98331b6d8d5bcd0dbb9db9ea99e9ff1349fd9b5f5db1b914079613f14f",
+              "cited_token_count": 3,
+              "gold_span_sha256": "5d29a15126b2232a5a3c08c5e0079a0f23a9894ecaae189a7a78efa827ac79ee",
+              "gold_token_count": 4,
+              "intersection_token_count": 3,
+              "token_iou": 0.75,
+              "union_token_count": 4
+            }
+          ]
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "metric_values": {
+    "EV-AUTH": 1.0,
+    "EV-KOEN": 1.0,
+    "EV-R@3": 1.0,
+    "EV-R@5": 1.0,
+    "EV-SPAN": 0.85
+  },
+  "metrics": {
+    "EV-AUTH": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-KOEN": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-R@3": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-R@5": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-SPAN": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "paper_sections": [
+    "05_experiments.md",
+    "06_results.md"
+  ],
+  "registered_gates": [
+    "retrieval_metric_run"
+  ],
+  "result_ledger": {
+    "columns": [
+      "result_id",
+      "experiment_id",
+      "metric",
+      "value",
+      "artifact_path",
+      "status",
+      "reviewer",
+      "notes"
+    ],
+    "name": "RESULT_LEDGER",
+    "rows": [
+      {
+        "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+        "experiment_id": "retrieval_metric_run",
+        "metric": "EV-R@3",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-03-EV-R@3",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+        "experiment_id": "retrieval_metric_run",
+        "metric": "EV-R@5",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-03-EV-R@5",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+        "experiment_id": "retrieval_metric_run",
+        "metric": "EV-AUTH",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-03-EV-AUTH",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+        "experiment_id": "retrieval_metric_run",
+        "metric": "EV-SPAN",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-03-EV-SPAN",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.850000"
+      },
+      {
+        "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+        "experiment_id": "retrieval_metric_run",
+        "metric": "EV-KOEN",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-03-EV-KOEN",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      }
+    ]
+  },
+  "suite": "retrieval_metric_suite",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 1,
+    "total": 1
+  },
+  "task_id": "FINK-S5-03"
+}
