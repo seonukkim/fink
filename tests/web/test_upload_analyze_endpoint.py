@@ -142,9 +142,10 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
         status, _, payload = asyncio.run(_asgi_post(_fallback_app(), body, headers))
         self.assertEqual(status, 200)
         self.assertTrue(payload["local_only"])
-        self.assertEqual(payload["grounding"], "UNVERIFIED")
+        self.assertEqual(payload["view_model"], "CreatorReviewViewModel")
+        self.assertEqual(payload["statuses"]["evidence_status"]["state"], "unverified")
         self.assertIn("review_priority", payload["dimensions"])
-        self.assertGreaterEqual(payload["clause_count"], 1)
+        self.assertGreaterEqual(payload["audit_detail"]["clause_count"], 1)
 
     def test_multipart_text_layer_pdf_upload_reaches_analysis(self) -> None:
         body, headers = _multipart_body(
@@ -157,7 +158,7 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(payload["local_only"])
         self.assertEqual(payload["ui_locale"], "en")
-        self.assertGreaterEqual(payload["clause_count"], 1)
+        self.assertGreaterEqual(payload["audit_detail"]["clause_count"], 1)
 
     def test_image_upload_without_local_ocr_returns_ocr_not_installed(self) -> None:
         body, headers = _multipart_body(

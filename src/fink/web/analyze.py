@@ -80,6 +80,7 @@ class RankedFinding:
     clause_id: str
     clause_heading: str | None
     snippet: str
+    exact_excerpt: str
     severity_raw: float
     signal_confidence: float
     rank_score: float
@@ -325,6 +326,7 @@ def _rank_findings(
                 clause_id=signal.clause_id,
                 clause_heading=clause.heading_ko if clause is not None else None,
                 snippet=_clause_snippet(clause),
+                exact_excerpt=_clause_exact_excerpt(clause),
                 severity_raw=severity_raw,
                 signal_confidence=confidence,
                 rank_score=severity_raw * confidence,
@@ -341,6 +343,12 @@ def _clause_snippet(clause: "Clause | None") -> str:
     if len(text) <= SNIPPET_MAX_CHARS:
         return text
     return text[: SNIPPET_MAX_CHARS - 1].rstrip() + "…"
+
+
+def _clause_exact_excerpt(clause: "Clause | None") -> str:
+    if clause is None:
+        return ""
+    return " ".join(clause.text_ko.split())
 
 
 def _has_category(
@@ -626,12 +634,7 @@ def _build_nl_summary(
 
 
 def analysis_result_to_payload(result: LocalAnalysisResult, locale: UILocale) -> dict[str, Any]:
-    """Return a JSON-serializable dict for the analyze endpoint.
-
-    Decimal values are emitted as strings so ``json.dumps`` succeeds without a
-    custom encoder, and both locales are always included so the client can flip
-    the KO/EN toggle without another request.
-    """
+    """Return the canonical creator-review view model payload."""
 
     if isinstance(locale, str):
         try:
@@ -639,123 +642,6 @@ def analysis_result_to_payload(result: LocalAnalysisResult, locale: UILocale) ->
         except ValueError:
             locale = UILocale.KO
 
-    exposures = [_exposure_to_payload(exposure) for exposure in result.exposures]
-    time_exposure = result.time_result.time_exposure
-    confidence = result.scoring.confidence
-    return {
-        "local_only": True,
-        "ui_locale": locale.value,
-        "grounding": result.grounding,
-        "grounding_note": {
-            "ko": result.grounding_note_ko,
-            "en": result.grounding_note_en,
-        },
-        "clause_count": result.clause_count,
-        "signal_count": result.signal_count,
-        "nl_summary": {
-            "ko": result.nl_summary_ko,
-            "en": result.nl_summary_en,
-        },
-        "recommended_action": {
-            "pathway_label": result.recommended_action.pathway_label,
-            "action": {
-                "ko": result.recommended_action.action_ko,
-                "en": result.recommended_action.action_en,
-            },
-            "cash_flow": {
-                "ko": result.recommended_action.cash_flow_ko,
-                "en": result.recommended_action.cash_flow_en,
-            },
-        },
-        "dimensions": {
-            "review_priority": {
-                "score": result.review_priority_score,
-                "grounding": result.grounding,
-                "note": {
-                    "ko": result.grounding_note_ko,
-                    "en": result.grounding_note_en,
-                },
-                "category_scores": result.category_scores,
-            },
-            "monetary": {
-                "present": result.monetary_present,
-                "note": {
-                    "ko": result.monetary_note_ko,
-                    "en": result.monetary_note_en,
-                },
-                "exposures": exposures,
-            },
-            "time": {
-                "pathway_label": time_exposure.pathway_label.value,
-                "measured_analysis_runtime_seconds": (
-                    time_exposure.measured_analysis_runtime_seconds
-                ),
-                "estimated_human_review_minutes": (
-                    time_exposure.estimated_human_review_minutes
-                ),
-            },
-            "confidence": {
-                "ocr_confidence": confidence.ocr_confidence,
-                "evidence_confidence": confidence.evidence_confidence,
-                "data_completeness": confidence.data_completeness,
-                "overall_confidence": confidence.overall_confidence,
-            },
-        },
-        "ranked_findings": [_finding_to_payload(finding) for finding in result.ranked_findings],
-        "category_guidance": [
-            {
-                "risk_category": guidance.risk_category,
-                "why_it_matters": {
-                    "ko": guidance.why_it_matters_ko,
-                    "en": guidance.why_it_matters_en,
-                },
-                "questions": {
-                    "ko": list(guidance.questions_ko),
-                    "en": list(guidance.questions_en),
-                },
-            }
-            for guidance in result.category_guidance
-        ],
-    }
+    from fink.web.view_model import creator_review_payload_from_result
 
-
-def _finding_to_payload(finding: RankedFinding) -> dict[str, Any]:
-    return {
-        "rank": finding.rank,
-        "signal_id": finding.signal_id,
-        "risk_category": finding.risk_category,
-        "label": {"ko": finding.label_ko, "en": finding.label_en},
-        "clause_id": finding.clause_id,
-        "clause_heading": finding.clause_heading,
-        "snippet": finding.snippet,
-        "severity_raw": finding.severity_raw,
-        "signal_confidence": finding.signal_confidence,
-        "rank_score": finding.rank_score,
-        "is_missing_protection": finding.is_missing_protection,
-        "scored": finding.scored,
-        "grounding": finding.grounding,
-    }
-
-
-def _exposure_to_payload(exposure: "MonetaryExposureEstimate") -> dict[str, Any]:
-    return {
-        "module": exposure.module.value,
-        "exposure_type": exposure.exposure_type.value,
-        "is_user_input_required": exposure.is_user_input_required,
-        "low": _decimal_to_str(exposure.low),
-        "base": _decimal_to_str(exposure.base),
-        "high": _decimal_to_str(exposure.high),
-        "nominal_amount": _decimal_to_str(exposure.nominal_amount),
-        "assumptions": list(exposure.assumptions),
-        "uncertainty_flags": (
-            list(exposure.uncertainty_flags)
-            if exposure.uncertainty_flags is not None
-            else None
-        ),
-    }
-
-
-def _decimal_to_str(value: "Decimal | None") -> str | None:
-    if value is None:
-        return None
-    return str(value)
+    return creator_review_payload_from_result(result, locale)

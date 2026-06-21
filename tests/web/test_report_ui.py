@@ -139,9 +139,34 @@ def _official_records() -> tuple[Any, ...]:
 
 
 class ReportUITests(unittest.TestCase):
+    def test_copy_keys_are_bilingual_and_required(self) -> None:
+        copy = WEB.creator_review_copy_payload()
+        self.assertGreaterEqual(
+            set(copy),
+            set(WEB.creator_review_required_copy_keys()),
+        )
+        for key in WEB.creator_review_required_copy_keys():
+            self.assertTrue(copy[key]["ko"].strip(), key)
+            self.assertTrue(copy[key]["en"].strip(), key)
+            self.assertTrue(copy[key]["en_generated"], key)
+
     def test_four_dimension_present_test_keeps_report_dimensions_separate(self) -> None:
         report = _synthetic_report()
-        markup = WEB.render_report_html(report, evidence_records=_official_records())
+        view_model = WEB.build_creator_review_view_model_from_report(
+            report,
+            evidence_records=_official_records(),
+            highlighted_evidence=(
+                WEB.HighlightedEvidence(
+                    clause_id="clause-f2",
+                    page_index=0,
+                    source_span_id="span-f2-1",
+                    text_before="매출액에서 ",
+                    trigger_text="공제 비용",
+                    text_after="을 제한 뒤 정산한다.",
+                ),
+            ),
+        )
+        markup = WEB.render_report_html(view_model)
 
         self.assertEqual(
             WEB.report_dimension_ids(),
@@ -156,25 +181,18 @@ class ReportUITests(unittest.TestCase):
         for dimension_id in WEB.report_dimension_ids():
             self.assertIn(f'data-report-dimension="{dimension_id}"', markup)
 
-        self.assertIsInstance(report.assessment.review_priority_score, int)
-        self.assertIsInstance(report.assessment.monetary_exposures, tuple)
-        self.assertIsInstance(report.assessment.time_exposure, SCHEMAS.TimeExposure)
-        self.assertIsInstance(report.assessment.confidence, SCHEMAS.ConfidenceBreakdown)
+        self.assertEqual(view_model.view_model, "CreatorReviewViewModel")
+        self.assertIn("reading_status", view_model.statuses)
+        self.assertIn("evidence_status", view_model.statuses)
+        self.assertIn("scenario_status", view_model.statuses)
+        self.assertIn("quantification_status", view_model.statuses)
         self.assertIn('data-grand-total="absent"', markup)
         self.assertNotIn("overall risk score", markup.lower())
         self.assertNotIn("fraud probability", markup.lower())
         self.assertNotIn("guaranteed loss", markup.lower())
 
-    def test_report_ui_tests_cards_evidence_questions_and_x_context(self) -> None:
+    def test_html_markdown_and_json_exports_share_view_model_semantics(self) -> None:
         report = _synthetic_report()
-        practice_reference = WEB.PracticeReference(
-            reference_id="BC-F2-1",
-            risk_category=SCHEMAS.RiskCategory.F2,
-            clause_id="clause-f2",
-            explanation_ko="공제 범위가 열려 있으면 실제 정산액 확인이 어려울 수 있습니다.",
-            explanation_en_alias="Open-ended deductions can make payout review harder.",
-            questions=("Can every deduction category be listed before signing?",),
-        )
         highlight = WEB.HighlightedEvidence(
             clause_id="clause-f2",
             page_index=0,
@@ -183,65 +201,41 @@ class ReportUITests(unittest.TestCase):
             trigger_text="공제 비용",
             text_after="을 제한 뒤 정산한다.",
         )
-        cross_cutting = (
-            SCHEMAS.RiskSignal(
-                signal_id="RS-X1-CONTEXT",
-                clause_id="clause-x1",
-                risk_category=SCHEMAS.RiskCategory.X1,
-                detector=SCHEMAS.DetectorType.RULE,
-                fired=True,
-                score_eligible=False,
-                practice_reference=True,
-                signal_confidence=0.60,
-                is_missing_protection=False,
-            ),
-        )
-
-        markup = WEB.render_report_html(
+        view_model = WEB.build_creator_review_view_model_from_report(
             report,
             evidence_records=_official_records(),
-            practice_references=(practice_reference,),
             highlighted_evidence=(highlight,),
-            cross_cutting_signals=cross_cutting,
         )
+        html_markup = WEB.render_report_html(view_model)
+        json_payload = WEB.export_creator_review_json(view_model)
+        markdown = WEB.export_creator_review_markdown(view_model)
+        decoded = __import__("json").loads(json_payload)
 
-        self.assertEqual(WEB.active_financial_category_codes(report), ("F2",))
-        self.assertIn('data-risk-category-card="F2"', markup)
-        self.assertNotIn('data-risk-category-card="X1"', markup)
-        self.assertIn('data-eligible-signal-count="1"', markup)
-        self.assertIn('data-practice-reference-count="1"', markup)
+        self.assertEqual(decoded["view_model"], "CreatorReviewViewModel")
+        self.assertEqual(
+            decoded["findings"][0]["finding_id"],
+            view_model.findings[0]["finding_id"],
+        )
+        self.assertIn(view_model.findings[0]["finding_id"], html_markup)
+        self.assertIn(view_model.findings[0]["finding_id"], markdown)
+        self.assertIn("공제 비용", html_markup)
+        self.assertIn("공제 비용", markdown)
 
-        self.assertIn('data-highlighted-evidence="true"', markup)
-        self.assertIn('data-source-span-id="span-f2-1"', markup)
-        self.assertIn('<mark data-triggering-span="true">공제 비용</mark>', markup)
-        self.assertIn('href="#page-1"', markup)
+        primary_html = html_markup.split('data-audit-detail="true"', 1)[0]
+        for forbidden in ("FIM-1", "F2", "overall_confidence", "runtime_s"):
+            self.assertNotIn(forbidden, primary_html)
+            self.assertNotIn(forbidden, markdown)
+        self.assertIn("FIM-1", html_markup)
+        self.assertIn("overall_confidence", html_markup)
+        self.assertIn("FIM-1", decoded["audit_detail"]["monetary_exposures"][0]["fim_module"])
 
-        self.assertIn('data-official-source-comparison="true"', markup)
-        self.assertIn('data-conflicting-sources="side-by-side"', markup)
-        self.assertIn('data-source-id="A1-2025-STANDARD-FORM"', markup)
-        self.assertIn('data-source-id="A2-2023-FAIR-GUIDE"', markup)
-        self.assertIn('data-authority-tier="A1"', markup)
-        self.assertIn('data-authority-tier="A2"', markup)
-        self.assertIn('data-verification-status="UNVERIFIED"', markup)
-        self.assertIn("공제 항목 명확히 표시", markup)
-        self.assertIn("정산 근거 자료 제공", markup)
-
-        self.assertIn('data-practice-reference-badge="true"', markup)
-        self.assertIn("practice reference / non-scoring", markup)
-        self.assertIn('data-score-driver="false"', markup)
-        self.assertIn("Open-ended deductions can make payout review harder.", markup)
-
-        self.assertIn('data-questions-before-signing="true"', markup)
-        self.assertIn('data-question-non-scoring="true"', markup)
-        self.assertIn('data-clause-id="clause-f2"', markup)
-        self.assertIn("Which costs can be deducted before revenue share is calculated?", markup)
-        self.assertIn("Can every deduction category be listed before signing?", markup)
-
-        self.assertIn('data-non-scoring-section="X1-X5"', markup)
-        for category in ("X1", "X2", "X3", "X4", "X5"):
-            self.assertIn(f'data-risk-category="{category}"', markup)
-        self.assertIn('data-risk-category="X1" data-score-driver="false"', markup)
-        self.assertIn('data-active="true"', markup)
+    def test_project_page_synthetic_example_uses_same_view_model(self) -> None:
+        view_model = WEB.build_project_page_synthetic_view_model()
+        payload = view_model.to_payload()
+        self.assertEqual(payload["view_model"], "CreatorReviewViewModel")
+        self.assertEqual(payload["findings"][0]["rank"], 1)
+        self.assertIn("audit_detail", payload)
+        self.assertNotIn("FIM-1", WEB.export_creator_review_markdown(view_model))
 
 
 if __name__ == "__main__":

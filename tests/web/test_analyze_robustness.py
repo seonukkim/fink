@@ -134,7 +134,10 @@ class AnalyzeRobustnessTests(unittest.TestCase):
             )
         )
         self.assertEqual(status, 200)
-        self.assertFalse(payload["dimensions"]["monetary"]["present"])
+        self.assertEqual(
+            payload["dimensions"]["monetary"]["quantification_status"]["state"],
+            "not_quantified",
+        )
 
 
 if __name__ == "__main__":

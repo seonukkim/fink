@@ -1547,6 +1547,13 @@ _APP_JS = r"""(function () {
     return wrap;
   }
 
+  function copyPair(payload, key) {
+    if (payload && payload.copy && payload.copy[key]) {
+      return payload.copy[key];
+    }
+    return { ko: key, en: key };
+  }
+
   function statusMessage(pair) {
     var status = document.querySelector("[data-analyze-status]");
     if (!status) {
@@ -1564,49 +1571,32 @@ _APP_JS = r"""(function () {
     list.setAttribute("data-ranked-findings", "true");
     findings.forEach(function (finding) {
       var item = el("li", "finding-card", null);
+      item.setAttribute("data-finding-id", finding.finding_id);
       item.setAttribute("data-finding-rank", String(finding.rank));
       var head = el("div", "finding-head", null);
-      head.appendChild(el("span", "badge", "#" + finding.rank + " " + finding.risk_category));
-      var grounding = el("span", "badge unverified-badge", finding.grounding);
-      head.appendChild(grounding);
+      head.appendChild(el("span", "badge", "#" + finding.rank));
+      head.appendChild(el("span", "badge unverified-badge", finding.states.evidence_state));
       item.appendChild(head);
-      item.appendChild(bilingual("p", "finding-label", finding.label));
-      if (finding.clause_heading) {
-        item.appendChild(el("p", "finding-heading", finding.clause_heading));
+      item.appendChild(bilingual("p", "finding-label", finding.title));
+      if (finding.source && finding.source.clause_id) {
+        item.appendChild(el("p", "finding-heading", finding.source.clause_id));
       }
-      if (finding.snippet) {
-        item.appendChild(el("p", "finding-snippet", finding.snippet));
+      if (finding.source && finding.source.exact_excerpt) {
+        item.appendChild(el("p", "finding-snippet", finding.source.exact_excerpt));
+      }
+      item.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
+      item.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
+      item.appendChild(bilingual("p", "action-line", finding.question_to_ask));
+      if (finding.additional_questions && finding.additional_questions.length > 0) {
+        var moreQuestions = el("ul", null, null);
+        finding.additional_questions.forEach(function (question) {
+          moreQuestions.appendChild(bilingual("li", null, question));
+        });
+        item.appendChild(moreQuestions);
       }
       list.appendChild(item);
     });
     container.appendChild(list);
-  }
-
-  function renderGuidance(container, guidance) {
-    if (!guidance || guidance.length === 0) {
-      return;
-    }
-    guidance.forEach(function (entry) {
-      var card = el("div", "guidance-card", null);
-      card.setAttribute("data-guidance-category", entry.risk_category);
-      card.appendChild(el("h4", null, entry.risk_category));
-      card.appendChild(bilingual("p", "guidance-why", entry.why_it_matters));
-      var koList = el("ul", null, null);
-      koList.setAttribute("lang", "ko");
-      koList.setAttribute("data-locale-text", "ko");
-      (entry.questions.ko || []).forEach(function (q) {
-        koList.appendChild(el("li", null, q));
-      });
-      var enList = el("ul", null, null);
-      enList.setAttribute("lang", "en");
-      enList.setAttribute("data-locale-text", "en");
-      (entry.questions.en || []).forEach(function (q) {
-        enList.appendChild(el("li", null, q));
-      });
-      card.appendChild(koList);
-      card.appendChild(enList);
-      container.appendChild(card);
-    });
   }
 
   function dimensionCard(titlePair, rows) {
@@ -1621,60 +1611,58 @@ _APP_JS = r"""(function () {
     return card;
   }
 
-  function renderDimensions(container, dims) {
+  function renderDimensions(container, payload) {
+    var dims = payload.dimensions;
     var grid = el("div", "dimension-grid", null);
     grid.setAttribute("data-dimension-grid", "true");
 
     var priority = dims.review_priority;
     var priorityCard = dimensionCard(
-      { ko: "검토 우선도 점수", en: "Review priority score" },
-      [["score", String(priority.score) + " / 100"], ["grounding", priority.grounding]]
+      priority.label,
+      [
+        ["score", String(priority.score) + " / 100"],
+        ["reading", priority.reading_status.state]
+      ]
     );
-    priorityCard.appendChild(bilingual("p", "hint", priority.note));
     grid.appendChild(priorityCard);
 
     var monetary = dims.monetary;
     var monetaryCard = dimensionCard(
-      { ko: "금액 영향", en: "Monetary impact" },
-      [["status", monetary.present ? "computed" : "blank"]]
+      monetary.label,
+      [
+        ["scenario", monetary.scenario_status.state],
+        ["quantification", monetary.quantification_status.state]
+      ]
     );
-    if (monetary.present && monetary.exposures) {
-      monetary.exposures.forEach(function (exposure) {
-        if (exposure.is_user_input_required) {
-          return;
-        }
+    if (monetary.ranges && monetary.ranges.length > 0) {
+      monetary.ranges.forEach(function (range) {
         var line =
-          exposure.module +
-          " " +
-          exposure.exposure_type +
-          ": low " +
-          text(exposure.low) +
+          "low " +
+          text(range.low) +
           " / base " +
-          text(exposure.base) +
+          text(range.base) +
           " / high " +
-          text(exposure.high);
+          text(range.high);
         monetaryCard.appendChild(el("p", "exposure-line", line));
       });
-    } else {
+    } else if (monetary.note) {
       monetaryCard.appendChild(bilingual("p", "hint", monetary.note));
     }
     grid.appendChild(monetaryCard);
 
     var time = dims.time;
     grid.appendChild(
-      dimensionCard({ ko: "시간 및 경로", en: "Time and pathway" }, [
-        ["pathway", time.pathway_label],
-        ["runtime_s", time.measured_analysis_runtime_seconds.toFixed(4)],
+      dimensionCard(time.label, [
+        ["timing", "review_time_estimated"],
         ["review_min", String(time.estimated_human_review_minutes)]
       ])
     );
 
-    var confidence = dims.confidence;
+    var evidence = dims.evidence;
     grid.appendChild(
-      dimensionCard({ ko: "신뢰도", en: "Confidence" }, [
-        ["overall", confidence.overall_confidence.toFixed(3)],
-        ["evidence", confidence.evidence_confidence.toFixed(3)],
-        ["completeness", confidence.data_completeness.toFixed(3)]
+      dimensionCard(evidence.label, [
+        ["reading", evidence.reading_status.state],
+        ["evidence", evidence.evidence_status.state]
       ])
     );
 
@@ -1690,46 +1678,24 @@ _APP_JS = r"""(function () {
     container.innerHTML = "";
 
     var heading = el("div", "section-heading", null);
-    heading.appendChild(el("p", "eyebrow", "Decision Brief"));
-    heading.appendChild(
-      bilingual("h2", null, { ko: "금융 결정 브리프", en: "Financial Decision Brief" })
-    );
+    heading.appendChild(el("p", "eyebrow", "CreatorReviewViewModel"));
+    heading.appendChild(bilingual("h2", null, copyPair(payload, "app.summary_heading")));
     container.appendChild(heading);
 
-    container.appendChild(bilingual("p", "nl-summary", payload.nl_summary));
+    container.appendChild(bilingual("p", "nl-summary", payload.summary));
 
-    var action = payload.recommended_action;
+    var action = payload.recommendation;
     var actionBox = el("div", "recommended-action", null);
-    actionBox.setAttribute("data-recommended-action", action.pathway_label);
+    actionBox.setAttribute("data-recommended-action", payload.statuses.reading_status.state);
     actionBox.appendChild(bilingual("p", "action-line", action.action));
     actionBox.appendChild(bilingual("p", "cash-flow-line", action.cash_flow));
     container.appendChild(actionBox);
 
-    var meta = el("p", "result-meta", null);
-    meta.textContent =
-      "clauses " +
-      payload.clause_count +
-      " | signals " +
-      payload.signal_count +
-      " | grounding " +
-      payload.grounding;
-    container.appendChild(meta);
+    renderDimensions(container, payload);
 
-    renderDimensions(container, payload.dimensions);
-
-    var findingsHeading = bilingual("h3", null, {
-      ko: "우선순위 신호 (미확인)",
-      en: "Ranked signals (UNVERIFIED)"
-    });
+    var findingsHeading = bilingual("h3", null, copyPair(payload, "app.findings_heading"));
     container.appendChild(findingsHeading);
-    renderFindings(container, payload.ranked_findings);
-
-    var guidanceHeading = bilingual("h3", null, {
-      ko: "협상 질문",
-      en: "Questions to ask"
-    });
-    container.appendChild(guidanceHeading);
-    renderGuidance(container, payload.category_guidance);
+    renderFindings(container, payload.findings);
 
     setLocale(activeLocale());
     container.scrollIntoView({ behavior: "smooth", block: "start" });

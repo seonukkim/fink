@@ -77,6 +77,15 @@ class AnalyzeEndpointTests(unittest.TestCase):
         self.assertEqual(headers["cache-control"], "no-store")
         self.assertIn("default-src 'self'", headers["content-security-policy"])
         self.assertIn(b"fetch(", body)
+        for forbidden in (
+            b"ranked_findings",
+            b"risk_category",
+            b"runtime_s",
+            b"overall_confidence",
+            b"FIM-",
+            b"authority_factor",
+        ):
+            self.assertNotIn(forbidden, body)
 
     def test_analyze_post_returns_local_only_json(self) -> None:
         body = json.dumps({"paste_text": SAMPLE_KO, "locale": "ko"}).encode("utf-8")
@@ -91,11 +100,12 @@ class AnalyzeEndpointTests(unittest.TestCase):
 
         data = json.loads(payload)
         self.assertTrue(data["local_only"])
-        self.assertEqual(data["grounding"], "UNVERIFIED")
+        self.assertEqual(data["view_model"], "CreatorReviewViewModel")
+        self.assertEqual(data["statuses"]["evidence_status"]["state"], "unverified")
         self.assertEqual(data["dimensions"]["review_priority"]["score"], 0)
-        self.assertGreaterEqual(len(data["ranked_findings"]), 1)
-        self.assertTrue(data["nl_summary"]["ko"].strip())
-        self.assertTrue(data["nl_summary"]["en"].strip())
+        self.assertGreaterEqual(len(data["findings"]), 1)
+        self.assertTrue(data["summary"]["ko"].strip())
+        self.assertTrue(data["summary"]["en"].strip())
 
     def test_analyze_post_missing_locale_defaults_to_ko(self) -> None:
         body = json.dumps({"paste_text": SAMPLE_KO}).encode("utf-8")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import json
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -15,6 +16,10 @@ from fink.schemas import (
     RiskCategory,
     RiskSignal,
     TimeExposure,
+)
+from fink.web.view_model import (
+    CreatorReviewViewModel,
+    build_creator_review_view_model_from_report,
 )
 
 FOUR_DIMENSION_IDS = (
@@ -127,26 +132,43 @@ def render_empty_report_shell_html() -> str:
 
 
 def render_report_html(
-    report: AnalysisReport,
+    report: AnalysisReport | CreatorReviewViewModel,
     *,
     evidence_records: tuple[EvidenceRecord, ...] = (),
     practice_references: tuple[PracticeReference, ...] = (),
     highlighted_evidence: tuple[HighlightedEvidence, ...] = (),
     cross_cutting_signals: tuple[RiskSignal, ...] = (),
 ) -> str:
-    """Render a local report while keeping the four dimensions separate."""
+    """Render a local report from the canonical creator-review view model."""
+
+    view_model = (
+        report
+        if isinstance(report, CreatorReviewViewModel)
+        else build_creator_review_view_model_from_report(
+            report,
+            evidence_records=evidence_records,
+            practice_references=practice_references,
+            highlighted_evidence=highlighted_evidence,
+        )
+    )
+    contains_raw_image = False if isinstance(report, CreatorReviewViewModel) else report.contains_raw_image
+    return render_creator_review_html(view_model, contains_raw_image=contains_raw_image)
+
+
+def render_creator_review_html(
+    view_model: CreatorReviewViewModel,
+    *,
+    contains_raw_image: bool = False,
+) -> str:
+    """Render the canonical creator-review view model as the HTML report."""
 
     return f"""<section class="report-ui" data-four-dimension-report="true"
-      data-report-id="{_escape(report.report_id)}">
-      {_render_dimensions(report)}
-      {_render_category_cards(
-          report,
-          evidence_records=evidence_records,
-          practice_references=practice_references,
-          highlighted_evidence=highlighted_evidence,
-      )}
-      {_render_context_section(cross_cutting_signals)}
-      {render_export_controls_html(contains_raw_image=report.contains_raw_image)}
+      data-creator-review-view-model="true"
+      data-view-model="{_escape(view_model.view_model)}">
+      {_render_creator_dimensions(view_model)}
+      {_render_creator_findings(view_model)}
+      {_render_creator_audit_detail(view_model)}
+      {render_export_controls_html(contains_raw_image=contains_raw_image)}
     </section>"""
 
 
@@ -171,6 +193,157 @@ def render_export_controls_html(*, contains_raw_image: bool = False) -> str:
       </div>
       <p class="hint">HTML, Markdown, and JSON exports exclude raw image bytes by default.</p>
     </section>"""
+
+
+def _render_creator_dimensions(view_model: CreatorReviewViewModel) -> str:
+    dimensions = view_model.dimensions
+    review = dimensions["review_priority"]
+    money = dimensions["monetary"]
+    time = dimensions["time"]
+    evidence = dimensions["evidence"]
+    money_ranges = money.get("ranges") or ()
+    money_body = (
+        _render_creator_money_ranges(money_ranges)
+        if money_ranges
+        else _render_pair_paragraph(money.get("note") or money["quantification_status"]["label"])
+    )
+    return f"""<div class="dimension-grid" data-dimension-count="4">
+      <article data-report-dimension="review-priority-score">
+        <h3>{_escape(review['label']['ko'])}</h3>
+        <output aria-label="{_escape(review['label']['en'])}">
+          {_escape(str(review['score']))} / 100
+        </output>
+        <p>{_escape(review['reading_status']['label']['ko'])}</p>
+      </article>
+      <article data-report-dimension="monetary-exposure-range" data-grand-total="absent">
+        <h3>{_escape(money['label']['ko'])}</h3>
+        <p>{_escape(money['scenario_status']['label']['ko'])}</p>
+        <p>{_escape(money['quantification_status']['label']['ko'])}</p>
+        {money_body}
+      </article>
+      <article data-report-dimension="time-exposure">
+        <h3>{_escape(time['label']['ko'])}</h3>
+        <dl class="metric-list">
+          <dt>검토 시간</dt>
+          <dd>{_escape(_format_optional_number(time.get('estimated_human_review_minutes'), 'minutes'))}</dd>
+        </dl>
+        {_render_pair_paragraph(time.get("cash_flow_consequence"))}
+      </article>
+      <article data-report-dimension="evidence-ocr-confidence">
+        <h3>{_escape(evidence['label']['ko'])}</h3>
+        <p>{_escape(evidence['reading_status']['label']['ko'])}</p>
+        <p>{_escape(evidence['evidence_status']['label']['ko'])}</p>
+      </article>
+    </div>"""
+
+
+def _render_creator_money_ranges(ranges: tuple[dict[str, Any], ...] | list[dict[str, Any]]) -> str:
+    items = []
+    for money_range in ranges:
+        assumptions = "".join(
+            f'<span class="badge synthetic-assumption">{_escape(assumption)}</span>'
+            for assumption in money_range.get("assumptions", ())
+        )
+        items.append(
+            f"""<li data-money-range-id="{_escape(money_range['range_id'])}">
+              <strong>{_escape(money_range['label']['ko'])}</strong>
+              <p>low {_escape(money_range.get('low'))} / base {_escape(money_range.get('base'))}
+                / high {_escape(money_range.get('high'))}</p>
+              <p>{assumptions}</p>
+            </li>"""
+        )
+    return '<ul class="exposure-list">' + "\n".join(items) + "</ul>"
+
+
+def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
+    if not view_model.findings:
+        return '<section class="ranked-findings"><p class="hint">No findings available.</p></section>'
+    copy = view_model.to_payload()["copy"]
+    items = []
+    for finding in view_model.findings:
+        citations = _render_creator_citations(finding.get("citations") or [])
+        missing = _render_creator_missing_inputs(finding.get("missing_inputs") or [])
+        additional_questions = _render_creator_additional_questions(
+            finding.get("additional_questions") or []
+        )
+        items.append(
+            f"""<li class="finding-card" data-finding-id="{_escape(finding['finding_id'])}"
+              data-finding-rank="{_escape(finding['rank'])}">
+              <div class="finding-head">
+                <span class="badge">#{_escape(finding['rank'])}</span>
+                <span class="badge">{_escape(finding['states']['evidence_state'])}</span>
+              </div>
+              <h4>{_escape(finding['title']['ko'])}</h4>
+              <p class="finding-snippet">
+                <strong>{_escape(copy['app.source_clause_label']['ko'])}:</strong>
+                {_escape(finding['source']['clause_id'])}
+              </p>
+              <blockquote data-exact-excerpt="true">
+                {_escape(finding['source']['exact_excerpt'])}
+              </blockquote>
+              <p>{_escape(finding['why_it_matters']['ko'])}</p>
+              <p>{_escape(finding['cash_flow_consequence']['ko'])}</p>
+              <p><strong>확인 질문:</strong> {_escape(finding['question_to_ask']['ko'])}</p>
+              {additional_questions}
+              <p>{_escape(finding['priority_basis']['ko'])}</p>
+              {missing}
+              {citations}
+            </li>"""
+        )
+    return f"""<section class="ranked-findings" data-ranked-findings="true">
+      <h3>{_escape(copy['app.findings_heading']['ko'])}</h3>
+      <ol>{''.join(items)}</ol>
+    </section>"""
+
+
+def _render_creator_missing_inputs(items: list[dict[str, str]]) -> str:
+    if not items:
+        return ""
+    rows = "".join(f"<li>{_escape(item['ko'])}</li>" for item in items)
+    return f'<ul data-missing-inputs="true">{rows}</ul>'
+
+
+def _render_creator_additional_questions(items: list[dict[str, str]]) -> str:
+    if not items:
+        return ""
+    rows = "".join(f"<li>{_escape(item['ko'])}</li>" for item in items)
+    return f'<ul data-additional-questions="true">{rows}</ul>'
+
+
+def _render_creator_citations(citations: list[dict[str, str]]) -> str:
+    if not citations:
+        return ""
+    rows = "".join(
+        f"""<li data-citation-id="{_escape(item['citation_id'])}">
+          <span>{_escape(item['source_id'])}</span>
+          <q>{_escape(item['exact_excerpt'])}</q>
+        </li>"""
+        for item in citations
+    )
+    return f'<ul data-citations="true">{rows}</ul>'
+
+
+def _render_creator_audit_detail(view_model: CreatorReviewViewModel) -> str:
+    audit_json = json.dumps(
+        view_model.audit_detail,
+        ensure_ascii=False,
+        sort_keys=True,
+        default=str,
+    )
+    label = view_model.to_payload()["copy"]["export.audit_detail_label"]
+    return f"""<details class="audit-detail" data-audit-detail="true">
+      <summary>{_escape(label['ko'])}</summary>
+      <pre>{_escape(audit_json)}</pre>
+    </details>"""
+
+
+def _render_pair_paragraph(pair: dict[str, str] | None) -> str:
+    if not pair:
+        return ""
+    return (
+        f'<p><span lang="ko">{_escape(pair["ko"])}</span> '
+        f'<span lang="en">{_escape(pair["en"])}</span></p>'
+    )
 
 
 def _render_dimensions(report: AnalysisReport) -> str:

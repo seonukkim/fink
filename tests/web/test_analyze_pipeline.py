@@ -30,6 +30,10 @@ SAMPLE_KO = (
 )
 
 
+def _without_audit(payload: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in payload.items() if key != "audit_detail"}
+
+
 class AnalyzePipelineTests(unittest.TestCase):
     def test_paste_only_analysis_is_unverified_zero_with_four_dimensions(self) -> None:
         result = ANALYZE.run_local_analysis(
@@ -54,11 +58,40 @@ class AnalyzePipelineTests(unittest.TestCase):
 
         # Four separate dimensions are all present.
         payload = ANALYZE.analysis_result_to_payload(result, SCHEMAS.UILocale.KO)
+        self.assertEqual(payload["view_model"], "CreatorReviewViewModel")
+        self.assertEqual(payload["schema_version"], 1)
+        for key in (
+            "reading_status",
+            "evidence_status",
+            "scenario_status",
+            "quantification_status",
+        ):
+            self.assertIn(key, payload["statuses"])
+
         dimensions = payload["dimensions"]
-        for key in ("review_priority", "monetary", "time", "confidence"):
+        for key in ("review_priority", "monetary", "time", "evidence"):
             self.assertIn(key, dimensions)
         self.assertEqual(dimensions["review_priority"]["score"], 0)
-        self.assertFalse(dimensions["monetary"]["present"])
+        self.assertEqual(
+            dimensions["monetary"]["quantification_status"]["state"],
+            "not_quantified",
+        )
+        self.assertGreaterEqual(len(payload["findings"]), 1)
+        primary_json = json.dumps(_without_audit(payload), ensure_ascii=False)
+        for forbidden in (
+            "FIM-",
+            "F2",
+            "F3",
+            "authority_factor",
+            "runtime_s",
+            "overall_confidence",
+            "severity_raw",
+            "signal_confidence",
+        ):
+            self.assertNotIn(forbidden, primary_json)
+        audit_json = json.dumps(payload["audit_detail"], ensure_ascii=False)
+        self.assertIn("runtime_s", audit_json)
+        self.assertIn("overall_confidence", audit_json)
 
         # Korean is canonical and English is a generated aid; both nonblank.
         self.assertTrue(result.nl_summary_ko.strip())
@@ -71,7 +104,8 @@ class AnalyzePipelineTests(unittest.TestCase):
         )
         payload = ANALYZE.analysis_result_to_payload(result, SCHEMAS.UILocale.EN)
         encoded = json.dumps(payload, ensure_ascii=False)
-        self.assertIn("ranked_findings", encoded)
+        self.assertIn("CreatorReviewViewModel", encoded)
+        self.assertIn("findings", encoded)
         # Round-trips without a custom encoder.
         self.assertIsInstance(json.loads(encoded), dict)
 
@@ -112,8 +146,9 @@ class AnalyzePipelineTests(unittest.TestCase):
         monetary = payload["dimensions"]["monetary"]
         self.assertNotIn("grand_total", monetary)
         self.assertNotIn("total", monetary)
-        for entry in monetary["exposures"]:
-            self.assertIn("exposure_type", entry)
+        for entry in monetary["ranges"]:
+            self.assertIn("range_id", entry)
+            self.assertNotIn("fim_module", entry)
 
     def test_blank_paste_raises_ingest_validation_error(self) -> None:
         with self.assertRaises(INGEST.IngestValidationError):
