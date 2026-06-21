@@ -433,3 +433,87 @@ canonical IDs (`EV-KOEN=1.000`) with 8/8 non-equivalence caveats present and 0
 English evidence-label violations. State that this is a synthetic-only
 retrieval-consistency check, not a legal-equivalence claim or a real-contract
 retrieval performance claim.
+
+## Local Explanation Boundary Benchmark
+
+Gate command: `python3 -m unittest tests.model_research.test_local_explanation_boundary`.
+
+Captured for task `FINK-MR-09` at `2026-06-21T22:35:25+09:00` from
+`BASE_COMMIT=2a37461f909d586d9c514507ec2638e458a9aca1`.
+
+Benchmark data boundary:
+
+- Fixture id: `local_explanation_boundary_synthetic_v1`.
+- Inputs are synthetic/sanitized only: 3 short clause-review cases with
+  retrieved A1/A2-style grounding records and B/C-style practice-reference
+  records. They contain no real contract text, raw filenames, private corpus
+  passages, PDFs, ZIPs, model weights, Hugging Face token values, or `.fink`
+  artifacts.
+- The local LLM benchmark explains retrieved evidence but does not create legal
+  evidence, does not set production risk scores, does not invent financial
+  values, and does not state a legal, fraud, validity, unfairness, or
+  guaranteed-loss verdict.
+- The benchmark is a public-safe boundary harness over retrieved records, not a
+  production explanation-quality claim, real-contract performance claim, or
+  legal-equivalence claim.
+
+Exact explanation profile recorded for reproducibility:
+
+| Role | Candidate | HF repo | License | Exact revision | Weight status |
+|------|-----------|---------|---------|----------------|---------------|
+| Explanation | `qwen3_4b` | `Qwen/Qwen3-4B` | `apache-2.0` | `1cfa9a7208912126459214e8b04321603b3df60c` | not loaded in public repo |
+
+Synthetic benchmark summary:
+
+| Metric | Result |
+|--------|--------|
+| Model profile | `core_local_offline_v1` |
+| Machine gate | `local_explanation_boundary_test` |
+| Fixture cases | 3 |
+| Required evidence citation coverage | 6/6 (1.000) |
+| Boundary statement coverage | 3/3 |
+| Quality-passed cases | 3/3 at threshold 0.80 |
+| Mean synthetic quality score | 1.000 |
+| Hallucinated evidence IDs | 0 |
+| LLM-created evidence records | 0 |
+| Production risk score writes | 0 |
+| Invented financial values | 0 |
+| Forbidden verdict phrase violations | 0 |
+| Remote runtime API calls | 0 / not required |
+
+Quality rubric:
+
+- Cites retrieved record IDs only, with required retrieved evidence present.
+- Frames the output as Contractual Financial Review Priority.
+- Labels B/C practice-reference material as non-scoring.
+- Covers the synthetic financial review points in the retrieved records.
+- Preserves explanation boundaries: narrative only, no new evidence, no score
+  write, no invented amount, and no verdict language.
+
+Coverage notes:
+
+- The fixture covers F2 deduction-basis visibility, F3 payment-date/cashflow
+  timing, and F5 secondary-rights settlement visibility.
+- A1/A2-style records are treated as retrieved grounding records only; B/C-style
+  records are practice references and remain non-scoring.
+- The negative fixture intentionally adds a hallucinated evidence id, an
+  LLM-created evidence id, production score fields, an invented KRW amount, and
+  verdict phrases; the boundary checker rejects it.
+
+Paper note for `05_experiments.md`: report that FINK-MR-09 benchmarked local
+explanation boundary preservation on `local_explanation_boundary_synthetic_v1`,
+a synthetic/sanitized fixture set with 3 clause-review cases and 6 required
+retrieved evidence citations. The gate recorded 6/6 citation coverage, 3/3
+boundary-statement coverage, 3/3 quality-passed cases at threshold 0.80, mean
+synthetic quality 1.000, 0 hallucinated evidence IDs, 0 LLM-created evidence
+records, 0 production risk score writes, 0 invented financial values, and 0
+forbidden verdict phrase violations. State that this is a synthetic-only
+boundary check, not a real-contract explanation-quality claim.
+
+Paper note for `08_responsible_ai.md`: state that the local explanation layer is
+a narrative layer over retrieved records only. It may explain retrieved evidence,
+but it must not create legal evidence, set production risk scores, invent
+financial values, or state legal/fraud/validity/unfairness/guaranteed-loss
+verdicts. Scoring and evidence creation remain outside the local LLM boundary,
+and public benchmark records contain only synthetic/sanitized inputs plus pinned
+metadata for `Qwen/Qwen3-4B`.

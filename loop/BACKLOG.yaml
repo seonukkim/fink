@@ -1254,7 +1254,8 @@ tasks:
   - 05_experiments.md
   - 08_responsible_ai.md
   human_gate: null
-  status: READY
+  status: DONE
+  completed_at: '2026-06-21T13:41:22+00:00'
 - id: FINK-MR-10
   phase: MR
   priority: P1
