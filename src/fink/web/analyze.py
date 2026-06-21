@@ -13,10 +13,11 @@ weight, or a large language model; every generated sentence is honest
 deterministic templating, and the Korean text is canonical while the English
 text is a generated aid.
 
-Authority-grounding note: paste-only input has no official-source grounding, so
-the grounded review priority score is 0 by design. The transparent rule-signal
-ranking is therefore reported separately and labeled UNVERIFIED, ranked by
-``severity_raw * signal_confidence`` rather than by the grounded score.
+Authority-grounding note: pasted text is still routed through the versioned
+local corpus. Deterministic BM25 may attach real A0-A2 evidence ids to matching
+rule signals. A finding with no eligible official evidence remains a candidate
+and contributes 0; generated English labels and similarity scores never create
+score eligibility.
 """
 
 from __future__ import annotations
@@ -33,14 +34,20 @@ from fink.schemas import (
     TextSource,
     UILocale,
 )
-from fink.scoring.engine import DocumentScoringResult, aggregate_document_signals
+from fink.scoring.engine import (
+    CATEGORY_CONFIG_IDS,
+    DocumentScoringResult,
+    aggregate_document_signals,
+)
 from fink.segment.engine import segment_pages
-from fink.signals.engine import SignalRuleSet, detect_signals_from_clauses, load_signal_rules
+from fink.signals.engine import RuleBasedSignalDetector, SignalRuleSet, load_signal_rules
 from fink.time.exposure import AnalysisRuntimeTimer, TimeExposureResult, build_time_exposure
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from decimal import Decimal
 
+    from fink.grounding import AuthorityRetrievedRecord
     from fink.ingest.session import IngestedDocument
     from fink.schemas import Clause, MonetaryExposureEstimate, RiskSignal
 
@@ -50,9 +57,20 @@ SNIPPET_MAX_CHARS = 80
 SUMMARY_TOP_FINDINGS = 3
 
 GROUNDING_UNVERIFIED = "UNVERIFIED"
-GROUNDING_NOTE_KO = "오프라인 환경에서는 공식 출처 근거가 미확인 상태이므로 점수는 0입니다."
+GROUNDING_GROUNDED = "LOCAL_OFFICIAL_EVIDENCE"
+GROUNDING_CANDIDATE = "CANDIDATE_UNVERIFIED"
+GROUNDING_NOTE_KO = (
+    "로컬 공식 출처 근거가 연결된 신호만 점수에 반영되며, 근거 검증 상태는 미확인입니다."
+)
 GROUNDING_NOTE_EN = (
-    "Official-source grounding is UNVERIFIED offline, so the grounded score is 0."
+    "Only signals linked to local official-source evidence affect the score; "
+    "evidence verification remains UNVERIFIED."
+)
+CANDIDATE_MISSING_EVIDENCE_KO = (
+    "미확인 후보: 이 신호에 맞는 A0-A2 공식 근거가 필요합니다."
+)
+CANDIDATE_MISSING_EVIDENCE_EN = (
+    "Unverified candidate: this signal needs matching A0-A2 official evidence."
 )
 
 # Plain-language label for the synthetic-input requirement on the monetary
@@ -65,11 +83,11 @@ MONETARY_BLANK_EN = (
 
 @dataclass(frozen=True)
 class RankedFinding:
-    """One rule-signal finding for the transparent UNVERIFIED ranking.
+    """One rule-signal finding for the transparent review-priority ranking.
 
     The ranking is ordered by ``rank_score = severity_raw * signal_confidence``
-    and is deliberately kept separate from the grounded review priority score,
-    which is 0 for paste-only input.
+    and remains visible even when no official evidence makes the signal
+    score-eligible.
     """
 
     rank: int
@@ -87,6 +105,12 @@ class RankedFinding:
     is_missing_protection: bool
     scored: bool = False
     grounding: str = GROUNDING_UNVERIFIED
+    grounding_evidence_ids: tuple[str, ...] = ()
+    authority_tiers: tuple[str, ...] = ()
+    source_ids: tuple[str, ...] = ()
+    citations: tuple[dict[str, str], ...] = ()
+    missing_evidence_ko: str = CANDIDATE_MISSING_EVIDENCE_KO
+    missing_evidence_en: str = CANDIDATE_MISSING_EVIDENCE_EN
 
 
 @dataclass(frozen=True)
@@ -133,6 +157,8 @@ class LocalAnalysisResult:
     nl_summary_ko: str
     nl_summary_en: str
     category_scores: dict[str, float]
+    evidence_authority_tiers: dict[str, str]
+    retrieved_record_count: int
     exposures: tuple["MonetaryExposureEstimate", ...]
     monetary_present: bool
     monetary_note_ko: str
@@ -164,14 +190,33 @@ def run_local_analysis(
 
     with AnalysisRuntimeTimer() as timer:
         clauses = segment_pages(pages)
-        signals = detect_signals_from_clauses(clauses)
-        scoring = aggregate_document_signals(signals, ocr_confidence=ocr_confidence)
+        rule_set = load_signal_rules()
+        detector = RuleBasedSignalDetector(rule_set)
+        first_pass_signals = detector.detect_clauses(clauses)
+        grounding_by_clause = _retrieve_grounding_by_clause(clauses, first_pass_signals)
+        grounding_records = _flatten_grounding_records(grounding_by_clause.values())
+        signals = _detect_clause_signals_with_grounding(
+            detector,
+            clauses,
+            grounding_by_clause,
+        )
+        evidence_authority_tiers = _evidence_authority_tiers(grounding_records)
+        scoring = aggregate_document_signals(
+            signals,
+            ocr_confidence=ocr_confidence,
+            evidence_authority_tiers=evidence_authority_tiers,
+        )
         editable_inputs = _resolve_editable_assumptions(scenario_inputs)
         exposures = _resolve_exposures(editable_inputs)
     measured_runtime_seconds = timer.elapsed_seconds
 
-    rule_set = load_signal_rules()
-    ranked_findings = _rank_findings(signals, clauses, rule_set)
+    ranked_findings = _rank_findings(
+        signals,
+        clauses,
+        rule_set,
+        grounding_records=grounding_records,
+        scoring=scoring,
+    )
     monetary_present = any(not exposure.is_user_input_required for exposure in exposures)
 
     time_result = build_time_exposure(
@@ -202,7 +247,7 @@ def run_local_analysis(
         clause_count=len(clauses),
         signal_count=len(signals),
         review_priority_score=scoring.review_priority_score,
-        grounding=GROUNDING_UNVERIFIED,
+        grounding=GROUNDING_GROUNDED if evidence_authority_tiers else GROUNDING_CANDIDATE,
         grounding_note_ko=GROUNDING_NOTE_KO,
         grounding_note_en=GROUNDING_NOTE_EN,
         ranked_findings=ranked_findings,
@@ -213,6 +258,8 @@ def run_local_analysis(
         category_scores={
             category.value: score for category, score in scoring.category_scores.items()
         },
+        evidence_authority_tiers=dict(evidence_authority_tiers),
+        retrieved_record_count=len(grounding_records),
         exposures=exposures,
         monetary_present=monetary_present,
         monetary_note_ko=MONETARY_BLANK_KO,
@@ -300,12 +347,148 @@ def _mean_page_confidence(pages: tuple[OCRPage, ...], *, is_paste: bool) -> floa
     return sum(page.page_ocr_confidence for page in pages) / len(pages)
 
 
+def _retrieve_grounding_by_clause(
+    clauses: "tuple[Clause, ...]",
+    first_pass_signals: "tuple[RiskSignal, ...]",
+) -> dict[str, tuple["AuthorityRetrievedRecord", ...]]:
+    from fink.grounding import authority_gated_retrieval
+    from fink.retrieval import load_or_build_retrieval_index
+
+    signals_by_clause: dict[str, list[RiskSignal]] = {}
+    for signal in first_pass_signals:
+        signals_by_clause.setdefault(signal.clause_id, []).append(signal)
+
+    if not signals_by_clause:
+        return {}
+
+    index = load_or_build_retrieval_index()
+    records_by_clause: dict[str, tuple[AuthorityRetrievedRecord, ...]] = {}
+    for clause in clauses:
+        clause_signals = tuple(signals_by_clause.get(clause.clause_id, ()))
+        if not clause_signals:
+            continue
+        categories = _retrieval_categories_for(clause_signals)
+        query = _retrieval_query_for_clause(clause, categories)
+        bundle = authority_gated_retrieval(
+            index,
+            query,
+            explanation_k=3,
+            grounding_k=3,
+            risk_categories=categories,
+        )
+        records_by_clause[clause.clause_id] = _signal_grounding_records(
+            bundle.returned_records
+        )
+    return records_by_clause
+
+
+def _detect_clause_signals_with_grounding(
+    detector: RuleBasedSignalDetector,
+    clauses: "tuple[Clause, ...]",
+    grounding_by_clause: dict[str, tuple["AuthorityRetrievedRecord", ...]],
+) -> tuple["RiskSignal", ...]:
+    signals: list[RiskSignal] = []
+    for clause in clauses:
+        signals.extend(
+            detector.detect_clause(
+                clause,
+                grounding_records=grounding_by_clause.get(clause.clause_id, ()),
+            )
+        )
+    return tuple(signals)
+
+
+def _retrieval_categories_for(signals: "tuple[RiskSignal, ...]") -> tuple[str, ...]:
+    categories: list[str] = []
+    for signal in signals:
+        for category in (
+            CATEGORY_CONFIG_IDS.get(signal.risk_category, ""),
+            signal.risk_category.value,
+        ):
+            if category and category not in categories:
+                categories.append(category)
+    return tuple(categories)
+
+
+def _retrieval_query_for_clause(
+    clause: "Clause",
+    categories: tuple[str, ...],
+) -> str:
+    return " ".join(
+        part
+        for part in (
+            clause.heading_ko or "",
+            clause.text_ko,
+            clause.text_en_gloss or "",
+            " ".join(categories),
+        )
+        if str(part).strip()
+    )
+
+
+def _signal_grounding_records(
+    records: tuple["AuthorityRetrievedRecord", ...],
+) -> tuple["AuthorityRetrievedRecord", ...]:
+    selected: list[AuthorityRetrievedRecord] = []
+    seen: set[str] = set()
+    for record in records:
+        is_official_evidence = (
+            record.record_type == "evidence"
+            and record.authority_tier in {"A0", "A1", "A2"}
+            and record.score_eligible
+        )
+        is_practice_reference = record.authority_tier in {"B", "C", "B/C"}
+        if not (is_official_evidence or is_practice_reference):
+            continue
+        if record.record_id in seen:
+            continue
+        seen.add(record.record_id)
+        selected.append(record)
+    return tuple(selected)
+
+
+def _flatten_grounding_records(
+    record_groups: "Sequence[tuple[AuthorityRetrievedRecord, ...]]",
+) -> tuple["AuthorityRetrievedRecord", ...]:
+    ordered: list[AuthorityRetrievedRecord] = []
+    seen: set[str] = set()
+    for records in record_groups:
+        for record in records:
+            if record.record_id in seen:
+                continue
+            seen.add(record.record_id)
+            ordered.append(record)
+    return tuple(ordered)
+
+
+def _evidence_authority_tiers(
+    records: "tuple[AuthorityRetrievedRecord, ...]",
+) -> dict[str, str]:
+    return {
+        record.record_id: record.authority_tier
+        for record in records
+        if (
+            record.record_type == "evidence"
+            and record.authority_tier in {"A0", "A1", "A2"}
+            and record.score_eligible
+        )
+    }
+
+
 def _rank_findings(
     signals: "tuple[RiskSignal, ...] | list[RiskSignal]",
     clauses: "tuple[Clause, ...]",
     rule_set: SignalRuleSet,
+    *,
+    grounding_records: tuple["AuthorityRetrievedRecord", ...],
+    scoring: DocumentScoringResult,
 ) -> tuple[RankedFinding, ...]:
     clauses_by_id = {clause.clause_id: clause for clause in clauses}
+    records_by_id = {record.record_id: record for record in grounding_records}
+    contributions_by_signal = {
+        (contribution.signal_id, contribution.clause_id): contribution
+        for contribution in scoring.contributions
+    }
     scored = sorted(
         signals,
         key=lambda signal: (
@@ -319,6 +502,12 @@ def _rank_findings(
         clause = clauses_by_id.get(signal.clause_id)
         severity_raw = float(signal.severity_raw or 0.0)
         confidence = float(signal.signal_confidence)
+        contribution = contributions_by_signal.get((signal.signal_id, signal.clause_id))
+        evidence_ids = tuple(signal.grounding_evidence_ids or ())
+        evidence_records = tuple(
+            record for evidence_id in evidence_ids if (record := records_by_id.get(evidence_id))
+        )
+        is_scored = bool(contribution is not None and contribution.contribution > 0)
         findings.append(
             RankedFinding(
                 rank=rank,
@@ -334,9 +523,40 @@ def _rank_findings(
                 signal_confidence=confidence,
                 rank_score=severity_raw * confidence,
                 is_missing_protection=signal.is_missing_protection,
+                scored=is_scored,
+                grounding=GROUNDING_GROUNDED if is_scored else GROUNDING_CANDIDATE,
+                grounding_evidence_ids=evidence_ids if is_scored else (),
+                authority_tiers=_record_authority_tiers(evidence_records) if is_scored else (),
+                source_ids=_record_source_ids(evidence_records) if is_scored else (),
+                citations=_citations_from_records(evidence_records) if is_scored else (),
             )
         )
     return tuple(findings)
+
+
+def _record_authority_tiers(records: tuple["AuthorityRetrievedRecord", ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(record.authority_tier for record in records))
+
+
+def _record_source_ids(records: tuple["AuthorityRetrievedRecord", ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(record.source_id for record in records if record.source_id))
+
+
+def _citations_from_records(
+    records: tuple["AuthorityRetrievedRecord", ...],
+) -> tuple[dict[str, str], ...]:
+    return tuple(
+        {
+            "citation_id": f"citation-{record.record_id}",
+            "evidence_id": record.record_id,
+            "source_id": record.source_id,
+            "authority_tier": record.authority_tier,
+            "verification_status": record.verification_status,
+            "source_clause_id": record.title,
+            "exact_excerpt": "",
+        }
+        for record in records
+    )
 
 
 def _clause_snippet(clause: "Clause | None") -> str:

@@ -102,8 +102,9 @@ class AnalyzeEndpointTests(unittest.TestCase):
         self.assertTrue(data["local_only"])
         self.assertEqual(data["view_model"], "CreatorReviewViewModel")
         self.assertEqual(data["statuses"]["evidence_status"]["state"], "unverified")
-        self.assertEqual(data["dimensions"]["review_priority"]["score"], 0)
+        self.assertGreaterEqual(data["dimensions"]["review_priority"]["score"], 0)
         self.assertGreaterEqual(len(data["findings"]), 1)
+        self.assertIn("evidence", data["findings"][0])
         self.assertTrue(data["summary"]["ko"].strip())
         self.assertTrue(data["summary"]["en"].strip())
 

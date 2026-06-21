@@ -96,6 +96,35 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(mixed_result.contributions[0].contribution, 0.0)
         self.assertTrue(mixed_result.contributions[0].practice_reference)
 
+    def test_score_eligible_signal_requires_real_authority_tier_mapping(self) -> None:
+        config = SCORING.load_scoring_config()
+        signal = _signal(
+            "RS-SC-AGG-NO-FAKE-TIER",
+            SCHEMAS.RiskCategory.F5,
+            evidence_ids=("EV-A1-REAL-ID-BUT-NO-TIER",),
+            confidence=1.0,
+            severity=1.0,
+        )
+
+        without_tier = SCORING.aggregate_document_signals((signal,), config=config)
+        wrong_tier = SCORING.aggregate_document_signals(
+            (signal,),
+            config=config,
+            evidence_authority_tiers={"EV-A1-REAL-ID-BUT-NO-TIER": "B"},
+        )
+        with_tier = SCORING.aggregate_document_signals(
+            (signal,),
+            config=config,
+            evidence_authority_tiers={"EV-A1-REAL-ID-BUT-NO-TIER": "A1"},
+        )
+
+        self.assertEqual(without_tier.review_priority_score, 0)
+        self.assertEqual(without_tier.contributions[0].contribution, 0.0)
+        self.assertEqual(wrong_tier.review_priority_score, 0)
+        self.assertEqual(wrong_tier.contributions[0].contribution, 0.0)
+        self.assertGreater(with_tier.review_priority_score, 0)
+        self.assertGreater(with_tier.contributions[0].contribution, 0.0)
+
     def test_sc_agg_t2_scores_are_bounded_with_saturation(self) -> None:
         config = SCORING.load_scoring_config()
         signals = tuple(

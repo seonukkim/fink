@@ -100,6 +100,21 @@ class AnalyzeRobustnessTests(unittest.TestCase):
         self.assertIn("next_action", payload)
         self.assertTrue(payload.get("local_only"))
 
+    def test_retrieval_corpus_error_returns_friendly_503(self) -> None:
+        import fink.retrieval as retrieval
+
+        def boom() -> object:
+            raise retrieval.RetrievalCorpusError("required corpus is corrupt")
+
+        with patch.object(retrieval, "load_or_build_retrieval_index", boom):
+            status, payload = asyncio.run(
+                _post(_app(), "/api/analyze", {"paste_text": "저작권은 회사에 양도된다.", "locale": "ko"})
+            )
+
+        self.assertEqual(status, 503)
+        self.assertEqual(payload.get("error_code"), "setup_incomplete")
+        self.assertTrue(payload.get("local_only"))
+
     def test_unexpected_type_error_returns_controlled_500(self) -> None:
         import fink.web.app as appmod
 

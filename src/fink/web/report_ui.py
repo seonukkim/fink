@@ -311,6 +311,7 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
     items = []
     for finding in view_model.findings:
         citations = _render_creator_citations(finding.get("citations") or [])
+        evidence = _render_creator_finding_evidence(finding.get("evidence") or {})
         missing = _render_creator_missing_inputs(finding.get("missing_inputs") or [])
         additional_questions = _render_creator_additional_questions(
             finding.get("additional_questions") or []
@@ -334,6 +335,7 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
               <p>{_escape(finding['cash_flow_consequence']['ko'])}</p>
               <p><strong>확인 질문:</strong> {_escape(finding['question_to_ask']['ko'])}</p>
               {additional_questions}
+              {evidence}
               <p>{_escape(finding['priority_basis']['ko'])}</p>
               {missing}
               {citations}
@@ -357,6 +359,23 @@ def _render_creator_additional_questions(items: list[dict[str, str]]) -> str:
         return ""
     rows = "".join(f"<li>{_escape(item['ko'])}</li>" for item in items)
     return f'<ul data-additional-questions="true">{rows}</ul>'
+
+
+def _render_creator_finding_evidence(evidence: dict[str, Any]) -> str:
+    if not evidence:
+        return ""
+    label = evidence.get("label") or {}
+    missing = evidence.get("missing") or {}
+    missing_text = str(missing.get("ko") or "").strip() if isinstance(missing, dict) else ""
+    ids = ", ".join(str(item) for item in evidence.get("grounding_evidence_ids", ()))
+    detail = ids or missing_text
+    if not detail:
+        return ""
+    return (
+        '<p data-finding-evidence="true">'
+        f"<strong>{_escape(label.get('ko') or evidence.get('state', ''))}:</strong> "
+        f"{_escape(detail)}</p>"
+    )
 
 
 def _render_creator_citations(citations: list[dict[str, str]]) -> str:

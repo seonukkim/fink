@@ -7,6 +7,7 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 
 def _load_module(name: str) -> Any:
@@ -28,6 +29,8 @@ SAMPLE_KO = (
     "제3조(정산) 정산은 매 분기 종료일로부터 90일 이내에 지급하며, 회사는 일반 경비를 공제할 수 있다.\n"
     "제5조(위약금) 계약 위반 시 위약금을 부과한다."
 )
+GROUNDED_F5_KO = "저작권 및 2차적저작물 권리는 회사에 포괄 양도된다."
+CANDIDATE_F9_KO = "전자계약 원본과 증거는 보관하지 않고 삭제할 수 있다."
 
 
 def _without_audit(payload: dict[str, Any]) -> dict[str, Any]:
@@ -35,22 +38,30 @@ def _without_audit(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 class AnalyzePipelineTests(unittest.TestCase):
-    def test_paste_only_analysis_is_unverified_zero_with_four_dimensions(self) -> None:
+    def test_pasted_text_analysis_uses_local_retrieval_with_four_dimensions(self) -> None:
         result = ANALYZE.run_local_analysis(
             pasted_text=SAMPLE_KO, ui_locale=SCHEMAS.UILocale.KO
         )
 
         self.assertGreaterEqual(result.clause_count, 1)
         self.assertGreaterEqual(len(result.ranked_findings), 1)
-        # Authority-grounding gate makes paste-only score 0 by design.
-        self.assertEqual(result.review_priority_score, 0)
-        self.assertEqual(result.grounding, "UNVERIFIED")
+        self.assertIn(
+            result.grounding,
+            {"LOCAL_OFFICIAL_EVIDENCE", "CANDIDATE_UNVERIFIED"},
+        )
+        self.assertGreaterEqual(result.retrieved_record_count, 1)
         for finding in result.ranked_findings:
-            self.assertFalse(finding.scored)
-            self.assertEqual(finding.grounding, "UNVERIFIED")
             self.assertTrue(finding.label_ko.strip())
             self.assertTrue(finding.label_en.strip())
             self.assertTrue(finding.clause_id.strip())
+            if finding.scored:
+                self.assertTrue(finding.grounding_evidence_ids)
+                self.assertTrue(finding.citations)
+                self.assertTrue(set(finding.authority_tiers) <= {"A0", "A1", "A2"})
+            else:
+                self.assertEqual(finding.citations, ())
+                self.assertEqual(finding.grounding_evidence_ids, ())
+                self.assertEqual(finding.grounding, "CANDIDATE_UNVERIFIED")
 
         # Findings are ranked by severity_raw * signal_confidence, descending.
         scores = [finding.rank_score for finding in result.ranked_findings]
@@ -71,7 +82,8 @@ class AnalyzePipelineTests(unittest.TestCase):
         dimensions = payload["dimensions"]
         for key in ("review_priority", "monetary", "time", "evidence"):
             self.assertIn(key, dimensions)
-        self.assertEqual(dimensions["review_priority"]["score"], 0)
+        self.assertGreaterEqual(dimensions["review_priority"]["score"], 0)
+        self.assertLessEqual(dimensions["review_priority"]["score"], 100)
         self.assertEqual(
             dimensions["monetary"]["quantification_status"]["state"],
             "not_quantified",
@@ -80,7 +92,6 @@ class AnalyzePipelineTests(unittest.TestCase):
         primary_json = json.dumps(_without_audit(payload), ensure_ascii=False)
         for forbidden in (
             "FIM-",
-            "F2",
             "F3",
             "authority_factor",
             "runtime_s",
@@ -97,6 +108,105 @@ class AnalyzePipelineTests(unittest.TestCase):
         self.assertTrue(result.nl_summary_ko.strip())
         self.assertTrue(result.nl_summary_en.strip())
         self.assertNotEqual(result.nl_summary_ko, result.nl_summary_en)
+
+    def test_eligible_official_source_yields_nonzero_grounded_contribution(self) -> None:
+        result = ANALYZE.run_local_analysis(
+            pasted_text=GROUNDED_F5_KO,
+            ui_locale=SCHEMAS.UILocale.KO,
+        )
+
+        self.assertGreater(result.review_priority_score, 0)
+        self.assertEqual(result.grounding, "LOCAL_OFFICIAL_EVIDENCE")
+        scored = [finding for finding in result.ranked_findings if finding.scored]
+        self.assertGreaterEqual(len(scored), 1)
+        for finding in scored:
+            self.assertTrue(finding.grounding_evidence_ids)
+            self.assertTrue(finding.citations)
+            self.assertTrue(set(finding.authority_tiers) <= {"A0", "A1", "A2"})
+        self.assertTrue(
+            any(contribution.contribution > 0 for contribution in result.scoring.contributions)
+        )
+
+        payload = ANALYZE.analysis_result_to_payload(result, SCHEMAS.UILocale.KO)
+        grounded_findings = [
+            finding
+            for finding in payload["findings"]
+            if finding["evidence"]["state"] == "official_evidence_unverified"
+        ]
+        self.assertGreaterEqual(len(grounded_findings), 1)
+        self.assertTrue(grounded_findings[0]["citations"])
+
+    def test_no_eligible_official_evidence_is_candidate_with_zero_contribution(self) -> None:
+        result = ANALYZE.run_local_analysis(
+            pasted_text=CANDIDATE_F9_KO,
+            ui_locale=SCHEMAS.UILocale.KO,
+        )
+
+        self.assertEqual(result.review_priority_score, 0)
+        self.assertEqual(result.grounding, "CANDIDATE_UNVERIFIED")
+        self.assertGreaterEqual(len(result.ranked_findings), 1)
+        for finding in result.ranked_findings:
+            self.assertFalse(finding.scored)
+            self.assertEqual(finding.grounding, "CANDIDATE_UNVERIFIED")
+            self.assertEqual(finding.grounding_evidence_ids, ())
+            self.assertEqual(finding.citations, ())
+        self.assertTrue(
+            all(contribution.contribution == 0 for contribution in result.scoring.contributions)
+        )
+
+        payload = ANALYZE.analysis_result_to_payload(result, SCHEMAS.UILocale.KO)
+        for finding in payload["findings"]:
+            self.assertEqual(finding["evidence"]["state"], "candidate_unverified")
+            self.assertEqual(finding["citations"], [])
+            self.assertIn("미확인 후보", finding["evidence"]["missing"]["ko"])
+
+    def test_generated_english_or_similarity_only_records_do_not_create_eligibility(self) -> None:
+        import fink.retrieval as retrieval
+
+        generated_record = retrieval.RetrievalChunk(
+            chunk_id="EV-GENERATED-F5",
+            chunk_type="evidence",
+            text="F5_IP_MONETIZATION 저작권 2차적저작물 generated English alias",
+            title="Generated alias only",
+            source_id="A1-GENERATED",
+            source_ids=("A1-GENERATED",),
+            source_class="A1",
+            authority_tier="A1",
+            verification_status="UNVERIFIED",
+            risk_categories=("F5_IP_MONETIZATION",),
+            hierarchy=("tier:A1", "source:A1-GENERATED", "risk:F5", "chunk:generated"),
+            score_eligible=False,
+            practice_reference=False,
+            generated_translation=True,
+        )
+        practice_record = retrieval.RetrievalChunk(
+            chunk_id="KC-F5-PRACTICE",
+            chunk_type="knowledge_card",
+            text="F5_IP_MONETIZATION 저작권 2차적저작물 practice explanation",
+            title="Practice only",
+            source_id="B-PRACTICE",
+            source_ids=("B-PRACTICE",),
+            source_class="B",
+            authority_tier="B",
+            verification_status="UNVERIFIED",
+            risk_categories=("F5_IP_MONETIZATION",),
+            hierarchy=("tier:B", "source:B-PRACTICE", "risk:F5", "chunk:practice"),
+            score_eligible=False,
+            practice_reference=True,
+            generated_translation=True,
+        )
+        index = retrieval.LocalBM25Index((generated_record, practice_record))
+
+        with patch.object(retrieval, "load_or_build_retrieval_index", return_value=index):
+            result = ANALYZE.run_local_analysis(
+                pasted_text=GROUNDED_F5_KO,
+                ui_locale=SCHEMAS.UILocale.KO,
+            )
+
+        self.assertEqual(result.review_priority_score, 0)
+        self.assertTrue(result.ranked_findings)
+        self.assertFalse(any(finding.scored for finding in result.ranked_findings))
+        self.assertFalse(any(finding.grounding_evidence_ids for finding in result.ranked_findings))
 
     def test_payload_is_json_serializable(self) -> None:
         result = ANALYZE.run_local_analysis(

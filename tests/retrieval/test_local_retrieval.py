@@ -32,6 +32,7 @@ def _chunk(
     risk_categories: tuple[str, ...] = ("F1",),
     score_eligible: bool = True,
     practice_reference: bool = False,
+    generated_translation: bool | None = None,
 ) -> Any:
     source_id = f"{authority_tier}-TEST"
     return RETRIEVAL.RetrievalChunk(
@@ -49,7 +50,9 @@ def _chunk(
         score_eligible=score_eligible,
         practice_reference=practice_reference,
         public_export=False,
-        generated_translation=practice_reference,
+        generated_translation=practice_reference
+        if generated_translation is None
+        else generated_translation,
     )
 
 
@@ -179,6 +182,47 @@ class LocalRetrievalTests(unittest.TestCase):
 
         self.assertEqual(results[0].chunk.chunk_id, "EV-F4-MG")
         self.assertEqual(loaded.documents[0].chunk_id, "EV-F2-REVENUE")
+
+    def test_missing_optional_index_rebuilds_from_required_corpus(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus_dir = Path(tmp) / "corpus"
+            _write_minimal_stage_one_corpus(corpus_dir)
+            missing_index = Path(tmp) / "indexes" / "retrieval_bm25.json"
+
+            index = RETRIEVAL.load_or_build_retrieval_index(
+                index_path=missing_index,
+                corpus_dir=corpus_dir,
+            )
+            results = index.query("payment due date", k=1, chunk_types=("evidence",))
+
+        self.assertEqual(results[0].chunk.chunk_id, "EV-F3-PAYMENT")
+
+    def test_corrupt_required_corpus_raises_structured_setup_error_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus_dir = Path(tmp) / "corpus"
+            _write_minimal_stage_one_corpus(corpus_dir)
+            (corpus_dir / "stage-1" / "14_MASTER_EVIDENCE_MATRIX.csv").write_text(
+                "evidence_id,source_id\nEV-CORRUPT,A1-CORRUPT\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RETRIEVAL.RetrievalCorpusError, "authority_tier"):
+                RETRIEVAL.load_or_build_retrieval_index(
+                    index_path=Path(tmp) / "missing-index.json",
+                    corpus_dir=corpus_dir,
+                )
+
+    def test_generated_english_alias_cannot_be_score_eligible(self) -> None:
+        with self.assertRaisesRegex(
+            RETRIEVAL.RetrievalCorpusError,
+            "generated English aliases are never scoring evidence",
+        ):
+            _chunk(
+                "EV-GENERATED-EN",
+                "generated English explanation only",
+                generated_translation=True,
+                score_eligible=True,
+            )
 
     def test_koen_consistency_harness_computes_ev_koen_and_caveats(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

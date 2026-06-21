@@ -30,7 +30,6 @@ DEFAULT_SCORING_CONFIG_PATH = REPO_ROOT / "config" / "scoring_config.yaml"
 
 SCORING_AUTHORITY_TIERS = ("A0", "A1", "A2")
 AUTHORITY_TIER_RANK = {"A0": 0, "A1": 1, "A2": 2}
-DEFAULT_MISSING_AUTHORITY_TIER = "A2"
 ZERO_SCORE_TIERS = ("B", "C", "B/C", "D0", "M1", "M2", "M3", "R0")
 
 CATEGORY_CONFIG_IDS: Mapping[RiskCategory, str] = {
@@ -705,21 +704,19 @@ def _best_authority_tier(
     if not evidence_ids:
         return None
     if evidence_authority_tiers is None:
-        return DEFAULT_MISSING_AUTHORITY_TIER
+        return None
 
     scoring_tiers: list[str] = []
-    saw_missing = False
     for evidence_id in evidence_ids:
         tier = evidence_authority_tiers.get(evidence_id)
         if tier is None:
-            saw_missing = True
             continue
         if tier in SCORING_AUTHORITY_TIERS:
             scoring_tiers.append(tier)
 
     if scoring_tiers:
         return min(scoring_tiers, key=lambda tier: AUTHORITY_TIER_RANK[tier])
-    return DEFAULT_MISSING_AUTHORITY_TIER if saw_missing else None
+    return None
 
 
 def _unique_evidence_ids(signals: Sequence[RiskSignal]) -> tuple[str, ...]:

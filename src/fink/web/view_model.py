@@ -627,6 +627,7 @@ def _finding_from_ranked(
     question = _first_question(guidance)
     title = {"ko": finding.label_ko, "en": finding.label_en}
     finding_id = _stable_id("finding", finding.signal_id, finding.clause_id, finding.exact_excerpt)
+    evidence = _evidence_payload_from_ranked(finding)
     return {
         "finding_id": finding_id,
         "rank": finding.rank,
@@ -642,11 +643,16 @@ def _finding_from_ranked(
             "ko": result.recommended_action.cash_flow_ko,
             "en": result.recommended_action.cash_flow_en,
         },
-        "states": _finding_states(statuses, monetary_present=monetary_present),
+        "states": _finding_states(
+            statuses,
+            monetary_present=monetary_present,
+            evidence_state=evidence["state"],
+        ),
         "priority_basis": _priority_basis(finding.is_missing_protection),
         "extracted_fields": [],
         "missing_inputs": _missing_inputs(monetary_present),
-        "citations": [],
+        "evidence": evidence,
+        "citations": list(finding.citations),
         "model_path": creator_review_pair("finding.model_path.local_rules"),
     }
 
@@ -692,16 +698,45 @@ def _finding_from_signal(
 
 
 def _finding_states(
-    statuses: dict[str, dict[str, Any]], *, monetary_present: bool
+    statuses: dict[str, dict[str, Any]],
+    *,
+    monetary_present: bool,
+    evidence_state: str | None = None,
 ) -> dict[str, str]:
     money_state = "range_available" if monetary_present else "needs_inputs"
     return {
         "money_state": money_state,
         "timing_state": "review_time_estimated",
         "reading_state": statuses[READING_STATUS]["state"],
-        "evidence_state": statuses[EVIDENCE_STATUS]["state"],
+        "evidence_state": evidence_state or statuses[EVIDENCE_STATUS]["state"],
         "scenario_state": statuses[SCENARIO_STATUS]["state"],
         "quantification_state": statuses[QUANTIFICATION_STATUS]["state"],
+    }
+
+
+def _evidence_payload_from_ranked(finding: Any) -> dict[str, Any]:
+    if getattr(finding, "scored", False):
+        return {
+            "state": "official_evidence_unverified",
+            "label": {
+                "ko": "로컬 공식 근거 연결",
+                "en": "Local official evidence linked",
+            },
+            "grounding_evidence_ids": list(finding.grounding_evidence_ids),
+            "authority_tiers": list(finding.authority_tiers),
+            "source_ids": list(finding.source_ids),
+            "missing": None,
+        }
+    return {
+        "state": "candidate_unverified",
+        "label": {"ko": "미확인 후보", "en": "Unverified candidate"},
+        "grounding_evidence_ids": [],
+        "authority_tiers": [],
+        "source_ids": [],
+        "missing": {
+            "ko": finding.missing_evidence_ko,
+            "en": finding.missing_evidence_en,
+        },
     }
 
 
@@ -711,6 +746,8 @@ def _audit_detail_from_result(result: Any) -> dict[str, Any]:
         "clause_count": result.clause_count,
         "signal_count": result.signal_count,
         "grounding": result.grounding,
+        "retrieved_record_count": result.retrieved_record_count,
+        "evidence_authority_tiers": dict(result.evidence_authority_tiers),
         "model_path": _LOCAL_MODEL_PATH,
         "scoring": {
             "review_priority_score": result.review_priority_score,
@@ -787,6 +824,9 @@ def _technical_finding_from_ranked(finding: Any) -> dict[str, Any]:
         "signal_confidence": finding.signal_confidence,
         "rank_score": finding.rank_score,
         "scored": finding.scored,
+        "grounding": finding.grounding,
+        "grounding_evidence_ids": list(finding.grounding_evidence_ids),
+        "authority_tiers": list(finding.authority_tiers),
         "fim_module": _RISK_TO_PRIMARY_FIM.get(finding.risk_category),
     }
 

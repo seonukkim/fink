@@ -1860,7 +1860,11 @@ _APP_JS = r"""(function () {
       item.setAttribute("data-finding-rank", String(finding.rank));
       var head = el("div", "finding-head", null);
       head.appendChild(el("span", "badge", "#" + finding.rank));
-      head.appendChild(el("span", "badge unverified-badge", finding.states.evidence_state));
+      var evidenceLabel =
+        finding.evidence && finding.evidence.label
+          ? localized(finding.evidence.label)
+          : finding.states.evidence_state;
+      head.appendChild(el("span", "badge unverified-badge", evidenceLabel));
       item.appendChild(head);
       item.appendChild(bilingual("p", "finding-label", finding.title));
       if (finding.source && finding.source.clause_id) {
@@ -1872,6 +1876,34 @@ _APP_JS = r"""(function () {
       item.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
       item.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
       item.appendChild(bilingual("p", "action-line", finding.question_to_ask));
+      if (finding.evidence) {
+        var evidenceLine = null;
+        if (
+          finding.evidence.grounding_evidence_ids &&
+          finding.evidence.grounding_evidence_ids.length > 0
+        ) {
+          evidenceLine = finding.evidence.grounding_evidence_ids.join(", ");
+        } else if (finding.evidence.missing) {
+          evidenceLine = localized(finding.evidence.missing);
+        }
+        if (evidenceLine) {
+          item.appendChild(el("p", "finding-snippet", evidenceLine));
+        }
+      }
+      if (finding.citations && finding.citations.length > 0) {
+        var citationList = el("ul", null, null);
+        finding.citations.forEach(function (citation) {
+          var citationText = [
+            citation.evidence_id,
+            citation.source_id,
+            citation.authority_tier
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          citationList.appendChild(el("li", null, citationText));
+        });
+        item.appendChild(citationList);
+      }
       if (finding.additional_questions && finding.additional_questions.length > 0) {
         var moreQuestions = el("ul", null, null);
         finding.additional_questions.forEach(function (question) {

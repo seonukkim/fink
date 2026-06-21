@@ -87,6 +87,10 @@ class RetrievalChunk:
             raise RetrievalCorpusError(
                 f"{self.chunk_id}: glossary terms are aliases, not scoring evidence"
             )
+        if self.generated_translation and self.score_eligible:
+            raise RetrievalCorpusError(
+                f"{self.chunk_id}: generated English aliases are never scoring evidence"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -445,6 +449,34 @@ def build_retrieval_index(corpus_dir: Path = DEFAULT_CORPUS_DIR) -> LocalBM25Ind
     """Build the local BM25 retrieval index from the Stage-1 corpus."""
 
     return LocalBM25Index.from_corpus_dir(corpus_dir)
+
+
+def load_or_build_retrieval_index(
+    *,
+    index_path: Path = DEFAULT_INDEX_PATH,
+    corpus_dir: Path = DEFAULT_CORPUS_DIR,
+) -> LocalBM25Index:
+    """Load an optional saved BM25 index, or rebuild from the required corpus.
+
+    The persisted index is an optional acceleration artifact. If it is missing
+    or unreadable, deterministic BM25 is rebuilt from the versioned local corpus.
+    Corpus load/build errors still propagate as ``RetrievalCorpusError`` because
+    the corpus itself is required setup state.
+    """
+
+    if index_path.is_file():
+        try:
+            return LocalBM25Index.load(index_path)
+        except (
+            OSError,
+            json.JSONDecodeError,
+            KeyError,
+            TypeError,
+            ValueError,
+            RetrievalCorpusError,
+        ):
+            pass
+    return build_retrieval_index(corpus_dir)
 
 
 def load_hierarchical_corpus(corpus_dir: Path = DEFAULT_CORPUS_DIR) -> RetrievalCorpus:
