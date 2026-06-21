@@ -1,0 +1,165 @@
+schema_version: 1
+task_id: FINK-MR-03
+captured_at: "2026-06-21T21:29:34+09:00"
+base_commit: "3513ab115ebdb177b040bffaa8011fe1a4878115"
+depends_on:
+  - FINK-MR-02
+human_gate: MODEL_METADATA_NETWORK_APPROVED
+source_candidates_path: configs/models/candidates.yaml
+source_candidates_task_id: FINK-MR-02
+
+dry_run_policy:
+  no_weight_download: true
+  no_snapshot_download: true
+  capture_method: >
+    Metadata-only download-size dry run. Exact revisions are copied from the
+    accepted FINK-MR-02 Hugging Face candidate metadata, and disk-size estimates
+    are recorded from that public metadata without snapshot_download, model
+    loading, or repository file downloads.
+  estimated_disk_size_definition: >
+    Per-candidate public repository storage estimate in decimal bytes. This
+    excludes local cache duplication, filesystem block overhead, later
+    quantization/export variants, and any future private benchmark artifacts.
+  approved_network_gate: MODEL_METADATA_NETWORK_APPROVED
+  refresh_command: >
+    scripts/model_research/run_with_hf_auth.sh python3
+    scripts/model_research/model_size_dry_run_records.py --validate
+  model_storage_boundary: >
+    Future weights may be downloaded only under $PRIVATE_ROOT/models or the
+    Hugging Face cache. Public Git records metadata and dry-run size estimates
+    only.
+  tracked_weight_files_at_capture: []
+  weight_file_suffixes:
+    - .safetensors
+    - .gguf
+    - .onnx
+    - .pt
+    - .pth
+    - .h5
+    - .bin
+    - .ckpt
+
+summary:
+  candidate_count: 7
+  max_download_size_gb: 20
+  total_estimated_disk_size_bytes: 42516679874
+  total_estimated_disk_size_gb: 42.516679874
+  largest_candidate_id: qwen3_8b
+  largest_candidate_estimated_disk_size_bytes: 16400000000
+  all_candidates_below_max_download_size_gb: true
+  downloaded_weight_files: false
+
+records:
+  - id: paddleocr_vl
+    group: ocr_document
+    repo_id: PaddlePaddle/PaddleOCR-VL
+    role: primary_document_ocr_layout
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    revision_ref: main
+    exact_revision: baee27eebcbf26cdeab160116679d765f13a3f27
+    revision_source_url: https://huggingface.co/PaddlePaddle/PaddleOCR-VL/tree/main
+    estimated_disk_size_bytes: 2156679874
+    estimated_disk_size_gb: 2.156679874
+    size_source: hf_metadata.used_storage_bytes
+    dry_run_status: recorded_without_weight_download
+    downloaded_weight_files: false
+    under_max_download_size_gb: true
+  - id: qwen3_vl_4b
+    group: ocr_document
+    repo_id: Qwen/Qwen3-VL-4B-Instruct
+    role: difficult_image_vlm_fallback
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    revision_ref: main
+    exact_revision: ebb281ec70b05090aa6165b016eac8ec08e71b17
+    revision_source_url: https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct/commit/ebb281ec70b05090aa6165b016eac8ec08e71b17
+    estimated_disk_size_bytes: 8890000000
+    estimated_disk_size_gb: 8.89
+    size_source: hf_metadata.file_size_gb_decimal
+    dry_run_status: recorded_without_weight_download
+    downloaded_weight_files: false
+    under_max_download_size_gb: true
+  - id: qwen3_embedding_0_6b
+    group: embedding
+    repo_id: Qwen/Qwen3-Embedding-0.6B
+    role: primary_ko_en_embedding
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    revision_ref: main
+    exact_revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    revision_source_url: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/commit/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    estimated_disk_size_bytes: 1210000000
+    estimated_disk_size_gb: 1.21
+    size_source: hf_metadata.file_size_gb_decimal
+    dry_run_status: recorded_without_weight_download
+    downloaded_weight_files: false
+    under_max_download_size_gb: true
+  - id: bge_m3
+    group: embedding
+    repo_id: BAAI/bge-m3
+    role: multilingual_retrieval_baseline
+    license: mit
+    gated: false
+    access_status: public_ungated
+    revision_ref: main
+    exact_revision: 5617a9f61b028005a4858fdac845db406aefb181
+    revision_source_url: https://huggingface.co/BAAI/bge-m3/commit/5617a9f61b028005a4858fdac845db406aefb181
+    estimated_disk_size_bytes: 4590000000
+    estimated_disk_size_gb: 4.59
+    size_source: hf_metadata.file_size_gb_decimal
+    dry_run_status: recorded_without_weight_download
+    downloaded_weight_files: false
+    under_max_download_size_gb: true
+    security_note: "Repository includes pickle-bearing .pt/.bin files; prefer safetensors or non-pickle assets if selected."
+  - id: qwen3_reranker_0_6b
+    group: reranker
+    repo_id: Qwen/Qwen3-Reranker-0.6B
+    role: primary_ko_en_reranker
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    revision_ref: main
+    exact_revision: e61197ed45024b0ed8a2d74b80b4d909f1255473
+    revision_source_url: https://huggingface.co/Qwen/Qwen3-Reranker-0.6B/commit/e61197ed45024b0ed8a2d74b80b4d909f1255473
+    estimated_disk_size_bytes: 1210000000
+    estimated_disk_size_gb: 1.21
+    size_source: hf_metadata.file_size_gb_decimal
+    dry_run_status: recorded_without_weight_download
+    downloaded_weight_files: false
+    under_max_download_size_gb: true
+  - id: qwen3_4b
+    group: explanation
+    repo_id: Qwen/Qwen3-4B
+    role: primary_local_explanation
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    revision_ref: main
+    exact_revision: 1cfa9a7208912126459214e8b04321603b3df60c
+    revision_source_url: https://huggingface.co/Qwen/Qwen3-4B/commit/1cfa9a7208912126459214e8b04321603b3df60c
+    estimated_disk_size_bytes: 8060000000
+    estimated_disk_size_gb: 8.06
+    size_source: hf_metadata.file_size_gb_decimal
+    dry_run_status: recorded_without_weight_download
+    downloaded_weight_files: false
+    under_max_download_size_gb: true
+  - id: qwen3_8b
+    group: explanation
+    repo_id: Qwen/Qwen3-8B
+    role: optional_high_quality_explanation
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    revision_ref: main
+    exact_revision: b968826d9c46dd6066d109eabc6255188de91218
+    revision_source_url: https://huggingface.co/Qwen/Qwen3-8B/commit/b968826d9c46dd6066d109eabc6255188de91218
+    estimated_disk_size_bytes: 16400000000
+    estimated_disk_size_gb: 16.4
+    size_source: hf_metadata.file_size_gb_decimal
+    dry_run_status: recorded_without_weight_download
+    downloaded_weight_files: false
+    under_max_download_size_gb: true

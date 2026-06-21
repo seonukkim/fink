@@ -115,3 +115,41 @@ shortlist was inventoried from Hugging Face metadata on 2026-06-21, with all
 candidates public/ungated, open-allowlisted (`apache-2.0` or `mit`), pinned to
 exact revisions, and kept as metadata-only public records. State that weights
 are not committed and runtime analysis remains offline/local-first.
+
+## Download-Size Dry Runs
+
+Structured dry-run record: `configs/models/download_size_dry_runs.yaml`.
+Validator gate:
+`python3 scripts/model_research/model_size_dry_run_records.py --validate`.
+
+Captured for task `FINK-MR-03` at `2026-06-21T21:29:34+09:00` from
+`BASE_COMMIT=3513ab115ebdb177b040bffaa8011fe1a4878115`.
+
+The dry run is metadata-only. It records the exact FINK-MR-02 pinned revision
+for each candidate, an estimated disk size in decimal bytes, and an explicit
+`downloaded_weight_files=false` flag. It does not call `snapshot_download`,
+load a model, write into `$PRIVATE_ROOT/models`, or place weights in public Git.
+
+| Role | Candidate | Exact revision | Estimated disk size |
+|------|-----------|----------------|---------------------|
+| OCR/layout | `paddleocr_vl` | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2,156,679,874 bytes |
+| OCR fallback | `qwen3_vl_4b` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8,890,000,000 bytes |
+| Embedding | `qwen3_embedding_0_6b` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | 1,210,000,000 bytes |
+| Embedding baseline | `bge_m3` | `5617a9f61b028005a4858fdac845db406aefb181` | 4,590,000,000 bytes |
+| Reranker | `qwen3_reranker_0_6b` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | 1,210,000,000 bytes |
+| Explanation | `qwen3_4b` | `1cfa9a7208912126459214e8b04321603b3df60c` | 8,060,000,000 bytes |
+| Optional explanation | `qwen3_8b` | `b968826d9c46dd6066d109eabc6255188de91218` | 16,400,000,000 bytes |
+
+Dry-run policy outcome:
+
+- Total candidate storage estimate: 42,516,679,874 decimal bytes.
+- Largest candidate: `qwen3_8b` at 16,400,000,000 bytes.
+- Every candidate remains below the configured 20 GB per-download cap.
+- Current Git tracking scan finds no model-weight files with the recorded weight
+  suffixes.
+
+Paper note for `04_data_and_implementation.md`: report that FINK-MR-03 recorded
+metadata-only download-size dry runs for seven open, public, pinned model
+candidates. The dry-run total is 42.516679874 GB decimal, the largest individual
+candidate is `qwen3_8b` at 16.4 GB, and no model weights were downloaded or
+entered Git.
