@@ -97,7 +97,10 @@ enforced on every task. See [LOOP.md](LOOP.md) and
 
 ## License
 
-Licensing is pending: `LICENSE`, `DATA_LICENSE.md`, and `NOTICE.md` are present
-but empty. Until they state a license, treat this repository as all rights
-reserved by the author. Private corpora, contracts, and model weights are never
-committed.
+- Code and docs: **MIT** (see `LICENSE`).
+- Synthetic / sanitized data: **CC-BY-4.0** (see `DATA_LICENSE.md`).
+- Third-party models keep their own open-source licenses (Apache-2.0 / MIT), and
+  weights are not distributed. The bundled ICML 2026 template keeps its original
+  license and is unmodified. See `NOTICE.md`.
+
+Private corpora, real contracts, and model weights are never committed.
