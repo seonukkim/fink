@@ -402,8 +402,9 @@ tasks:
   - 03_method.md
   - 08_responsible_ai.md
   human_gate: HR-03
-  status: READY
+  status: DONE
   source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+  completed_at: '2026-06-21T07:28:51+00:00'
 - id: FINK-S2-03
   phase: S2
   priority: P0

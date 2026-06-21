@@ -59,6 +59,7 @@ class RetrievalChunk:
     verification_status: str = "UNVERIFIED"
     risk_categories: tuple[str, ...] = ()
     canonical_id: str = ""
+    non_equivalence_caveat: str = ""
     parent_id: str = ""
     hierarchy: tuple[str, ...] = ()
     score_eligible: bool = False
@@ -82,6 +83,10 @@ class RetrievalChunk:
             raise RetrievalCorpusError(
                 f"{self.chunk_id}: practice references must not be score eligible"
             )
+        if self.chunk_type == "glossary_term" and self.score_eligible:
+            raise RetrievalCorpusError(
+                f"{self.chunk_id}: glossary terms are aliases, not scoring evidence"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -96,6 +101,7 @@ class RetrievalChunk:
             "verification_status": self.verification_status,
             "risk_categories": list(self.risk_categories),
             "canonical_id": self.canonical_id,
+            "non_equivalence_caveat": self.non_equivalence_caveat,
             "parent_id": self.parent_id,
             "hierarchy": list(self.hierarchy),
             "score_eligible": self.score_eligible,
@@ -119,6 +125,7 @@ class RetrievalChunk:
             verification_status=str(payload.get("verification_status", "UNVERIFIED")),
             risk_categories=_tuple_text(payload.get("risk_categories", ())),
             canonical_id=str(payload.get("canonical_id", "")),
+            non_equivalence_caveat=str(payload.get("non_equivalence_caveat", "")),
             parent_id=str(payload.get("parent_id", "")),
             hierarchy=_tuple_text(payload.get("hierarchy", ())),
             score_eligible=_to_bool(payload.get("score_eligible", False)),
@@ -216,6 +223,77 @@ class RetrievalRecallMetrics:
             "EV-R@5": self.ev_r_at_5,
             "recall_at_k": {f"R@{key}": value for key, value in self.recall_at_k.items()},
             "hits_at_k": {f"hits@{key}": value for key, value in self.hits_at_k.items()},
+            "per_query": list(self.per_query),
+        }
+
+
+@dataclass(frozen=True)
+class BilingualQueryPair:
+    """One KO/EN query pair for canonical-ID consistency evaluation."""
+
+    query_id: str
+    query_ko: str
+    query_en: str
+    expected_canonical_id: str = ""
+    requires_non_equivalence_caveat: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.query_id.strip():
+            raise ValueError("query_id must be nonblank")
+        if not self.query_ko.strip():
+            raise ValueError(f"{self.query_id}: query_ko must be nonblank")
+        if not self.query_en.strip():
+            raise ValueError(f"{self.query_id}: query_en must be nonblank")
+
+
+@dataclass(frozen=True)
+class BilingualConsistencyMetrics:
+    """EV-KOEN metrics for KO/EN canonical concept retrieval."""
+
+    k: int
+    total_pairs: int
+    consistent_pairs: int
+    top_k_consistent_pairs: int
+    caveat_required_pairs: int
+    caveat_present_pairs: int
+    english_labeled_evidence_violations: int
+    per_query: tuple[dict[str, Any], ...]
+
+    @property
+    def ev_koen(self) -> float | None:
+        if self.total_pairs == 0:
+            return None
+        return self.consistent_pairs / self.total_pairs
+
+    @property
+    def top_k_consistency(self) -> float | None:
+        if self.total_pairs == 0:
+            return None
+        return self.top_k_consistent_pairs / self.total_pairs
+
+    @property
+    def caveat_coverage(self) -> float | None:
+        if self.caveat_required_pairs == 0:
+            return None
+        return self.caveat_present_pairs / self.caveat_required_pairs
+
+    @property
+    def english_never_labeled_evidence(self) -> bool:
+        return self.english_labeled_evidence_violations == 0
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "k": self.k,
+            "total_pairs": self.total_pairs,
+            "EV-KOEN": self.ev_koen,
+            "top_k_consistency": self.top_k_consistency,
+            "caveat_coverage": self.caveat_coverage,
+            "english_never_labeled_evidence": self.english_never_labeled_evidence,
+            "english_labeled_evidence_violations": self.english_labeled_evidence_violations,
+            "consistent_pairs": self.consistent_pairs,
+            "top_k_consistent_pairs": self.top_k_consistent_pairs,
+            "caveat_required_pairs": self.caveat_required_pairs,
+            "caveat_present_pairs": self.caveat_present_pairs,
             "per_query": list(self.per_query),
         }
 
@@ -441,6 +519,154 @@ def recall_harness(
     return evaluate_recall_at_k(index, cases, k_values=k_values)
 
 
+def resolve_canonical_results(
+    index: LocalBM25Index,
+    query_text: str,
+    *,
+    k: int = 5,
+) -> tuple[RetrievalResult, ...]:
+    """Resolve a KO or EN query to unique glossary canonical IDs.
+
+    Korean glossary text is the canonical concept surface. English labels and
+    aliases are generated retrieval aids only, so this resolver restricts
+    concept lookup to non-scoring glossary chunks.
+    """
+
+    if k <= 0:
+        raise ValueError("k must be > 0")
+    raw_results = index.query(
+        query_text,
+        k=len(index.documents),
+        chunk_types=("glossary_term",),
+    )
+    seen: set[str] = set()
+    selected: list[RetrievalResult] = []
+    for result in raw_results:
+        canonical_id = result.chunk.canonical_id.strip()
+        if not canonical_id or canonical_id in seen:
+            continue
+        selected.append(result)
+        seen.add(canonical_id)
+        if len(selected) >= k:
+            break
+    return tuple(selected)
+
+
+def resolve_canonical_ids(
+    index: LocalBM25Index,
+    query_text: str,
+    *,
+    k: int = 5,
+) -> tuple[str, ...]:
+    """Return top-k unique canonical IDs for a KO or EN query."""
+
+    return tuple(
+        result.chunk.canonical_id
+        for result in resolve_canonical_results(index, query_text, k=k)
+    )
+
+
+def evaluate_koen_consistency(
+    index: LocalBM25Index,
+    pairs: Sequence[BilingualQueryPair],
+    *,
+    k: int = 1,
+) -> BilingualConsistencyMetrics:
+    """Compute EV-KOEN over synthetic/sanitized KO/EN paired queries."""
+
+    if not pairs:
+        raise ValueError("pairs must not be empty")
+    if k <= 0:
+        raise ValueError("k must be > 0")
+
+    consistent_pairs = 0
+    top_k_consistent_pairs = 0
+    caveat_required_pairs = 0
+    caveat_present_pairs = 0
+    english_labeled_evidence_violations = 0
+    per_query: list[dict[str, Any]] = []
+
+    for pair in pairs:
+        ko_results = resolve_canonical_results(index, pair.query_ko, k=k)
+        en_results = resolve_canonical_results(index, pair.query_en, k=k)
+        ko_ids = tuple(result.chunk.canonical_id for result in ko_results)
+        en_ids = tuple(result.chunk.canonical_id for result in en_results)
+        same_top1 = bool(ko_ids and en_ids and ko_ids[0] == en_ids[0])
+        same_top_k = bool(ko_ids and ko_ids == en_ids)
+        expected_ok = not pair.expected_canonical_id or (
+            ko_ids[:1] == (pair.expected_canonical_id,)
+            and en_ids[:1] == (pair.expected_canonical_id,)
+        )
+        pair_consistent = same_top1 and expected_ok
+        if pair_consistent:
+            consistent_pairs += 1
+        if same_top_k:
+            top_k_consistent_pairs += 1
+
+        target_canonical_id = pair.expected_canonical_id or (ko_ids[0] if ko_ids else "")
+        caveat_present = None
+        if pair.requires_non_equivalence_caveat:
+            caveat_required_pairs += 1
+            target_chunks = tuple(
+                result.chunk
+                for result in (*ko_results, *en_results)
+                if result.chunk.canonical_id == target_canonical_id
+            )
+            caveat_present = bool(target_chunks) and all(
+                chunk.non_equivalence_caveat.strip() for chunk in target_chunks
+            )
+            if caveat_present:
+                caveat_present_pairs += 1
+
+        english_labeled_evidence = any(
+            result.chunk.chunk_type == "evidence"
+            or result.chunk.score_eligible
+            or not result.chunk.generated_translation
+            for result in en_results
+        )
+        if english_labeled_evidence:
+            english_labeled_evidence_violations += 1
+
+        per_query.append(
+            {
+                "query_id": pair.query_id,
+                "query_ko": pair.query_ko,
+                "query_en": pair.query_en,
+                "expected_canonical_id": pair.expected_canonical_id,
+                "ko_canonical_ids": list(ko_ids),
+                "en_canonical_ids": list(en_ids),
+                "same_top1": same_top1,
+                "same_top_k": same_top_k,
+                "consistent": pair_consistent,
+                "requires_non_equivalence_caveat": pair.requires_non_equivalence_caveat,
+                "non_equivalence_caveat_present": caveat_present,
+                "english_labeled_evidence": english_labeled_evidence,
+            }
+        )
+
+    return BilingualConsistencyMetrics(
+        k=k,
+        total_pairs=len(pairs),
+        consistent_pairs=consistent_pairs,
+        top_k_consistent_pairs=top_k_consistent_pairs,
+        caveat_required_pairs=caveat_required_pairs,
+        caveat_present_pairs=caveat_present_pairs,
+        english_labeled_evidence_violations=english_labeled_evidence_violations,
+        per_query=tuple(per_query),
+    )
+
+
+def koen_consistency_harness(
+    index: LocalBM25Index,
+    pairs: Sequence[BilingualQueryPair],
+    *,
+    k: int = 1,
+) -> BilingualConsistencyMetrics:
+    """Named machine-gate wrapper for EV-KOEN computation."""
+
+    return evaluate_koen_consistency(index, pairs, k=k)
+
+
 def retrieval_offline_test(
     corpus_dir: Path = DEFAULT_CORPUS_DIR,
     *,
@@ -615,17 +841,27 @@ def _glossary_chunks(path: Path) -> tuple[RetrievalChunk, ...]:
     chunks: list[RetrievalChunk] = []
     for row in _read_csv(path):
         canonical_id = _required_text(row, "canonical_id", path)
+        label_ko = _first_text(row, "preferred_ko", "label_ko")
+        label_en = _first_text(row, "preferred_en", "label_en")
+        aliases_ko = _split_text(row.get("aliases_ko", ""))
+        aliases_en = _split_text(row.get("aliases_en", ""))
         source_ids = _split_text(row.get("source_ids", ""))
         authority_tier = _infer_authority_tier(source_ids)
         risk_categories = (_required_text(row, "risk_category", path),)
         score_eligible = _to_bool(row.get("score_eligible", False))
         _require_practice_reference(canonical_id, authority_tier, score_eligible, False)
+        generated_translation = _to_bool(row.get("generated_translation", False))
+        if (label_en or aliases_en) and not generated_translation:
+            raise RetrievalCorpusError(
+                f"{path}: {canonical_id} English labels must be generated aliases, not evidence"
+            )
         text = _join_text(
             canonical_id,
-            row.get("preferred_ko"),
-            row.get("preferred_en"),
-            row.get("aliases_ko"),
-            row.get("aliases_en"),
+            label_ko,
+            label_en,
+            aliases_ko,
+            aliases_en,
+            row.get("financial_variable"),
             row.get("notes"),
             *risk_categories,
         )
@@ -633,7 +869,7 @@ def _glossary_chunks(path: Path) -> tuple[RetrievalChunk, ...]:
             RetrievalChunk(
                 chunk_id=f"GL-{canonical_id}",
                 chunk_type="glossary_term",
-                title=_join_text(row.get("preferred_ko"), row.get("preferred_en")),
+                title=_join_text(label_ko, label_en),
                 text=text,
                 source_id=source_ids[0] if source_ids else "",
                 source_ids=source_ids,
@@ -642,13 +878,18 @@ def _glossary_chunks(path: Path) -> tuple[RetrievalChunk, ...]:
                 verification_status="UNVERIFIED",
                 risk_categories=risk_categories,
                 canonical_id=canonical_id,
+                non_equivalence_caveat=str(row.get("non_equivalence_caveat") or "").strip(),
                 parent_id=f"source:{source_ids[0]}" if source_ids else "",
                 hierarchy=_hierarchy(authority_tier, source_ids, risk_categories, canonical_id),
                 score_eligible=False,
                 practice_reference=True,
                 public_export=False,
-                generated_translation=_to_bool(row.get("generated_translation", False)),
+                generated_translation=generated_translation,
                 metadata={
+                    "label_ko": label_ko,
+                    "label_en": label_en,
+                    "aliases_ko": list(aliases_ko),
+                    "aliases_en": list(aliases_en),
                     "merged_src_canonical_ids": _split_text(
                         row.get("merged_src_canonical_ids", "")
                     ),
@@ -692,6 +933,14 @@ def _required_text(row: Mapping[str, Any], key: str, path: Path) -> str:
     if not text:
         raise RetrievalCorpusError(f"{path}: {key} is required")
     return text
+
+
+def _first_text(row: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        text = str(row.get(key) or "").strip()
+        if text:
+            return text
+    return ""
 
 
 def _require_practice_reference(

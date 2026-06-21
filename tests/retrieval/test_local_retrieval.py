@@ -180,8 +180,65 @@ class LocalRetrievalTests(unittest.TestCase):
         self.assertEqual(results[0].chunk.chunk_id, "EV-F4-MG")
         self.assertEqual(loaded.documents[0].chunk_id, "EV-F2-REVENUE")
 
+    def test_koen_consistency_harness_computes_ev_koen_and_caveats(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus_dir = Path(tmp)
+            rows = _non_equivalence_glossary_rows()
+            _write_minimal_stage_one_corpus(corpus_dir, glossary_rows=rows)
+            corpus = RETRIEVAL.load_hierarchical_corpus(corpus_dir)
 
-def _write_minimal_stage_one_corpus(corpus_dir: Path) -> None:
+        glossary_chunks = tuple(
+            chunk for chunk in corpus.documents if chunk.chunk_type == "glossary_term"
+        )
+        self.assertEqual(len(glossary_chunks), 8)
+        self.assertTrue(all(chunk.non_equivalence_caveat for chunk in glossary_chunks))
+        self.assertTrue(all(chunk.generated_translation for chunk in glossary_chunks))
+        self.assertFalse(any(chunk.score_eligible for chunk in glossary_chunks))
+
+        index = RETRIEVAL.LocalBM25Index(corpus.documents)
+        pairs = tuple(
+            RETRIEVAL.BilingualQueryPair(
+                query_id=f"koen-{row['canonical_id'].lower()}",
+                query_ko=row["preferred_ko"],
+                query_en=row["preferred_en"],
+                expected_canonical_id=row["canonical_id"],
+                requires_non_equivalence_caveat=True,
+            )
+            for row in rows
+        )
+
+        metrics = RETRIEVAL.koen_consistency_harness(index, pairs, k=1)
+
+        self.assertEqual(metrics.ev_koen, 1.0)
+        self.assertEqual(metrics.top_k_consistency, 1.0)
+        self.assertEqual(metrics.caveat_coverage, 1.0)
+        self.assertTrue(metrics.english_never_labeled_evidence)
+        self.assertEqual(metrics.as_dict()["EV-KOEN"], 1.0)
+        for row in metrics.per_query:
+            self.assertTrue(row["same_top1"])
+            self.assertTrue(row["same_top_k"])
+            self.assertTrue(row["non_equivalence_caveat_present"])
+            self.assertFalse(row["english_labeled_evidence"])
+
+    def test_glossary_loader_rejects_english_aliases_not_marked_generated(self) -> None:
+        rows = list(_non_equivalence_glossary_rows())
+        rows[0] = {**rows[0], "generated_translation": "false"}
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus_dir = Path(tmp)
+            _write_minimal_stage_one_corpus(corpus_dir, glossary_rows=tuple(rows))
+
+            with self.assertRaisesRegex(
+                RETRIEVAL.RetrievalCorpusError,
+                "English labels must be generated aliases",
+            ):
+                RETRIEVAL.load_hierarchical_corpus(corpus_dir)
+
+
+def _write_minimal_stage_one_corpus(
+    corpus_dir: Path,
+    *,
+    glossary_rows: tuple[dict[str, str], ...] | None = None,
+) -> None:
     stage = corpus_dir / "stage-1"
     stage.mkdir(parents=True)
     _write_csv(
@@ -256,7 +313,8 @@ def _write_minimal_stage_one_corpus(corpus_dir: Path) -> None:
     )
     _write_csv(
         stage / "13_MASTER_BILINGUAL_GLOSSARY.csv",
-        (
+        glossary_rows
+        or (
             {
                 "canonical_id": "CANON_PAYMENT_DELAY",
                 "preferred_ko": "지급 지연",
@@ -268,10 +326,108 @@ def _write_minimal_stage_one_corpus(corpus_dir: Path) -> None:
                 "merged_src_canonical_ids": "",
                 "generated_translation": "true",
                 "score_eligible": "false",
+                "non_equivalence_caveat": "",
                 "notes": "synthetic fixture",
             },
         ),
     )
+
+
+def _non_equivalence_glossary_rows() -> tuple[dict[str, str], ...]:
+    caveat = (
+        "Generated English alias for retrieval only; Korean source term remains canonical "
+        "and no legal equivalence is asserted."
+    )
+    return (
+        _glossary_row(
+            "CANON_ASSIGNMENT_LICENSE_BOUNDARY",
+            "저작권 양도와 이용허락",
+            "assignment license boundary",
+            "양도;이용허락",
+            "assignment;license",
+            caveat,
+        ),
+        _glossary_row(
+            "CANON_RESCISSION",
+            "해제",
+            "rescission",
+            "계약 해제",
+            "rescission;contract cancellation",
+            caveat,
+        ),
+        _glossary_row(
+            "CANON_TERMINATION",
+            "해지",
+            "termination",
+            "계약 해지",
+            "termination",
+            caveat,
+        ),
+        _glossary_row(
+            "CANON_WORK_MADE_FOR_HIRE",
+            "업무상저작물",
+            "work made for hire",
+            "업무상 저작물",
+            "work-made-for-hire",
+            caveat,
+        ),
+        _glossary_row(
+            "CANON_PUBLICITY",
+            "초상 등 영리 이용",
+            "publicity",
+            "퍼블리시티",
+            "publicity;image likeness",
+            caveat,
+        ),
+        _glossary_row(
+            "CANON_LIQUIDATED_DAMAGES",
+            "손해배상액 예정",
+            "liquidated damages",
+            "위약벌;예정 손해배상",
+            "liquidated damages",
+            caveat,
+        ),
+        _glossary_row(
+            "CANON_CONSIDERATION",
+            "대가",
+            "consideration",
+            "계약 대가",
+            "consideration;payment basis",
+            caveat,
+        ),
+        _glossary_row(
+            "CANON_DEPOSIT",
+            "계약금",
+            "deposit",
+            "보증금;선급 계약금",
+            "deposit",
+            caveat,
+        ),
+    )
+
+
+def _glossary_row(
+    canonical_id: str,
+    preferred_ko: str,
+    preferred_en: str,
+    aliases_ko: str,
+    aliases_en: str,
+    caveat: str,
+) -> dict[str, str]:
+    return {
+        "canonical_id": canonical_id,
+        "preferred_ko": preferred_ko,
+        "preferred_en": preferred_en,
+        "risk_category": "F5",
+        "aliases_ko": aliases_ko,
+        "aliases_en": aliases_en,
+        "source_ids": "B-BOOK;C-GUIDE",
+        "merged_src_canonical_ids": "",
+        "generated_translation": "true",
+        "score_eligible": "false",
+        "non_equivalence_caveat": caveat,
+        "notes": "synthetic non-equivalence fixture",
+    }
 
 
 def _write_csv(path: Path, rows: tuple[dict[str, str], ...]) -> None:
