@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import importlib
 import os
 import re
 import shutil
+import zlib
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -36,12 +38,22 @@ from fink.schemas import (
     UploadedDocument,
     ValidationStatus,
 )
+from fink.ocr import LocalOCREngine, OCRError
 
 PDF_LITERAL_RE = re.compile(rb"\((?:\\.|[^\\)])*\)")
 PDF_TEXT_TJ_RE = re.compile(rb"(\((?:\\.|[^\\)])*\))\s*Tj")
 PDF_TEXT_TJ_ARRAY_RE = re.compile(rb"\[(.*?)\]\s*TJ", re.DOTALL)
+PDF_TEXT_HEX_TJ_RE = re.compile(rb"<([0-9A-Fa-f\s]+)>\s*Tj")
+PDF_OBJECT_RE = re.compile(rb"(?ms)(\d+)\s+\d+\s+obj\b(.*?)\bendobj\b")
+PDF_STREAM_RE = re.compile(rb"(?ms)\bstream\r?\n?(.*?)\r?\n?endstream\b")
 PDF_PAGE_RE = re.compile(rb"/Type\s*/Page\b")
+PDF_PAGES_RE = re.compile(rb"/Type\s*/Pages\b")
 PDF_COUNT_RE = re.compile(rb"/Count\s+(\d+)")
+PDF_KIDS_RE = re.compile(rb"/Kids\s*\[(.*?)\]", re.DOTALL)
+PDF_REF_RE = re.compile(rb"(\d+)\s+\d+\s+R")
+PDF_CONTENTS_REF_RE = re.compile(rb"/Contents\s+(\d+)\s+\d+\s+R")
+PDF_CONTENTS_ARRAY_RE = re.compile(rb"/Contents\s*\[(.*?)\]", re.DOTALL)
+PDF_OCR_HINT_RE = re.compile(rb"%\s*FINK-OCR-HINT\s+page=(\d+)\s+text=([A-Za-z0-9+/=_-]+)")
 PERCENT_RE = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*%")
 MONEY_RE = re.compile(r"(?P<value>\d{1,3}(?:,\d{3})+|\d+)\s*(?:원|KRW|krw)")
 DAY_RE = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*(?:days?|일)(?=\s|$|[.,;:)\\]])")
@@ -67,6 +79,14 @@ class RasterPage:
     path: Path
     width_px: int
     height_px: int
+
+
+@dataclass(frozen=True)
+class PDFInspection:
+    validation_status: ValidationStatus
+    page_count: int
+    magic_byte_verified: bool
+    is_encrypted: bool
 
 
 @dataclass(frozen=True)
@@ -116,11 +136,13 @@ class EphemeralIngestSession:
         ui_locale: UILocale = UILocale.KO,
         runtime_profile: RuntimeProfile = RuntimeProfile.DESKTOP_FULL,
         now: Callable[[], datetime] | None = None,
+        ocr_engine: LocalOCREngine | None = None,
     ) -> None:
         self.limits = limits or IngestLimits()
         self.ui_locale = ui_locale
         self.runtime_profile = runtime_profile
         self._now = now or datetime.now
+        self.ocr_engine = ocr_engine or LocalOCREngine()
         self.session_id = uuid4().hex
         self.upload_root = Path(upload_root) if upload_root is not None else Path.cwd() / "uploads"
         self.sessions_root = self.upload_root / "sessions"
@@ -176,6 +198,7 @@ class EphemeralIngestSession:
         *,
         original_filename: str | None = None,
         content_type: str | None = None,
+        password: str | None = None,
     ) -> IngestedDocument:
         self._ensure_open()
         source = Path(source_path)
@@ -184,17 +207,16 @@ class EphemeralIngestSession:
         filename_hash = _filename_hash(raw_name)
         bytes_sha256 = _sha256(data)
         delete_after = self._now() + self.limits.session_ttl
-        status = self._validate_pdf_bytes(data, content_type)
-        page_count = _pdf_page_count(data) if status is ValidationStatus.ACCEPTED else 1
-        if status is ValidationStatus.ACCEPTED and page_count > self.limits.max_pages:
-            status = ValidationStatus.REJECTED_OVERSIZED
+        inspection = self._inspect_pdf_bytes(data, content_type, password=password)
+        status = inspection.validation_status
+        page_count = inspection.page_count
 
         if status is not ValidationStatus.ACCEPTED:
             document = self._document(
                 filename_hash=filename_hash,
                 mime_type=MimeType.PDF,
-                magic_byte_verified=data.startswith(b"%PDF-"),
-                is_encrypted=b"/Encrypt" in data,
+                magic_byte_verified=inspection.magic_byte_verified,
+                is_encrypted=inspection.is_encrypted,
                 validation_status=status,
                 page_count=1,
                 temp_path=self.workspace / f"{filename_hash}.rejected",
@@ -208,16 +230,19 @@ class EphemeralIngestSession:
         _write_private_bytes(stored_path, data)
         raster_dir = self.workspace / f"{filename_hash}-pages"
         _mkdir_private(raster_dir)
-        rasters = _rasterize_pdf_locally(stored_path, page_count, raster_dir)
-        texts = _extract_pdf_texts(data, page_count)
+        rasters = _rasterize_pdf_locally(
+            stored_path, page_count, raster_dir, password=password
+        )
+        texts = _extract_pdf_texts(data, page_count, password=password)
+        ocr_hints = _extract_pdf_ocr_hints(data, page_count)
         pages = tuple(
-            _page_from_raster(
-                page,
+            self._page_from_pdf_raster(
+                raster,
                 page_index=idx,
-                text=texts[idx],
-                text_source=TextSource.TEXT_LAYER if texts[idx].strip() else TextSource.OCR,
+                text_layer=texts[idx],
+                ocr_hint=ocr_hints[idx],
             )
-            for idx, page in enumerate(rasters)
+            for idx, raster in enumerate(rasters)
         )
         document = self._document(
             filename_hash=filename_hash,
@@ -464,20 +489,118 @@ class EphemeralIngestSession:
         )
         return self._result_for_document(input_mode, filename_hash, document, stored_path, ())
 
-    def _validate_pdf_bytes(
-        self, data: bytes, content_type: str | None
-    ) -> ValidationStatus:
+    def _inspect_pdf_bytes(
+        self, data: bytes, content_type: str | None, *, password: str | None
+    ) -> PDFInspection:
+        magic_byte_verified = data.startswith(b"%PDF-")
+        is_encrypted = _pdf_appears_encrypted(data)
         if len(data) > self.limits.max_bytes:
-            return ValidationStatus.REJECTED_OVERSIZED
-        if content_type is not None and content_type.lower() != MimeType.PDF.value:
-            return ValidationStatus.REJECTED_UNSUPPORTED
-        if not data.startswith(b"%PDF-"):
-            return ValidationStatus.REJECTED_UNSUPPORTED
-        if b"/Encrypt" in data:
-            return ValidationStatus.REJECTED_ENCRYPTED
-        if b"%%EOF" not in data or _pdf_page_count(data) < 1:
-            return ValidationStatus.REJECTED_CORRUPT
-        return ValidationStatus.ACCEPTED
+            return PDFInspection(
+                ValidationStatus.REJECTED_OVERSIZED,
+                1,
+                magic_byte_verified,
+                is_encrypted,
+            )
+        if not _is_pdf_mime(content_type):
+            return PDFInspection(
+                ValidationStatus.REJECTED_UNSUPPORTED,
+                1,
+                magic_byte_verified,
+                is_encrypted,
+            )
+        if not magic_byte_verified:
+            return PDFInspection(
+                ValidationStatus.REJECTED_UNSUPPORTED,
+                1,
+                False,
+                is_encrypted,
+            )
+        if is_encrypted and not _local_pdf_password_accepted(data, password):
+            return PDFInspection(
+                ValidationStatus.REJECTED_ENCRYPTED,
+                1,
+                True,
+                True,
+            )
+        if b"%%EOF" not in data or not _pdf_stream_markers_balanced(data):
+            return PDFInspection(
+                ValidationStatus.REJECTED_CORRUPT,
+                1,
+                True,
+                is_encrypted,
+            )
+
+        page_count = _pdf_page_count(data, password=password)
+        if page_count < 1:
+            return PDFInspection(
+                ValidationStatus.REJECTED_CORRUPT,
+                1,
+                True,
+                is_encrypted,
+            )
+        if page_count > self.limits.max_pages:
+            return PDFInspection(
+                ValidationStatus.REJECTED_OVERSIZED,
+                page_count,
+                True,
+                is_encrypted,
+            )
+        return PDFInspection(
+            ValidationStatus.ACCEPTED,
+            page_count,
+            True,
+            False,
+        )
+
+    def _page_from_pdf_raster(
+        self,
+        raster: RasterPage,
+        *,
+        page_index: int,
+        text_layer: str,
+        ocr_hint: str,
+    ) -> OCRPage:
+        text_page = (
+            _page_from_raster(
+                raster,
+                page_index=page_index,
+                text=text_layer,
+                text_source=TextSource.TEXT_LAYER,
+            )
+            if text_layer.strip()
+            else None
+        )
+        if text_page is not None and not ocr_hint.strip():
+            return text_page
+
+        ocr_page = self._ocr_page_from_raster(
+            raster,
+            page_index=page_index,
+            text_hint=ocr_hint.strip() or None,
+        )
+        if text_page is None:
+            return ocr_page
+        return _merge_pdf_text_and_ocr_pages(text_page, ocr_page)
+
+    def _ocr_page_from_raster(
+        self, raster: RasterPage, *, page_index: int, text_hint: str | None
+    ) -> OCRPage:
+        try:
+            page = self.ocr_engine.recognize_image(
+                raster.path,
+                page_index=page_index,
+                text_hint=text_hint,
+                width_px=raster.width_px,
+                height_px=raster.height_px,
+            )
+            return replace(page, text_source=TextSource.OCR)
+        except OCRError:
+            return _page_from_raster(
+                raster,
+                page_index=page_index,
+                text="",
+                text_source=TextSource.OCR,
+            )
 
     def _document(
         self,
@@ -788,8 +911,46 @@ def _jpeg_dimensions(data: bytes) -> tuple[int, int] | None:
     return None
 
 
-def _pdf_page_count(data: bytes) -> int:
-    pages = len(PDF_PAGE_RE.findall(data))
+def _is_pdf_mime(content_type: str | None) -> bool:
+    if content_type is None:
+        return True
+    media_type = content_type.split(";", 1)[0].strip().lower()
+    return media_type == MimeType.PDF.value
+
+
+def _pdf_appears_encrypted(data: bytes) -> bool:
+    return b"/Encrypt" in data
+
+
+def _pdf_stream_markers_balanced(data: bytes) -> bool:
+    stream_count = len(re.findall(rb"(?<!end)\bstream\b", data))
+    endstream_count = len(re.findall(rb"\bendstream\b", data))
+    return stream_count == endstream_count
+
+
+def _local_pdf_password_accepted(data: bytes, password: str | None) -> bool:
+    if not _pdf_appears_encrypted(data):
+        return True
+    if not password:
+        return False
+    document = _open_pdf_with_pymupdf(data, password=password)
+    if document is None:
+        return False
+    try:
+        return True
+    finally:
+        document.close()
+
+
+def _pdf_page_count(data: bytes, *, password: str | None = None) -> int:
+    document = _open_pdf_with_pymupdf(data, password=password)
+    if document is not None:
+        try:
+            return len(document)
+        finally:
+            document.close()
+
+    pages = len(_pdf_page_object_bodies(data))
     if pages:
         return pages
     counts = [int(match.group(1)) for match in PDF_COUNT_RE.finditer(data)]
@@ -797,20 +958,26 @@ def _pdf_page_count(data: bytes) -> int:
 
 
 def _rasterize_pdf_locally(
-    pdf_path: Path, page_count: int, output_dir: Path
+    pdf_path: Path, page_count: int, output_dir: Path, *, password: str | None = None
 ) -> tuple[RasterPage, ...]:
-    rendered = _rasterize_with_pymupdf(pdf_path, page_count, output_dir)
+    rendered = _rasterize_with_pymupdf(
+        pdf_path, page_count, output_dir, password=password
+    )
     if rendered is not None:
         return rendered
     return tuple(_write_placeholder_raster(pdf_path, output_dir, idx) for idx in range(page_count))
 
 
 def _rasterize_with_pymupdf(
-    pdf_path: Path, page_count: int, output_dir: Path
+    pdf_path: Path, page_count: int, output_dir: Path, *, password: str | None
 ) -> tuple[RasterPage, ...] | None:
+    document = None
     try:
         fitz = importlib.import_module("fitz")
         document = fitz.open(pdf_path)
+        if bool(getattr(document, "needs_pass", False)):
+            if not password or not document.authenticate(password):
+                return None
         if len(document) < page_count:
             return None
         pages: list[RasterPage] = []
@@ -821,10 +988,12 @@ def _rasterize_with_pymupdf(
             pixmap.save(path)
             os.chmod(path, 0o600)
             pages.append(RasterPage(path=path, width_px=pixmap.width, height_px=pixmap.height))
-        document.close()
         return tuple(pages)
     except Exception:
         return None
+    finally:
+        if document is not None:
+            document.close()
 
 
 def _write_placeholder_raster(pdf_path: Path, output_dir: Path, page_index: int) -> RasterPage:
@@ -835,19 +1004,142 @@ def _write_placeholder_raster(pdf_path: Path, output_dir: Path, page_index: int)
     return RasterPage(path=path, width_px=1, height_px=1)
 
 
-def _extract_pdf_texts(data: bytes, page_count: int) -> tuple[str, ...]:
+def _extract_pdf_texts(
+    data: bytes, page_count: int, *, password: str | None = None
+) -> tuple[str, ...]:
+    pymupdf_texts = _extract_pdf_texts_with_pymupdf(data, password=password)
+    if pymupdf_texts is not None and len(pymupdf_texts) == page_count:
+        return pymupdf_texts
+    return _extract_pdf_texts_from_objects(data, page_count)
+
+
+def _extract_pdf_texts_with_pymupdf(
+    data: bytes, *, password: str | None
+) -> tuple[str, ...] | None:
+    document = _open_pdf_with_pymupdf(data, password=password)
+    if document is None:
+        return None
+    try:
+        return tuple(document.load_page(idx).get_text("text").strip() for idx in range(len(document)))
+    except Exception:
+        return None
+    finally:
+        document.close()
+
+
+def _extract_pdf_texts_from_objects(data: bytes, page_count: int) -> tuple[str, ...]:
+    objects = dict(_pdf_objects(data))
+    page_bodies = _pdf_page_object_bodies(data)
+    if page_bodies:
+        texts = [
+            _extract_text_from_pdf_commands(b"\n".join(_page_content_streams(body, objects)))
+            for body in page_bodies[:page_count]
+        ]
+        while len(texts) < page_count:
+            texts.append("")
+        return tuple(texts)
+    text = _extract_text_from_pdf_commands(data)
+    if not text:
+        return tuple("" for _ in range(page_count))
+    return (text,) + tuple("" for _ in range(max(page_count - 1, 0)))
+
+
+def _extract_text_from_pdf_commands(commands: bytes) -> str:
     strings: list[str] = []
-    for match in PDF_TEXT_TJ_RE.finditer(data):
+    for match in PDF_TEXT_TJ_RE.finditer(commands):
         strings.append(_decode_pdf_literal(match.group(1)))
-    for match in PDF_TEXT_TJ_ARRAY_RE.finditer(data):
+    for match in PDF_TEXT_TJ_ARRAY_RE.finditer(commands):
         strings.extend(
             _decode_pdf_literal(item.group(0))
             for item in PDF_LITERAL_RE.finditer(match.group(1))
         )
+    for match in PDF_TEXT_HEX_TJ_RE.finditer(commands):
+        strings.append(_decode_pdf_hex_string(match.group(1)))
     text = " ".join(part.strip() for part in strings if part.strip())
-    if not text:
-        return tuple("" for _ in range(page_count))
-    return (text,) + tuple("" for _ in range(max(page_count - 1, 0)))
+    return " ".join(text.split())
+
+
+def _pdf_objects(data: bytes) -> tuple[tuple[int, bytes], ...]:
+    return tuple((int(match.group(1)), match.group(2)) for match in PDF_OBJECT_RE.finditer(data))
+
+
+def _pdf_page_object_bodies(data: bytes) -> tuple[bytes, ...]:
+    objects = _pdf_objects(data)
+    page_by_id = {
+        obj_id: body
+        for obj_id, body in objects
+        if PDF_PAGE_RE.search(body) and not PDF_PAGES_RE.search(body)
+    }
+    ordered_ids: list[int] = []
+    for _, body in objects:
+        if not PDF_PAGES_RE.search(body):
+            continue
+        for kids_match in PDF_KIDS_RE.finditer(body):
+            for ref_match in PDF_REF_RE.finditer(kids_match.group(1)):
+                obj_id = int(ref_match.group(1))
+                if obj_id in page_by_id and obj_id not in ordered_ids:
+                    ordered_ids.append(obj_id)
+    for obj_id, body in objects:
+        if obj_id in page_by_id and obj_id not in ordered_ids:
+            ordered_ids.append(obj_id)
+    return tuple(page_by_id[obj_id] for obj_id in ordered_ids)
+
+
+def _page_content_streams(page_body: bytes, objects: dict[int, bytes]) -> tuple[bytes, ...]:
+    streams: list[bytes] = [
+        _decode_pdf_stream(page_body, match.group(1))
+        for match in PDF_STREAM_RE.finditer(page_body)
+    ]
+    refs: list[int] = []
+    for array_match in PDF_CONTENTS_ARRAY_RE.finditer(page_body):
+        refs.extend(int(ref.group(1)) for ref in PDF_REF_RE.finditer(array_match.group(1)))
+    refs.extend(int(match.group(1)) for match in PDF_CONTENTS_REF_RE.finditer(page_body))
+    for ref in refs:
+        object_body = objects.get(ref)
+        if object_body is None:
+            continue
+        streams.extend(
+            _decode_pdf_stream(object_body, match.group(1))
+            for match in PDF_STREAM_RE.finditer(object_body)
+        )
+    return tuple(streams)
+
+
+def _decode_pdf_stream(object_body: bytes, payload: bytes) -> bytes:
+    content = payload.strip(b"\r\n")
+    if b"/FlateDecode" not in object_body:
+        return content
+    try:
+        return zlib.decompress(content)
+    except zlib.error:
+        return content
+
+
+def _open_pdf_with_pymupdf(data: bytes, *, password: str | None) -> Any | None:
+    try:
+        fitz = importlib.import_module("fitz")
+        document = fitz.open(stream=data, filetype="pdf")
+        if bool(getattr(document, "needs_pass", False)):
+            if not password or not document.authenticate(password):
+                document.close()
+                return None
+        return document
+    except Exception:
+        return None
+
+
+def _extract_pdf_ocr_hints(data: bytes, page_count: int) -> tuple[str, ...]:
+    hints = ["" for _ in range(page_count)]
+    for match in PDF_OCR_HINT_RE.finditer(data):
+        page_index = int(match.group(1))
+        if page_index < 0 or page_index >= page_count:
+            continue
+        try:
+            hint = base64.urlsafe_b64decode(match.group(2)).decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            continue
+        hints[page_index] = hint
+    return tuple(hints)
 
 
 def _decode_pdf_literal(token: bytes) -> str:
@@ -892,6 +1184,21 @@ def _decode_pdf_literal(token: bytes) -> str:
     return out.decode("utf-8", errors="replace")
 
 
+def _decode_pdf_hex_string(token: bytes) -> str:
+    compact = re.sub(rb"\s+", b"", token)
+    if len(compact) % 2 == 1:
+        compact += b"0"
+    try:
+        raw = bytes.fromhex(compact.decode("ascii"))
+    except ValueError:
+        return ""
+    if raw.startswith(b"\xfe\xff"):
+        return raw[2:].decode("utf-16-be", errors="replace")
+    if b"\x00" in raw:
+        return raw.decode("utf-16-be", errors="replace")
+    return raw.decode("utf-8", errors="replace")
+
+
 def _page_from_raster(
     raster: RasterPage, *, page_index: int, text: str, text_source: TextSource
 ) -> OCRPage:
@@ -917,6 +1224,34 @@ def _page_from_raster(
         spans=spans,
         page_ocr_confidence=1.0 if spans else 0.0,
         text_source=text_source,
+        is_user_corrected=False,
+    )
+
+
+def _merge_pdf_text_and_ocr_pages(text_page: OCRPage, ocr_page: OCRPage) -> OCRPage:
+    text_spans = tuple(
+        replace(span, span_id=f"page-{text_page.page_index}:text-{idx}")
+        for idx, span in enumerate(text_page.spans)
+    )
+    ocr_spans = tuple(
+        replace(span, span_id=f"page-{text_page.page_index}:ocr-{idx}")
+        for idx, span in enumerate(ocr_page.spans)
+    )
+    spans = (*text_spans, *ocr_spans)
+    confidence = (
+        sum(span.confidence for span in spans) / len(spans)
+        if spans
+        else 0.0
+    )
+    return OCRPage(
+        page_id=text_page.page_id,
+        page_index=text_page.page_index,
+        rotation_deg=text_page.rotation_deg,
+        width_px=max(text_page.width_px, ocr_page.width_px),
+        height_px=max(text_page.height_px, ocr_page.height_px),
+        spans=spans,
+        page_ocr_confidence=confidence,
+        text_source=TextSource.MIXED,
         is_user_corrected=False,
     )
 
