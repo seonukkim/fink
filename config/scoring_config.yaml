@@ -1,0 +1,567 @@
+schema_version: "1.0"
+config_id: scoring_config
+scoring_config_version: "0.1.0"
+status: design_heuristic
+source:
+  primary_spec: docs/specs/03_SCORING_AND_FINANCIAL_IMPACT.md
+  acceptance_refs:
+    - AC-INV-9
+    - AC-SC-CONFIG
+  backlog_task: FINK-S0-07
+scoring_frame: Contractual Financial Review Priority
+heuristic_policy:
+  validation_status: not_scientifically_validated
+  sensitivity_analysis_required: true
+  applies_to:
+    - severity_weight
+    - severity_raw_defaults
+    - authority_factor
+    - conf_floor
+    - k_F
+    - w_F
+    - confidence_weights
+    - unverified_factor
+    - fim_defaults
+    - band_thresholds
+    - pathway_thresholds
+  paper_language: DFL-inspired
+  invariant: INV-9
+  note: >-
+    All numeric weights, factors, thresholds, bands, coefficients, and defaults
+    in this file are design heuristics for sensitivity analysis, not established
+    empirical constants.
+
+authority_factor:
+  A0:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+    note: Highest authority-supported grounding tier in the configured chain.
+  A1:
+    value: 0.90
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+    note: Official standard-contract grounding; below A0 by design heuristic.
+  A2:
+    value: 0.80
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+    note: Official guidance/casebook grounding; below A1 by design heuristic.
+zero_score_tiers:
+  B:
+    value: 0.0
+    heuristic: true
+    note: Practice reference only; contributes exactly zero to scoring.
+  C:
+    value: 0.0
+    heuristic: true
+    note: Practice reference only; contributes exactly zero to scoring.
+  D0:
+    value: 0.0
+    heuristic: true
+    note: Draft/method context only; contributes exactly zero to scoring.
+  M1:
+    value: 0.0
+    heuristic: true
+    note: Method source only; contributes exactly zero to scoring.
+  M2:
+    value: 0.0
+    heuristic: true
+    note: Method source only; contributes exactly zero to scoring.
+  M3:
+    value: 0.0
+    heuristic: true
+    note: Method source only; contributes exactly zero to scoring.
+  R0:
+    value: 0.0
+    heuristic: true
+    note: Course-compliance source only; contributes exactly zero to scoring.
+
+severity_weight:
+  F1_SETTLEMENT_AND_AUDIT:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F2_REVENUE_AND_DEDUCTIONS:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F3_PAYMENT_AND_CASHFLOW:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F4_MG_AND_RECOUPMENT:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F5_IP_MONETIZATION:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F6_TERM_EXCLUSIVITY_AND_OPPORTUNITY_COST:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F7_TERMINATION_LIABILITY_AND_PENALTIES:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F8_SCOPE_CREEP_AND_PRODUCTION_COST:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F9_E_CONTRACT_PRIVACY_AND_EVIDENCE:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+
+severity_raw_defaults:
+  missing_settlement_records:
+    category: F1_SETTLEMENT_AND_AUDIT
+    value: 0.65
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  no_audit_access:
+    category: F1_SETTLEMENT_AND_AUDIT
+    value: 0.70
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  undefined_net_revenue_or_revenue_base:
+    category: F2_REVENUE_AND_DEDUCTIONS
+    value: 0.70
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  open_ended_deductions:
+    category: F2_REVENUE_AND_DEDUCTIONS
+    value: 0.75
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  payment_due_or_delay_opaque:
+    category: F3_PAYMENT_AND_CASHFLOW
+    value: 0.60
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  advance_or_recoupment_opaque:
+    category: F4_MG_AND_RECOUPMENT
+    value: 0.70
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  broad_ip_or_secondary_rights_transfer:
+    category: F5_IP_MONETIZATION
+    value: 0.80
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  long_exclusivity_or_auto_renewal:
+    category: F6_TERM_EXCLUSIVITY_AND_OPPORTUNITY_COST
+    value: 0.65
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  uncapped_or_ambiguous_liability:
+    category: F7_TERMINATION_LIABILITY_AND_PENALTIES
+    value: 0.85
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  unpaid_revision_or_scope_creep:
+    category: F8_SCOPE_CREEP_AND_PRODUCTION_COST
+    value: 0.65
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  e_contract_or_evidence_integrity_gap:
+    category: F9_E_CONTRACT_PRIVACY_AND_EVIDENCE
+    value: 0.55
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+
+conf_floor:
+  value: 0.50
+  heuristic: true
+  sensitivity_analysis: vary_or_ablate
+  note: >-
+    Floor used only for priority contribution so low extraction confidence does
+    not hide an eligible signal; true confidence remains in D4 confidence.
+
+k_F:
+  F1_SETTLEMENT_AND_AUDIT:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F2_REVENUE_AND_DEDUCTIONS:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F3_PAYMENT_AND_CASHFLOW:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F4_MG_AND_RECOUPMENT:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F5_IP_MONETIZATION:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F6_TERM_EXCLUSIVITY_AND_OPPORTUNITY_COST:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F7_TERMINATION_LIABILITY_AND_PENALTIES:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F8_SCOPE_CREEP_AND_PRODUCTION_COST:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F9_E_CONTRACT_PRIVACY_AND_EVIDENCE:
+    value: 1.50
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+
+w_F:
+  F1_SETTLEMENT_AND_AUDIT:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F2_REVENUE_AND_DEDUCTIONS:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F3_PAYMENT_AND_CASHFLOW:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F4_MG_AND_RECOUPMENT:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F5_IP_MONETIZATION:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F6_TERM_EXCLUSIVITY_AND_OPPORTUNITY_COST:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F7_TERMINATION_LIABILITY_AND_PENALTIES:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F8_SCOPE_CREEP_AND_PRODUCTION_COST:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  F9_E_CONTRACT_PRIVACY_AND_EVIDENCE:
+    value: 1.00
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+
+confidence_weights:
+  sum_required: 1.00
+  ocr_confidence_wo:
+    value: 0.30
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  evidence_confidence_we:
+    value: 0.40
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  data_completeness_wd:
+    value: 0.30
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+unverified_factor:
+  value: 0.75
+  heuristic: true
+  sensitivity_analysis: vary_or_ablate
+  note: Applied while evidence records remain UNVERIFIED.
+base_evidence_confidence:
+  value: 1.00
+  heuristic: true
+  sensitivity_analysis: vary_or_ablate
+
+fim_defaults:
+  annual_discount_rate:
+    value: 0.05
+    unit: fraction_per_year
+    heuristic: true
+    synthetic_assumption: true
+    user_editable: true
+    sensitivity_analysis: vary_or_ablate
+  annual_discount_rate_range:
+    low:
+      value: 0.03
+      heuristic: true
+      synthetic_assumption: true
+      user_editable: true
+    base:
+      value: 0.05
+      heuristic: true
+      synthetic_assumption: true
+      user_editable: true
+    high:
+      value: 0.07
+      heuristic: true
+      synthetic_assumption: true
+      user_editable: true
+  monetary_assumption_default:
+    value: null
+    heuristic: true
+    note: Missing monetary inputs stay blank until extracted or supplied by user.
+  probability_assumption_default:
+    value: null
+    heuristic: true
+    note: Expected penalty and scenario values stay blank without user probability.
+  FIM_1:
+    open_ended_deduction_default_range:
+      low:
+        value: null
+        heuristic: true
+        user_required: true
+      base:
+        value: null
+        heuristic: true
+        user_required: true
+      high:
+        value: null
+        heuristic: true
+        user_required: true
+  FIM_2:
+    delay_days_default:
+      value: null
+      heuristic: true
+      user_required_if_not_extractable: true
+    nominal_amount_separate_from_pv_loss:
+      value: true
+      heuristic: true
+  FIM_3:
+    monthly_net_sales_default_range:
+      low:
+        value: null
+        heuristic: true
+        user_required: true
+      base:
+        value: null
+        heuristic: true
+        user_required: true
+      high:
+        value: null
+        heuristic: true
+        user_required: true
+  FIM_4:
+    unpaid_revision_units_default:
+      value: null
+      heuristic: true
+      user_required: true
+    hours_per_unit_default:
+      value: null
+      heuristic: true
+      user_required: true
+    creator_hourly_value_default:
+      value: null
+      heuristic: true
+      user_required: true
+  FIM_5:
+    alternative_monthly_revenue_default:
+      value: null
+      heuristic: true
+      user_required: true
+    scenario_probability_default:
+      value: null
+      heuristic: true
+      user_required: true
+  FIM_6:
+    secondary_rights_value_default:
+      value: null
+      heuristic: true
+      user_required: true
+    secondary_rights_probability_default:
+      value: null
+      heuristic: true
+      user_required: true
+  FIM_7:
+    penalty_probability_default:
+      value: null
+      heuristic: true
+      user_required: true
+    scenario_amount_default:
+      value: null
+      heuristic: true
+      user_required: true
+  FIM_8:
+    band_widen_formula: one_plus_sum_opacity_weights
+    low_band_operation: divide_by_band_widen_factor
+    high_band_operation: multiply_by_band_widen_factor
+    base_band_operation: unchanged
+    opacity_weights:
+      missing_settlement_records:
+        value: 0.10
+        heuristic: true
+        sensitivity_analysis: vary_or_ablate
+      undefined_deduction_basis:
+        value: 0.10
+        heuristic: true
+        sensitivity_analysis: vary_or_ablate
+      no_audit_access:
+        value: 0.10
+        heuristic: true
+        sensitivity_analysis: vary_or_ablate
+      open_ended_or_opaque_numeric_terms:
+        value: 0.10
+        heuristic: true
+        sensitivity_analysis: vary_or_ablate
+    missing_input_weights:
+      missing_required_financial_input:
+        value: 0.10
+        heuristic: true
+        sensitivity_analysis: vary_or_ablate
+      missing_grounding_density:
+        value: 0.10
+        heuristic: true
+        sensitivity_analysis: vary_or_ablate
+      missing_ocr_confidence:
+        value: 0.10
+        heuristic: true
+        sensitivity_analysis: vary_or_ablate
+
+human_review_time_coefficients:
+  base_min:
+    value: 5
+    unit: minutes
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  per_page_min:
+    value: 2
+    unit: minutes_per_page
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  per_correction_min:
+    value: 1
+    unit: minutes_per_correction
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  per_flag_min:
+    value: 3
+    unit: minutes_per_flagged_clause
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  per_missing_min:
+    value: 2
+    unit: minutes_per_missing_financial_input
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+
+band_thresholds:
+  review_priority_low_max_exclusive:
+    value: 35
+    unit: score_points
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  review_priority_mid_max_exclusive:
+    value: 70
+    unit: score_points
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  review_priority_high_min:
+    value: 70
+    unit: score_points
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  confidence_low_max_exclusive:
+    value: 0.50
+    unit: fraction
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  confidence_mid_max_exclusive:
+    value: 0.75
+    unit: fraction
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  confidence_high_min:
+    value: 0.75
+    unit: fraction
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+
+pathway_thresholds:
+  first_match_wins: true
+  high_review_priority_min:
+    value: 70
+    unit: score_points
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  mid_review_priority_min:
+    value: 35
+    unit: score_points
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  large_payment_delay_days_min:
+    value: 30
+    unit: days
+    heuristic: true
+    sensitivity_analysis: vary_or_ablate
+  material_monetary_exposure_present:
+    value: true
+    heuristic: true
+    note: Any non-null exposure range can trigger the pathway rule.
+  labels:
+    - clarification_likely_sufficient
+    - negotiation_required
+    - professional_review_required
+    - dispute_pathway_may_be_required
+  rules:
+    - label: professional_review_required
+      heuristic: true
+      first_match_conditions:
+        - uncapped_or_ambiguous_liability_signal_present
+        - broad_ip_or_secondary_rights_transfer_signal_present
+        - review_priority_score_gte_high_review_priority_min
+    - label: negotiation_required
+      heuristic: true
+      first_match_conditions:
+        - material_monetary_exposure_range_present
+        - review_priority_score_gte_mid_review_priority_min
+    - label: dispute_pathway_may_be_required
+      heuristic: true
+      first_match_conditions:
+        - observed_unpaid_amount_present
+        - payment_delay_days_gte_large_payment_delay_days_min
+    - label: clarification_likely_sufficient
+      heuristic: true
+      first_match_conditions:
+        - otherwise
+
+attention_band_thresholds:
+  low_review_priority:
+    min_inclusive:
+      value: 0
+      unit: score_points
+      heuristic: true
+    max_exclusive:
+      value: 35
+      unit: score_points
+      heuristic: true
+  elevated_review_priority:
+    min_inclusive:
+      value: 35
+      unit: score_points
+      heuristic: true
+    max_exclusive:
+      value: 70
+      unit: score_points
+      heuristic: true
+  high_review_priority:
+    min_inclusive:
+      value: 70
+      unit: score_points
+      heuristic: true
+    max_inclusive:
+      value: 100
+      unit: score_points
+      heuristic: true
+
+versioning_policy:
+  bump_scoring_config_version_on_numeric_change: true
+  record_version_in:
+    - DocumentAssessment
+    - ExperimentResult
