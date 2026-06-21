@@ -1193,7 +1193,8 @@ tasks:
   paper_sections:
   - 04_data_and_implementation.md
   human_gate: null
-  status: READY
+  status: DONE
+  completed_at: '2026-06-21T13:12:55+00:00'
 - id: FINK-MR-07
   phase: MR
   priority: P1

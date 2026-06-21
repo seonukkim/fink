@@ -247,3 +247,46 @@ open-license floor, exact-revision pin, per-model size cap, and Git
 weight-tracking scan pass. Stored weights are constrained to
 `$PRIVATE_ROOT/models` or the Hugging Face cache and are never committed to
 public Git.
+
+## Offline Local-Load Smoke Tests
+
+Smoke harness: `scripts/model_research/model_offline_load_smoke.py`.
+Gate command:
+`python3 scripts/model_research/model_offline_load_smoke.py --self-test`.
+Focused tests:
+`python3 -m unittest tests.model_research.test_model_offline_load_smoke`.
+
+Captured for task `FINK-MR-06` at `2026-06-21T22:08:49+09:00` from
+`BASE_COMMIT=8f39966d659b9b41f11ec9214eb736fa65a49943`.
+
+The MR-06 smoke profile is `core_local_offline_v1`, derived from the selected
+FINK-MR-05 private-download command:
+
+| Role | Candidate | HF repo | Exact revision | Load smoke |
+|------|-----------|---------|----------------|------------|
+| Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | local metadata/config load |
+| Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | local metadata/config load |
+| Explanation | `qwen3_4b` | `Qwen/Qwen3-4B` | `1cfa9a7208912126459214e8b04321603b3df60c` | local metadata/config load |
+
+The harness validates the live `MODEL_PROFILE_APPROVED` gate, restricts every
+selected model to the FINK-MR-04 `accepted_public_open` shortlist, rejects any
+tracked model-weight file, and refuses model directories inside the Git
+repository. During each load it sets:
+`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, `HF_DATASETS_OFFLINE=1`,
+`HF_HUB_DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`,
+`FINK_RUNTIME_REMOTE_API_ALLOWED=false`, `FINK_RUNTIME_OFFLINE=true`, and
+`FINK_MODEL_DOWNLOAD_ALLOWED=false`.
+
+Network egress is blocked in-process for sockets, `urllib`, and HTTP(S)
+connection hooks while the local load runs. The self-test uses temporary local
+model directories under `/tmp`, records no private paths, and verifies
+`outbound_connection_attempts=0`. Real private-weight smoke runs use the same
+harness with explicit `--model-path id=/private/path` overrides or the
+`PRIVATE_ROOT` / Hugging Face cache storage resolution from FINK-MR-05.
+
+Paper note for `04_data_and_implementation.md`: report that FINK-MR-06 added an
+offline local-load smoke gate for the selected core local profile
+(`qwen3_embedding_0_6b`, `qwen3_reranker_0_6b`, `qwen3_4b`). The gate validates
+open-allowlisted pinned revisions, forces offline runtime flags, blocks outbound
+network hooks during load, records zero outbound attempts in the self-test, and
+keeps private model paths and weights out of public Git.
