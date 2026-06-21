@@ -1,9 +1,18 @@
 """Local web helpers for FInk's responsive, local-first web flow."""
 
+from fink.web.analyze import (
+    CategoryGuidance,
+    LocalAnalysisResult,
+    RankedFinding,
+    RecommendedAction,
+    analysis_result_to_payload,
+    run_local_analysis,
+)
 from fink.web.app import (
     DEFAULT_LOOPBACK_HOST,
     DEFAULT_PORT,
     DISCLOSURE_ITEMS,
+    HOW_TO_USE_STEPS,
     LAN_CONFIRMATION_TEXT,
     NOT_LEGAL_ADVICE_BANNER,
     PRIVACY_BANNER,
@@ -11,6 +20,7 @@ from fink.web.app import (
     LocalASGIApp,
     WebBindSettings,
     WebBindingError,
+    app_js,
     create_app,
     render_index_html,
     resolve_bind_settings,
@@ -69,6 +79,14 @@ __all__ = [
     "DEFAULT_LOOPBACK_HOST",
     "DEFAULT_PORT",
     "DISCLOSURE_ITEMS",
+    "HOW_TO_USE_STEPS",
+    "CategoryGuidance",
+    "LocalAnalysisResult",
+    "RankedFinding",
+    "RecommendedAction",
+    "analysis_result_to_payload",
+    "app_js",
+    "run_local_analysis",
     "ASSUMPTION_FIELD_SPECS",
     "AssumptionFieldSpec",
     "AssumptionModuleRow",

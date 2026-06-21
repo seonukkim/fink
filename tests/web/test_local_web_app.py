@@ -89,6 +89,62 @@ class WebSmokeTests(unittest.TestCase):
         for pattern in blocked_external_patterns:
             self.assertNotIn(pattern, normalized)
 
+        # New single-button creator flow hooks. The Analyze button and the
+        # external /app.js script must be present, the locale toggle must expose
+        # an active-locale attribute, and the 1-2-3 how-to strip must render.
+        self.assertIn('id="analyze-btn"', markup)
+        self.assertIn('<script src="/app.js">', markup)
+        self.assertIn('data-active-locale', markup)
+        self.assertIn('data-how-to-steps="true"', markup)
+        self.assertIn("사용 방법 1-2-3", markup)
+        self.assertIn("How to use 1-2-3", markup)
+        self.assertIn('id="result"', markup)
+
+    def test_app_js_route_and_analyze_endpoint_are_local_only(self) -> None:
+        import json
+
+        settings = WEB.resolve_bind_settings()
+        app = WEB.LocalASGIApp(settings)
+
+        status, headers, body = asyncio.run(_asgi_get(app, "/app.js"))
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["content-type"], "application/javascript")
+        self.assertIn(b"fetch(", body)
+
+        # The shared GET harness sends an empty body; the analyze handler maps an
+        # empty/invalid body to a 400 with the local_only flag, confirming the
+        # POST route is wired into the fallback app.
+        async def _post_empty() -> tuple[int, bytes]:
+            messages: list[dict[str, object]] = []
+            sent = {"done": False}
+
+            async def receive() -> dict[str, object]:
+                if not sent["done"]:
+                    sent["done"] = True
+                    return {"type": "http.request", "body": b"{bad", "more_body": False}
+                return {"type": "http.disconnect"}
+
+            async def send(message: dict[str, object]) -> None:
+                messages.append(message)
+
+            scope = {
+                "type": "http",
+                "method": "POST",
+                "path": "/api/analyze",
+                "headers": [],
+                "query_string": b"",
+            }
+            await app(scope, receive, send)  # type: ignore[misc]
+            start = next(m for m in messages if m["type"] == "http.response.start")
+            payload = b"".join(
+                m.get("body", b"") for m in messages if m["type"] == "http.response.body"
+            )
+            return int(start["status"]), payload
+
+        status, payload = asyncio.run(_post_empty())
+        self.assertEqual(status, 400)
+        self.assertTrue(json.loads(payload)["local_only"])
+
     def test_lan_binding_is_gated_by_opt_in_warning_and_private_host(self) -> None:
         loopback = WEB.resolve_bind_settings(host="localhost")
         self.assertEqual(loopback.host, WEB.DEFAULT_LOOPBACK_HOST)

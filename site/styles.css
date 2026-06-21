@@ -193,7 +193,7 @@ main {
   background: var(--pink);
   border-radius: 3px;
 }
-.band > p { margin: 12px 0; color: #374151; }
+.band > p { margin: 12px 0; color: #374151; max-width: 66ch; }
 .sub { color: var(--muted) !important; }
 .course-note {
   font-size: 0.92rem;
@@ -215,9 +215,25 @@ main {
   background: #fff;
 }
 .grid4 h3, .grid3 h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 6px;
   font-size: 1.02rem;
   color: var(--pink-deep);
+}
+.out-n {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pink-pale);
+  border: 1px solid var(--pink-line);
+  color: var(--pink-deep);
+  font-size: 0.74rem;
+  font-weight: 800;
 }
 .grid4 p, .grid3 p { margin: 0; font-size: 0.92rem; color: #4b5563; }
 
@@ -298,14 +314,41 @@ main {
   border-radius: var(--radius);
   overflow: hidden;
 }
+.run-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--pink-pale);
+}
 .run-title {
   margin: 0;
-  padding: 10px 16px;
-  background: var(--pink-pale);
   font-weight: 700;
   font-size: 0.9rem;
   color: var(--pink-deep);
 }
+.copy-btn {
+  border: 1px solid var(--pink-line);
+  background: #fff;
+  color: var(--pink-deep);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.copy-btn:hover { border-color: var(--pink); }
+.copy-btn.is-done { background: var(--pink); border-color: var(--pink); color: #fff; }
+.run-foot {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  border-top: 1px solid var(--pink-line);
+}
+.run-foot a { color: var(--pink-deep); font-weight: 600; }
 pre {
   margin: 0;
   padding: 16px;
@@ -391,6 +434,43 @@ h3.mini {
   border: 1px solid var(--pink-line);
 }
 .bibtex code { font-family: "SFMono-Regular", Menlo, Consolas, monospace; white-space: pre; }
+
+/* Worked example */
+.example {
+  margin: 18px 0 0;
+  border: 1px solid var(--pink-line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.example figcaption {
+  padding: 8px 16px;
+  background: var(--pink-pale);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pink-deep);
+}
+.example .clause {
+  margin: 0;
+  padding: 16px 16px 4px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.example .clause-gloss {
+  margin: 0;
+  padding: 0 16px 16px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.example .table-wrap {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--pink-line);
+  border-radius: 0;
+}
+.example table { min-width: 0; }
+.example td:first-child, .example th:first-child { width: 34%; font-weight: 700; color: var(--ink); }
 
 /* Footer */
 .site-footer {

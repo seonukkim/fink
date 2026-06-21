@@ -7,7 +7,9 @@ import json
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
-from fink.web.assumptions import render_assumptions_panel_html
+from fink.schemas import UILocale
+from fink.web.analyze import analysis_result_to_payload, run_local_analysis
+from fink.web.assumptions import EditableAssumptions, render_assumptions_panel_html
 from fink.web.ingest_ui import (
     PAGE_OPERATIONS,
     PDF_LOCAL_NOTICE,
@@ -40,6 +42,24 @@ DISCLOSURE_ITEMS = (
 
 LAN_CONFIRMATION_TEXT = "I understand this is a trusted-LAN-only local server."
 _BLOCKED_BIND_HOSTS = frozenset({"0.0.0.0", "::", ""})
+
+# Bilingual "1-2-3 how to use" strip for the creator flow. Korean is canonical;
+# English is a generated aid. Each string is short and period-free, which is
+# safe for the long-private-quotation gate.
+HOW_TO_USE_STEPS = (
+    {
+        "ko": "계약 텍스트를 붙여넣거나 업로드하세요",
+        "en": "Paste or upload the contract text",
+    },
+    {
+        "ko": "분석하기 버튼을 한 번 누르세요",
+        "en": "Press the Analyze button once",
+    },
+    {
+        "ko": "결정 브리프와 네 가지 출력을 확인하세요",
+        "en": "Read the Decision Brief and four outputs",
+    },
+)
 
 
 @dataclass(frozen=True)
@@ -104,7 +124,18 @@ def resolve_bind_settings(
 
 
 def render_index_html(settings: WebBindSettings | None = None) -> str:
-    """Render the local-only responsive UI shell without external assets."""
+    """Render the local-only creator flow without external assets.
+
+    The page is split into a prominent primary flow (a 1-2-3 how-to strip, one
+    hero input card with the paste box plus a single collapsed upload affordance,
+    and the Decision Brief target) and a de-emphasized advanced-tools column
+    where the monetary-assumptions grid, the report shell, and the OCR page
+    editor live inside collapsed ``<details>`` panels. Both Korean and English
+    copy are rendered into the DOM and flipped via the ``data-active-locale``
+    attribute, so the KO/EN toggle works before any analyze call. All ``fetch``
+    and render logic lives in ``/app.js`` because the Content-Security-Policy
+    restricts scripts to ``'self'``.
+    """
 
     bind = settings or resolve_bind_settings()
     lan_warning = (
@@ -117,15 +148,8 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
         f"<li>{html.escape(item)}</li>"
         for item in (PRIVACY_BANNER, NOT_LEGAL_ADVICE_BANNER, *DISCLOSURE_ITEMS)
     )
-    mode_tiles = "\n".join(
-        _render_ingest_mode_control(control) for control in input_mode_controls()
-    )
-    layout_support = "\n".join(
-        _render_layout_support(layout) for layout in responsive_ingest_layouts()
-    )
-    page_ops = " ".join(PAGE_OPERATIONS)
     return f"""<!doctype html>
-<html lang="ko" data-default-locale="ko" data-local-only="true">
+<html lang="ko" data-default-locale="ko" data-active-locale="ko" data-local-only="true">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -141,9 +165,9 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
       <h1>계약상 금융 검토 우선도</h1>
       <p class="subtitle">Contractual Financial Review Priority</p>
     </div>
-    <nav class="locale-toggle" aria-label="Locale">
-      <button type="button" aria-pressed="true">KO</button>
-      <button type="button" aria-pressed="false">EN generated</button>
+    <nav class="locale-toggle" aria-label="Locale" data-locale-toggle="true">
+      <button type="button" data-locale-button="ko" aria-pressed="true">KO</button>
+      <button type="button" data-locale-button="en" aria-pressed="false">EN generated</button>
     </nav>
   </header>
 
@@ -154,38 +178,193 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
   </section>
 
   <main id="workspace" class="workspace">
-    <section class="input-pane" aria-labelledby="input-heading">
+    <div class="primary-flow">
+      {_render_how_to_section()}
+      {_render_input_card()}
+      {_render_result_section()}
+    </div>
+
+    <div class="advanced-tools">
+      {_render_disclosures_section(disclosures)}
+      {_render_assumptions_details()}
+      {_render_page_tools_details()}
+    </div>
+  </main>
+
+  <footer>
+    <span>Serving from {html.escape(bind.base_url)}</span>
+    <span>{html.escape("LAN opt-in enabled" if bind.lan_enabled else "Loopback only")}</span>
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>
+"""
+
+
+def _render_how_to_section() -> str:
+    """Render the compact 1-2-3 how-to strip that opens the primary flow."""
+
+    steps = "\n".join(_render_step(step) for step in HOW_TO_USE_STEPS)
+    return f"""<section class="how-to card" aria-labelledby="how-to-heading">
+      <div class="section-heading">
+        <p class="eyebrow">How to use</p>
+        <h2 id="how-to-heading">
+          <span lang="ko" data-locale-text="ko">사용 방법 1-2-3</span>
+          <span lang="en" data-locale-text="en">How to use 1-2-3</span>
+        </h2>
+      </div>
+      <ol class="how-to-steps" data-how-to-steps="true">
+        {steps}
+      </ol>
+    </section>"""
+
+
+def _render_input_card() -> str:
+    """Render the single hero input card: paste box, one upload affordance, actions.
+
+    The paste textarea is the primary input. The four upload modes (camera /
+    image / pdf / paste) are collapsed into one ``<details>`` so they stay in the
+    DOM (and keep their pinned data attributes) without crowding the page. The
+    PDF local notice, the local-error region, and the screen-reader layout-support
+    span live inside that same collapsed disclosure.
+    """
+
+    mode_tiles = "\n".join(
+        _render_ingest_mode_control(control) for control in input_mode_controls()
+    )
+    layout_support = "\n".join(
+        _render_layout_support(layout) for layout in responsive_ingest_layouts()
+    )
+    return f"""<section class="input-pane card" aria-labelledby="input-heading">
       <div class="section-heading">
         <p class="eyebrow">Local input</p>
-        <h2 id="input-heading">검토할 계약 자료</h2>
+        <h2 id="input-heading">
+          <span lang="ko" data-locale-text="ko">검토할 계약 자료</span>
+          <span lang="en" data-locale-text="en">Contract text to review</span>
+        </h2>
       </div>
-      <form class="ingest-form" action="/local/ingest" method="post"
-        enctype="multipart/form-data" data-local-only="true">
-        <div class="upload-grid" aria-label="Input modes"
-          data-ui-ingest-modes="camera image pdf paste">
-          {mode_tiles}
-        </div>
-        <p class="pdf-local-notice" data-pdf-local-notice="true">
-          {html.escape(PDF_LOCAL_NOTICE)}
-        </p>
-        <div class="local-error" data-pdf-error-region="true" role="alert">
-          Rejected PDFs show a local error here for unsupported, corrupted,
-          encrypted, or oversized files. Nothing is transmitted.
-        </div>
-        <p class="sr-only" data-layout-support="true">
-          {layout_support}
-        </p>
-      </form>
-      <label class="paste-label" for="paste-box">Paste clause text</label>
+      <label class="paste-label" for="paste-box">
+        <span lang="ko" data-locale-text="ko">계약 조항 붙여넣기</span>
+        <span lang="en" data-locale-text="en">Paste clause text</span>
+      </label>
       <textarea id="paste-box" name="paste_text" rows="8" spellcheck="false"
-        data-ingest-mode="paste"></textarea>
+        data-ingest-mode="paste"
+        placeholder="제3조(정산) ..."></textarea>
       <div class="action-row">
-        <button type="button">Analyze locally</button>
-        <button type="button" class="secondary">Clear now</button>
+        <button type="button" id="analyze-btn" data-analyze-button="true">
+          분석하기 / Analyze
+        </button>
+        <button type="button" class="secondary" id="clear-btn" data-clear-button="true">
+          <span lang="ko" data-locale-text="ko">지우기</span>
+          <span lang="en" data-locale-text="en">Clear now</span>
+        </button>
       </div>
-      <p class="hint">
-        PDFs, images, OCR text, and paste text remain ephemeral local session data.
+      <p class="hint" id="analyze-status" data-analyze-status="true" role="status" aria-live="polite">
+        <span lang="ko" data-locale-text="ko">계약 텍스트는 이 기기에만 머무는 임시 데이터입니다.</span>
+        <span lang="en" data-locale-text="en">Contract text stays on this device as ephemeral data.</span>
       </p>
+      <details class="upload-details">
+        <summary>
+          <span lang="ko" data-locale-text="ko">파일 업로드 (선택)</span>
+          <span lang="en" data-locale-text="en">Upload a file instead (optional)</span>
+        </summary>
+        <form class="ingest-form" action="/local/ingest" method="post"
+          enctype="multipart/form-data" data-local-only="true">
+          <div class="upload-grid" aria-label="Input modes"
+            data-ui-ingest-modes="camera image pdf paste">
+            {mode_tiles}
+          </div>
+          <p class="pdf-local-notice" data-pdf-local-notice="true">
+            {html.escape(PDF_LOCAL_NOTICE)}
+          </p>
+          <div class="local-error" data-pdf-error-region="true" role="alert">
+            Rejected PDFs show a local error here for unsupported, corrupted,
+            encrypted, or oversized files. Nothing is transmitted.
+          </div>
+          <p class="sr-only" data-layout-support="true">
+            {layout_support}
+          </p>
+        </form>
+      </details>
+    </section>"""
+
+
+def _render_result_section() -> str:
+    """Render the Decision Brief target that ``/app.js`` fills after Analyze."""
+
+    return """<section
+      id="result"
+      class="result-pane card"
+      aria-labelledby="result-heading"
+      aria-live="polite"
+      data-analysis-result="true"
+      hidden
+    >
+      <div class="section-heading">
+        <p class="eyebrow">Decision Brief</p>
+        <h2 id="result-heading">
+          <span lang="ko" data-locale-text="ko">금융 결정 브리프</span>
+          <span lang="en" data-locale-text="en">Financial Decision Brief</span>
+        </h2>
+      </div>
+      <p class="hint" data-result-placeholder="true">
+        <span lang="ko" data-locale-text="ko">분석하기를 누르면 결과가 여기에 표시됩니다.</span>
+        <span lang="en" data-locale-text="en">Press Analyze and the result appears here.</span>
+      </p>
+    </section>"""
+
+
+def _render_disclosures_section(disclosures: str) -> str:
+    """Render the always-visible report and export disclosure list."""
+
+    return f"""<aside class="export-disclosures card"
+      aria-label="Report and export disclosures">
+      <h3>Report disclosures</h3>
+      <ul>
+        {disclosures}
+      </ul>
+    </aside>"""
+
+
+def _render_assumptions_details() -> str:
+    """Wrap the optional monetary-assumptions grid and report shell in a disclosure.
+
+    The editable FIM-assumptions grid and the four-dimension report shell are
+    optional tools, so they are collapsed by default to keep the primary flow
+    uncluttered. They stay in the DOM (tests pin their elements) and keep the
+    ``Four separate dimensions`` heading inside the open panel.
+    """
+
+    return f"""<details class="tool-details" data-optional-tool="assumptions">
+      <summary>
+        <span lang="ko" data-locale-text="ko">금액 가정 입력 (선택)</span>
+        <span lang="en" data-locale-text="en">Add monetary assumptions (optional)</span>
+      </summary>
+      <section class="report-pane" aria-labelledby="report-heading">
+        <div class="section-heading">
+          <p class="eyebrow">Four dimensions and assumptions</p>
+          <h2 id="report-heading">Four separate dimensions</h2>
+        </div>
+        {render_assumptions_panel_html()}
+        {render_empty_report_shell_html()}
+      </section>
+    </details>"""
+
+
+def _render_page_tools_details() -> str:
+    """Wrap the OCR page editor in a collapsed disclosure.
+
+    The page reorder / rotate / delete and OCR-correction controls only matter
+    once a file is uploaded, so they are collapsed by default. The section keeps
+    its page-operation data attributes so the ingest tests still see them.
+    """
+
+    page_ops = " ".join(PAGE_OPERATIONS)
+    return f"""<details class="tool-details" data-optional-tool="page-editor">
+      <summary>
+        <span lang="ko" data-locale-text="ko">업로드한 페이지 편집</span>
+        <span lang="en" data-locale-text="en">Uploaded-page tools</span>
+      </summary>
       <section
         class="page-editor"
         aria-labelledby="page-editor-heading"
@@ -227,31 +406,7 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
             data-page-action="apply-corrections">Apply corrections</button>
         </div>
       </section>
-    </section>
-
-    <section class="report-pane" aria-labelledby="report-heading">
-      <div class="section-heading">
-        <p class="eyebrow">Preview report</p>
-        <h2 id="report-heading">Four separate dimensions</h2>
-      </div>
-      {render_assumptions_panel_html()}
-      {render_empty_report_shell_html()}
-      <aside class="export-disclosures" aria-label="Report and export disclosures">
-        <h3>Report disclosures</h3>
-        <ul>
-          {disclosures}
-        </ul>
-      </aside>
-    </section>
-  </main>
-
-  <footer>
-    <span>Serving from {html.escape(bind.base_url)}</span>
-    <span>{html.escape("LAN opt-in enabled" if bind.lan_enabled else "Loopback only")}</span>
-  </footer>
-</body>
-</html>
-"""
+    </details>"""
 
 
 def _render_ingest_mode_control(control: Any) -> str:
@@ -300,10 +455,113 @@ def _render_layout_support(layout: Any) -> str:
     )
 
 
+def _render_step(step: dict[str, str]) -> str:
+    return (
+        '<li class="how-to-step" data-how-to-step="true">'
+        f'<span lang="ko" data-locale-text="ko">{html.escape(step["ko"])}</span>'
+        f'<span lang="en" data-locale-text="en">{html.escape(step["en"])}</span>'
+        "</li>"
+    )
+
+
 def _html_attrs(attrs: dict[str, str]) -> str:
     return " ".join(
         f'{key}="{html.escape(value, quote=True)}"' for key, value in attrs.items()
     )
+
+
+def _analysis_payload_from_request(body: dict[str, Any]) -> dict[str, Any]:
+    """Run the local pipeline for one parsed request body and return the payload.
+
+    The body shape is ``{"paste_text": str, "locale": "ko"|"en",
+    "assumptions"?: {...}}``. Validation/finance errors raised by the offline
+    engines are allowed to propagate; the route maps them to a 400.
+    """
+
+    paste_text = body.get("paste_text")
+    if not isinstance(paste_text, str):
+        raise _ingest_validation_error("paste_text must be a string")
+    locale = _resolve_locale(body.get("locale"))
+    scenario_inputs = _assumptions_from_payload(body.get("assumptions"))
+    result = run_local_analysis(
+        pasted_text=paste_text,
+        scenario_inputs=scenario_inputs,
+        ui_locale=locale,
+    )
+    return analysis_result_to_payload(result, locale)
+
+
+def _resolve_locale(value: Any) -> UILocale:
+    if isinstance(value, str):
+        try:
+            return UILocale(value.strip().lower())
+        except ValueError:
+            return UILocale.KO
+    return UILocale.KO
+
+
+def _assumptions_from_payload(value: Any) -> EditableAssumptions | None:
+    """Build EditableAssumptions from a flat JSON object of decimal-like fields.
+
+    Only fields that exist on EditableAssumptions are accepted; unknown keys are
+    ignored so a malformed extra field cannot crash the request. Numeric strings
+    are converted to Decimal. Returns None when no usable assumption is present,
+    which keeps the monetary dimension blank.
+    """
+
+    if not isinstance(value, dict) or not value:
+        return None
+    from dataclasses import fields as dataclass_fields
+    from decimal import Decimal, InvalidOperation
+
+    allowed = {item.name for item in dataclass_fields(EditableAssumptions)}
+    int_fields = {"unpaid_revision_units", "exclusivity_duration_months", "renewal_duration_months"}
+    kwargs: dict[str, Any] = {}
+    for key, raw in value.items():
+        if key not in allowed or raw is None or raw == "":
+            continue
+        try:
+            if key in int_fields:
+                kwargs[key] = int(raw)
+            else:
+                kwargs[key] = Decimal(str(raw))
+        except (InvalidOperation, ValueError, TypeError):
+            continue
+    if not kwargs:
+        return None
+    return EditableAssumptions(**kwargs)
+
+
+def _ingest_validation_error(message: str) -> Exception:
+    from fink.ingest.session import IngestValidationError
+
+    return IngestValidationError(message)
+
+
+def _local_analysis_client_errors() -> tuple[type[BaseException], ...]:
+    """Exception types from the offline engines that map to an HTTP 400.
+
+    These are user-input/validation failures (bad paste, schema violation, or
+    finance-impact misuse), not server faults, so the route returns 400 with a
+    ``local_only`` flag rather than 500.
+    """
+
+    from fink.finance import FinanceImpactError
+    from fink.ingest.session import IngestValidationError
+    from fink.schemas import SchemaValidationError
+
+    return (IngestValidationError, SchemaValidationError, FinanceImpactError)
+
+
+def app_js() -> str:
+    """Return the analyze and locale-toggle JavaScript served at /app.js.
+
+    All network access (the single POST to /api/analyze) and DOM rendering live
+    here, never inline in the index, so the page satisfies the
+    ``script-src 'self'`` Content-Security-Policy.
+    """
+
+    return _APP_JS
 
 
 def create_app(settings: WebBindSettings | None = None) -> Any:
@@ -324,8 +582,8 @@ def create_app(settings: WebBindSettings | None = None) -> Any:
 
 
 def _create_fastapi_app(settings: WebBindSettings) -> Any:
-    from fastapi import FastAPI
-    from fastapi.responses import HTMLResponse, JSONResponse
+    from fastapi import FastAPI, Request
+    from fastapi.responses import HTMLResponse, JSONResponse, Response
 
     app = FastAPI(
         title="FInk Local Web",
@@ -344,6 +602,35 @@ def _create_fastapi_app(settings: WebBindSettings) -> Any:
     @app.get("/", response_class=HTMLResponse)
     def index() -> HTMLResponse:
         return HTMLResponse(render_index_html(settings))
+
+    @app.get("/app.js")
+    def app_js_route() -> Any:
+        return Response(content=app_js(), media_type="application/javascript")
+
+    async def analyze_route(request: Request) -> JSONResponse:
+        try:
+            raw = await request.body()
+            body = json.loads(raw.decode("utf-8")) if raw else {}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JSONResponse(
+                {"error": "request body must be valid JSON", "local_only": True},
+                status_code=400,
+            )
+        try:
+            payload = _analysis_payload_from_request(body if isinstance(body, dict) else {})
+        except _local_analysis_client_errors() as exc:
+            return JSONResponse(
+                {"error": str(exc), "local_only": True},
+                status_code=400,
+            )
+        return JSONResponse(payload)
+
+    # `from __future__ import annotations` stores the `request` annotation as the
+    # string "Request", which FastAPI resolves against the function globals where
+    # `Request` is not defined (it is a local import). Bind the real class so
+    # FastAPI injects the Request object instead of treating it as a query param.
+    analyze_route.__annotations__["request"] = Request
+    app.post("/api/analyze")(analyze_route)
 
     @app.get("/healthz")
     def healthz() -> JSONResponse:
@@ -368,6 +655,10 @@ class LocalASGIApp:
             return
         method = scope.get("method", "GET")
         path = scope.get("path", "/")
+
+        if method == "POST" and path == "/api/analyze":
+            await self._handle_analyze(receive, send)
+            return
         if method != "GET":
             await _send_response(send, 405, b"Method not allowed", "text/plain; charset=utf-8")
             return
@@ -377,6 +668,14 @@ class LocalASGIApp:
                 200,
                 render_index_html(self.settings).encode("utf-8"),
                 "text/html; charset=utf-8",
+            )
+            return
+        if path == "/app.js":
+            await _send_response(
+                send,
+                200,
+                app_js().encode("utf-8"),
+                "application/javascript",
             )
             return
         if path == "/healthz":
@@ -396,6 +695,37 @@ class LocalASGIApp:
             )
             return
         await _send_response(send, 404, b"Not found", "text/plain; charset=utf-8")
+
+    async def _handle_analyze(self, receive: Any, send: Any) -> None:
+        body = await _read_request_body(receive)
+        try:
+            parsed = json.loads(body.decode("utf-8")) if body else {}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            await _send_json(send, 400, {"error": "request body must be valid JSON", "local_only": True})
+            return
+        if not isinstance(parsed, dict):
+            await _send_json(send, 400, {"error": "request body must be a JSON object", "local_only": True})
+            return
+        try:
+            payload = _analysis_payload_from_request(parsed)
+        except _local_analysis_client_errors() as exc:
+            await _send_json(send, 400, {"error": str(exc), "local_only": True})
+            return
+        await _send_json(send, 200, payload)
+
+
+async def _read_request_body(receive: Any) -> bytes:
+    """Consume ASGI http.request events until the body is complete."""
+
+    chunks: list[bytes] = []
+    while True:
+        message = await receive()
+        if message.get("type") != "http.request":
+            break
+        chunks.append(message.get("body", b"") or b"")
+        if not message.get("more_body", False):
+            break
+    return b"".join(chunks)
 
 
 def run(argv: list[str] | None = None) -> int:
@@ -443,13 +773,23 @@ def _css() -> str:
   color-scheme: light;
   --ink: #151a22;
   --muted: #4a5565;
-  --line: #c7cfda;
+  --line: #d4dbe5;
+  --line-soft: #e6ebf2;
   --panel: #ffffff;
-  --canvas: #f4f7fb;
+  --canvas: #eef2f7;
   --accent: #006d77;
   --accent-strong: #014f56;
+  --accent-tint: #f1f8f9;
   --warn-bg: #fff3cd;
   --warn-ink: #5a4100;
+  /* 8px spacing rhythm. */
+  --space-1: .5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(21, 26, 34, .06), 0 6px 18px rgba(21, 26, 34, .05);
+  --reading-measure: 66ch;
 }
 * { box-sizing: border-box; }
 body {
@@ -457,7 +797,7 @@ body {
   background: var(--canvas);
   color: var(--ink);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 .skip-link {
   position: absolute;
@@ -549,14 +889,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 }
 .workspace {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  max-width: 72rem;
+  margin: 0 auto;
 }
-.input-pane, .report-pane {
+.primary-flow {
+  display: grid;
+  gap: var(--space-2);
+}
+.advanced-tools {
+  display: grid;
+  gap: var(--space-1);
+}
+/* Shared card surface for the primary flow. */
+.card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  box-shadow: var(--shadow);
 }
 .upload-grid {
   display: grid;
@@ -810,11 +1162,126 @@ footer {
   border-top: 1px solid var(--line);
   border-bottom: 0;
 }
+[data-active-locale="ko"] [data-locale-text="en"],
+[data-active-locale="en"] [data-locale-text="ko"] {
+  display: none;
+}
+/* Collapsed report/page panels sit inside a disclosure, so they stay flat to
+   avoid a double border with the disclosure frame. */
+.report-pane, .page-editor {
+  padding: var(--space-2) 0 0;
+}
+.section-heading { margin-bottom: var(--space-2); }
+.how-to-steps {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.how-to-step {
+  padding-left: .25rem;
+}
+.how-to-step span { font-weight: 600; }
+.input-pane .hint, .how-to .eyebrow + h2 { max-width: var(--reading-measure); }
+#analyze-btn { font-weight: 800; }
+#analyze-btn:hover { background: var(--accent-strong); }
+.action-row { margin-top: var(--space-2); }
+.result-pane[hidden] { display: none; }
+.result-pane:not([hidden]) {
+  border-top: 4px solid var(--accent);
+}
+.nl-summary {
+  max-width: var(--reading-measure);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+/* Optional-tool disclosures: de-emphasized, collapsed by default. */
+.upload-details {
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--space-1);
+}
+.tool-details {
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 0 var(--space-2);
+}
+.upload-details > summary, .tool-details > summary {
+  cursor: pointer;
+  padding: var(--space-1) .25rem;
+  color: var(--accent-strong);
+  font-weight: 700;
+  list-style-position: inside;
+}
+.tool-details > summary {
+  padding: .85rem .25rem;
+}
+.upload-details[open] > summary, .tool-details[open] > summary {
+  border-bottom: 1px solid var(--line-soft);
+  margin-bottom: var(--space-1);
+}
+.upload-details > summary:focus-visible, .tool-details > summary:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: 2px;
+}
+.recommended-action {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border: 1px solid var(--accent);
+  border-left: 6px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-tint);
+}
+.action-line { font-weight: 800; margin: 0; font-size: 1.1rem; }
+.cash-flow-line { margin: 0; color: var(--muted); }
+.result-meta {
+  color: var(--muted);
+  font-size: .9rem;
+  margin: var(--space-1) 0 var(--space-2);
+}
+.dimension-card {
+  display: grid;
+  gap: .5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .85rem;
+  background: var(--panel);
+}
+.dimension-card h4 { margin: 0; }
+.exposure-line { margin: 0; font-weight: 700; }
+.ranked-findings, .guidance-card ul {
+  display: grid;
+  gap: .6rem;
+  margin: 0;
+  padding-left: 1.15rem;
+}
+.finding-card, .guidance-card {
+  display: grid;
+  gap: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.finding-head { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+/* The rank badge leads each finding card. */
+.finding-head .badge:first-child {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-strong);
+}
+.finding-label { font-weight: 800; margin: 0; }
+.finding-heading { margin: 0; font-weight: 700; }
+.finding-snippet { margin: 0; max-width: var(--reading-measure); color: var(--muted); }
+.guidance-card h4 { margin: 0; }
+.guidance-why { margin: 0; max-width: var(--reading-measure); font-weight: 600; }
 @media (min-width: 900px) {
   .workspace {
-    grid-template-columns: minmax(20rem, .9fr) minmax(28rem, 1.1fr);
-    align-items: start;
-    padding: 1.5rem 2rem;
+    padding: var(--space-4) var(--space-4);
   }
   .disclosure-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -838,6 +1305,344 @@ footer {
     min-height: 10rem;
   }
 }
+"""
+
+
+_APP_JS = r"""(function () {
+  "use strict";
+
+  function setLocale(locale) {
+    var root = document.documentElement;
+    root.setAttribute("data-active-locale", locale);
+    root.setAttribute("lang", locale);
+    var buttons = document.querySelectorAll("[data-locale-button]");
+    buttons.forEach(function (button) {
+      var active = button.getAttribute("data-locale-button") === locale;
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function activeLocale() {
+    return document.documentElement.getAttribute("data-active-locale") || "ko";
+  }
+
+  function text(node) {
+    return node == null ? "" : String(node);
+  }
+
+  function el(tag, className, content) {
+    var node = document.createElement(tag);
+    if (className) {
+      node.className = className;
+    }
+    if (content != null) {
+      node.textContent = content;
+    }
+    return node;
+  }
+
+  function bilingual(tag, className, pair) {
+    var wrap = el(tag, className, null);
+    var ko = el("span", null, text(pair && pair.ko));
+    ko.setAttribute("lang", "ko");
+    ko.setAttribute("data-locale-text", "ko");
+    var en = el("span", null, text(pair && pair.en));
+    en.setAttribute("lang", "en");
+    en.setAttribute("data-locale-text", "en");
+    wrap.appendChild(ko);
+    wrap.appendChild(en);
+    return wrap;
+  }
+
+  function statusMessage(pair) {
+    var status = document.querySelector("[data-analyze-status]");
+    if (!status) {
+      return;
+    }
+    status.innerHTML = "";
+    status.appendChild(bilingual("span", null, pair));
+  }
+
+  function renderFindings(container, findings) {
+    if (!findings || findings.length === 0) {
+      return;
+    }
+    var list = el("ol", "ranked-findings", null);
+    list.setAttribute("data-ranked-findings", "true");
+    findings.forEach(function (finding) {
+      var item = el("li", "finding-card", null);
+      item.setAttribute("data-finding-rank", String(finding.rank));
+      var head = el("div", "finding-head", null);
+      head.appendChild(el("span", "badge", "#" + finding.rank + " " + finding.risk_category));
+      var grounding = el("span", "badge unverified-badge", finding.grounding);
+      head.appendChild(grounding);
+      item.appendChild(head);
+      item.appendChild(bilingual("p", "finding-label", finding.label));
+      if (finding.clause_heading) {
+        item.appendChild(el("p", "finding-heading", finding.clause_heading));
+      }
+      if (finding.snippet) {
+        item.appendChild(el("p", "finding-snippet", finding.snippet));
+      }
+      list.appendChild(item);
+    });
+    container.appendChild(list);
+  }
+
+  function renderGuidance(container, guidance) {
+    if (!guidance || guidance.length === 0) {
+      return;
+    }
+    guidance.forEach(function (entry) {
+      var card = el("div", "guidance-card", null);
+      card.setAttribute("data-guidance-category", entry.risk_category);
+      card.appendChild(el("h4", null, entry.risk_category));
+      card.appendChild(bilingual("p", "guidance-why", entry.why_it_matters));
+      var koList = el("ul", null, null);
+      koList.setAttribute("lang", "ko");
+      koList.setAttribute("data-locale-text", "ko");
+      (entry.questions.ko || []).forEach(function (q) {
+        koList.appendChild(el("li", null, q));
+      });
+      var enList = el("ul", null, null);
+      enList.setAttribute("lang", "en");
+      enList.setAttribute("data-locale-text", "en");
+      (entry.questions.en || []).forEach(function (q) {
+        enList.appendChild(el("li", null, q));
+      });
+      card.appendChild(koList);
+      card.appendChild(enList);
+      container.appendChild(card);
+    });
+  }
+
+  function dimensionCard(titlePair, rows) {
+    var card = el("div", "dimension-card", null);
+    card.appendChild(bilingual("h4", null, titlePair));
+    var dl = el("dl", "metric-list", null);
+    rows.forEach(function (row) {
+      dl.appendChild(el("dt", null, row[0]));
+      dl.appendChild(el("dd", null, row[1]));
+    });
+    card.appendChild(dl);
+    return card;
+  }
+
+  function renderDimensions(container, dims) {
+    var grid = el("div", "dimension-grid", null);
+    grid.setAttribute("data-dimension-grid", "true");
+
+    var priority = dims.review_priority;
+    var priorityCard = dimensionCard(
+      { ko: "검토 우선도 점수", en: "Review priority score" },
+      [["score", String(priority.score) + " / 100"], ["grounding", priority.grounding]]
+    );
+    priorityCard.appendChild(bilingual("p", "hint", priority.note));
+    grid.appendChild(priorityCard);
+
+    var monetary = dims.monetary;
+    var monetaryCard = dimensionCard(
+      { ko: "금액 영향", en: "Monetary impact" },
+      [["status", monetary.present ? "computed" : "blank"]]
+    );
+    if (monetary.present && monetary.exposures) {
+      monetary.exposures.forEach(function (exposure) {
+        if (exposure.is_user_input_required) {
+          return;
+        }
+        var line =
+          exposure.module +
+          " " +
+          exposure.exposure_type +
+          ": low " +
+          text(exposure.low) +
+          " / base " +
+          text(exposure.base) +
+          " / high " +
+          text(exposure.high);
+        monetaryCard.appendChild(el("p", "exposure-line", line));
+      });
+    } else {
+      monetaryCard.appendChild(bilingual("p", "hint", monetary.note));
+    }
+    grid.appendChild(monetaryCard);
+
+    var time = dims.time;
+    grid.appendChild(
+      dimensionCard({ ko: "시간 및 경로", en: "Time and pathway" }, [
+        ["pathway", time.pathway_label],
+        ["runtime_s", time.measured_analysis_runtime_seconds.toFixed(4)],
+        ["review_min", String(time.estimated_human_review_minutes)]
+      ])
+    );
+
+    var confidence = dims.confidence;
+    grid.appendChild(
+      dimensionCard({ ko: "신뢰도", en: "Confidence" }, [
+        ["overall", confidence.overall_confidence.toFixed(3)],
+        ["evidence", confidence.evidence_confidence.toFixed(3)],
+        ["completeness", confidence.data_completeness.toFixed(3)]
+      ])
+    );
+
+    container.appendChild(grid);
+  }
+
+  function renderResult(payload) {
+    var container = document.getElementById("result");
+    if (!container) {
+      return;
+    }
+    container.hidden = false;
+    container.innerHTML = "";
+
+    var heading = el("div", "section-heading", null);
+    heading.appendChild(el("p", "eyebrow", "Decision Brief"));
+    heading.appendChild(
+      bilingual("h2", null, { ko: "금융 결정 브리프", en: "Financial Decision Brief" })
+    );
+    container.appendChild(heading);
+
+    container.appendChild(bilingual("p", "nl-summary", payload.nl_summary));
+
+    var action = payload.recommended_action;
+    var actionBox = el("div", "recommended-action", null);
+    actionBox.setAttribute("data-recommended-action", action.pathway_label);
+    actionBox.appendChild(bilingual("p", "action-line", action.action));
+    actionBox.appendChild(bilingual("p", "cash-flow-line", action.cash_flow));
+    container.appendChild(actionBox);
+
+    var meta = el("p", "result-meta", null);
+    meta.textContent =
+      "clauses " +
+      payload.clause_count +
+      " | signals " +
+      payload.signal_count +
+      " | grounding " +
+      payload.grounding;
+    container.appendChild(meta);
+
+    renderDimensions(container, payload.dimensions);
+
+    var findingsHeading = bilingual("h3", null, {
+      ko: "우선순위 신호 (미확인)",
+      en: "Ranked signals (UNVERIFIED)"
+    });
+    container.appendChild(findingsHeading);
+    renderFindings(container, payload.ranked_findings);
+
+    var guidanceHeading = bilingual("h3", null, {
+      ko: "협상 질문",
+      en: "Questions to ask"
+    });
+    container.appendChild(guidanceHeading);
+    renderGuidance(container, payload.category_guidance);
+
+    setLocale(activeLocale());
+    container.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function collectAssumptions() {
+    var assumptions = {};
+    var inputs = document.querySelectorAll("[data-assumption-field] input");
+    inputs.forEach(function (input) {
+      var value = input.value.trim();
+      if (value !== "") {
+        assumptions[input.name] = value;
+      }
+    });
+    return assumptions;
+  }
+
+  function analyze() {
+    var box = document.getElementById("paste-box");
+    if (!box) {
+      return;
+    }
+    var pasteText = box.value;
+    if (!pasteText || pasteText.trim() === "") {
+      statusMessage({
+        ko: "먼저 계약 텍스트를 입력하세요.",
+        en: "Enter contract text first."
+      });
+      return;
+    }
+    statusMessage({ ko: "로컬에서 분석 중입니다.", en: "Analyzing locally." });
+    var body = {
+      paste_text: pasteText,
+      locale: activeLocale(),
+      assumptions: collectAssumptions()
+    };
+    fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          var message = result.data && result.data.error ? result.data.error : "analysis failed";
+          statusMessage({ ko: "오류: " + message, en: "Error: " + message });
+          return;
+        }
+        statusMessage({ ko: "분석을 완료했습니다.", en: "Analysis complete." });
+        renderResult(result.data);
+      })
+      .catch(function () {
+        statusMessage({
+          ko: "로컬 분석 요청에 실패했습니다.",
+          en: "The local analysis request failed."
+        });
+      });
+  }
+
+  function clearAll() {
+    var box = document.getElementById("paste-box");
+    if (box) {
+      box.value = "";
+    }
+    var container = document.getElementById("result");
+    if (container) {
+      container.hidden = true;
+      container.innerHTML = "";
+    }
+    statusMessage({
+      ko: "입력을 지웠습니다.",
+      en: "Input cleared."
+    });
+  }
+
+  function init() {
+    var toggle = document.querySelector("[data-locale-toggle]");
+    if (toggle) {
+      toggle.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-locale-button]");
+        if (button) {
+          setLocale(button.getAttribute("data-locale-button"));
+        }
+      });
+    }
+    var analyzeButton = document.getElementById("analyze-btn");
+    if (analyzeButton) {
+      analyzeButton.addEventListener("click", analyze);
+    }
+    var clearButton = document.getElementById("clear-btn");
+    if (clearButton) {
+      clearButton.addEventListener("click", clearAll);
+    }
+    setLocale(activeLocale());
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
 """
 
 
@@ -877,6 +1682,15 @@ def _apply_security_headers(headers: Any) -> None:
         "base-uri 'none'; "
         "form-action 'self'"
     )
+
+
+async def _send_json(
+    send: Callable[[dict[str, Any]], Awaitable[None]],
+    status: int,
+    payload: dict[str, Any],
+) -> None:
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    await _send_response(send, status, body, "application/json")
 
 
 async def _send_response(
