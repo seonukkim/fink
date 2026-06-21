@@ -1,0 +1,134 @@
+{
+  "cases": [
+    {
+      "description": "Synthetic PDF and paste runs complete with socket connection APIs blocked.",
+      "expected": {
+        "accepted_runs": 2,
+        "network_attempts": 0,
+        "runtime_error": null,
+        "stored_artifact_removed_runs": 2,
+        "workspace_removed_runs": 2
+      },
+      "id": "offline_integration_test",
+      "metrics": [
+        "EV-OFFLINE"
+      ],
+      "observed": {
+        "accepted_runs": 2,
+        "network_attempts": 0,
+        "runtime_error": null,
+        "stored_artifact_removed_runs": 2,
+        "workspace_removed_runs": 2
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Log/export surfaces omit synthetic contract text, raw filenames, and temp paths.",
+      "expected": {
+        "input_modes": [
+          "pdf",
+          "paste"
+        ],
+        "leak_count": 0
+      },
+      "id": "privacy_redaction_test",
+      "metrics": [
+        "EV-PRIV"
+      ],
+      "observed": {
+        "input_modes": [
+          "pdf",
+          "paste"
+        ],
+        "leak_count": 0,
+        "leak_types": [],
+        "surface_count": 6
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Synthetic local runs record wall-clock latency and peak Python allocation.",
+      "expected": {
+        "latency_seconds": "present",
+        "measured_runs": 2,
+        "peak_memory_bytes": "present"
+      },
+      "id": "latency_memory_run",
+      "metrics": [
+        "EV-LAT",
+        "EV-MEM"
+      ],
+      "observed": {
+        "max_latency_seconds": 0.003412999,
+        "max_peak_memory_bytes": 37279,
+        "measured_runs": 2,
+        "per_run": [
+          {
+            "extracted_term_count": 6,
+            "input_mode": "pdf",
+            "label": "pdf_pipeline",
+            "latency_seconds": 0.003412999,
+            "page_count": 2,
+            "peak_memory_bytes": 37279
+          },
+          {
+            "extracted_term_count": 0,
+            "input_mode": "paste",
+            "label": "paste_pipeline",
+            "latency_seconds": 0.000640469,
+            "page_count": 0,
+            "peak_memory_bytes": 8417
+          }
+        ]
+      },
+      "status": "PASS",
+      "tolerance": "measurement present; no performance threshold asserted"
+    }
+  ],
+  "metrics": {
+    "EV-LAT": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-MEM": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-OFFLINE": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-PRIV": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "paper_sections": [
+    "05_experiments.md",
+    "06_results.md",
+    "08_responsible_ai.md"
+  ],
+  "registered_gates": [
+    "offline_integration_test",
+    "privacy_redaction_test",
+    "latency_memory_run"
+  ],
+  "suite": "runtime_gate_suite",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 3,
+    "total": 3
+  },
+  "task_id": "FINK-S5-06"
+}
