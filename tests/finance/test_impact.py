@@ -89,6 +89,79 @@ class FinanceImpactTests(unittest.TestCase):
         self.assertEqual(result.deferral.exposure_type, SCHEMAS.ExposureType.DEFERRAL)
         self.assertIn("monthly sales", result.sales_label_note)
 
+    def test_fim_4_t1_unpaid_additional_work_cost(self) -> None:
+        result = FINANCE.fim4_unpaid_additional_work_cost(
+            unpaid_revision_units=Decimal("5"),
+            hours_per_unit=Decimal("8"),
+            creator_hourly_value=FINANCE.DecimalRange(
+                low=Decimal("20000"),
+                base=Decimal("30000"),
+                high=Decimal("40000"),
+            ),
+        )
+
+        self.assertFalse(result.is_blank)
+        self.assertEqual(result.unpaid_work_cost.low, Decimal("800000"))
+        self.assertEqual(result.unpaid_work_cost.base, Decimal("1200000"))
+        self.assertEqual(result.unpaid_work_cost.high, Decimal("1600000"))
+        self.assertEqual(result.unpaid_work_cost.module, SCHEMAS.FimModule.FIM_4)
+        self.assertEqual(
+            result.unpaid_work_cost.exposure_type,
+            SCHEMAS.ExposureType.OPPORTUNITY_COST,
+        )
+        self.assertTrue(
+            any("synthetic assumption" in item for item in result.unpaid_work_cost.assumptions)
+        )
+
+    def test_fim_5_t1_exclusivity_opportunity_cost(self) -> None:
+        result = FINANCE.fim5_exclusivity_renewal_opportunity_cost(
+            exclusivity_duration_months=Decimal("12"),
+            alternative_monthly_revenue=Decimal("1000000"),
+            scenario_probability=FINANCE.DecimalRange(
+                low=Decimal("0.25"),
+                base=Decimal("0.5"),
+                high=Decimal("0.75"),
+            ),
+            annual_discount_rate=Decimal("0.05"),
+        )
+
+        self.assertFalse(result.is_blank)
+        self.assertEqual(result.scenario_months, (12, 12, 12))
+        self.assertLess(abs(_krw(result.opportunity_cost.low) - 2922500), 30000)
+        self.assertLess(abs(_krw(result.opportunity_cost.base) - 5845000), 60000)
+        self.assertLess(abs(_krw(result.opportunity_cost.high) - 8767500), 90000)
+        self.assertEqual(result.opportunity_cost.module, SCHEMAS.FimModule.FIM_5)
+        self.assertEqual(
+            result.opportunity_cost.exposure_type,
+            SCHEMAS.ExposureType.OPPORTUNITY_COST,
+        )
+        self.assertTrue(
+            any("synthetic assumption" in item for item in result.opportunity_cost.assumptions)
+        )
+
+    def test_fim_6_t1_ip_secondary_rights_scenario_value(self) -> None:
+        result = FINANCE.fim6_ip_secondary_rights_scenario_value(
+            secondary_rights=(
+                {"type": "overseas", "value": Decimal("5000000"), "prob": Decimal("0.4")},
+                {"type": "merchandise", "value": Decimal("3000000"), "prob": Decimal("0.2")},
+            )
+        )
+
+        self.assertFalse(result.is_blank)
+        self.assertEqual(result.scenario_value.low, Decimal("2600000.0"))
+        self.assertEqual(result.scenario_value.base, Decimal("2600000.0"))
+        self.assertEqual(result.scenario_value.high, Decimal("2600000.0"))
+        self.assertEqual(result.scenario_value.module, SCHEMAS.FimModule.FIM_6)
+        self.assertEqual(
+            result.scenario_value.exposure_type,
+            SCHEMAS.ExposureType.OPPORTUNITY_COST,
+        )
+        self.assertFalse(result.auto_valued_from_contract_text)
+        self.assertIn("overseas", result.right_types)
+        self.assertTrue(
+            any("no automatic IP valuation" in item for item in result.scenario_value.assumptions)
+        )
+
     def test_fim_7_t1_capped_liability_with_user_probability(self) -> None:
         result = FINANCE.fim7_penalty_liability_exposure(
             explicit_penalty_cap=Decimal("5000000"),
@@ -127,6 +200,41 @@ class FinanceImpactTests(unittest.TestCase):
         self.assertTrue(report.fim_7_t1)
         self.assertTrue(report.fim_7_t2)
 
+    def test_fim_scenario_unit_tests_gate_report_passes(self) -> None:
+        report = FINANCE.fim_scenario_unit_tests()
+
+        self.assertTrue(report.ok, report.as_dict())
+        self.assertTrue(report.fim_4_t1)
+        self.assertTrue(report.fim_5_t1)
+        self.assertTrue(report.fim_6_t1)
+
+    def test_blank_without_inputs_test_gate_report_passes(self) -> None:
+        report = FINANCE.blank_without_inputs_test()
+
+        self.assertTrue(report.ok, report.as_dict())
+        self.assertTrue(report.fim_4_blank)
+        self.assertTrue(report.fim_5_blank)
+        self.assertTrue(report.fim_6_blank)
+        self.assertTrue(report.fim_7_expected_path_blank)
+
+    def test_fim_4_5_6_blank_without_required_user_inputs(self) -> None:
+        fim4 = FINANCE.fim4_unpaid_additional_work_cost()
+        fim5 = FINANCE.fim5_exclusivity_renewal_opportunity_cost(
+            exclusivity_duration_months=Decimal("12")
+        )
+        fim6 = FINANCE.fim6_ip_secondary_rights_scenario_value()
+
+        for exposure in (
+            fim4.unpaid_work_cost,
+            fim5.opportunity_cost,
+            fim6.scenario_value,
+        ):
+            self.assertTrue(exposure.is_user_input_required)
+            self.assertIsNone(exposure.low)
+            self.assertIsNone(exposure.base)
+            self.assertIsNone(exposure.high)
+            self.assertTrue(exposure.uncertainty_flags)
+
     def test_sc_sep_t1_no_cross_exposure_type_summation(self) -> None:
         report = FINANCE.exposure_separation_test()
 
@@ -137,6 +245,7 @@ class FinanceImpactTests(unittest.TestCase):
                 "deferral",
                 "liability_exposure",
                 "nominal_leakage",
+                "opportunity_cost",
                 "present_value_loss",
             },
         )

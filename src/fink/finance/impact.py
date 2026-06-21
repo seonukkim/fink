@@ -71,6 +71,40 @@ class Fim3Result:
 
 
 @dataclass(frozen=True)
+class Fim4Result:
+    unpaid_work_cost: MonetaryExposureEstimate
+    missing_inputs: tuple[str, ...] = ()
+
+    @property
+    def is_blank(self) -> bool:
+        return self.unpaid_work_cost.is_user_input_required
+
+
+@dataclass(frozen=True)
+class Fim5Result:
+    opportunity_cost: MonetaryExposureEstimate
+    scenario_months: tuple[int, int, int] | None
+    includes_renewal: bool
+    missing_inputs: tuple[str, ...] = ()
+
+    @property
+    def is_blank(self) -> bool:
+        return self.opportunity_cost.is_user_input_required
+
+
+@dataclass(frozen=True)
+class Fim6Result:
+    scenario_value: MonetaryExposureEstimate
+    right_types: tuple[str, ...]
+    auto_valued_from_contract_text: bool = False
+    missing_inputs: tuple[str, ...] = ()
+
+    @property
+    def is_blank(self) -> bool:
+        return self.scenario_value.is_user_input_required
+
+
+@dataclass(frozen=True)
 class Fim7Result:
     max_nominal_exposure: Decimal | None
     expected_penalty: Decimal | None
@@ -108,6 +142,51 @@ class FimCoreTestReport:
             "fim_3_t1": self.fim_3_t1,
             "fim_7_t1": self.fim_7_t1,
             "fim_7_t2": self.fim_7_t2,
+            "ok": self.ok,
+        }
+
+
+@dataclass(frozen=True)
+class FimScenarioTestReport:
+    fim_4_t1: bool
+    fim_5_t1: bool
+    fim_6_t1: bool
+
+    @property
+    def ok(self) -> bool:
+        return self.fim_4_t1 and self.fim_5_t1 and self.fim_6_t1
+
+    def as_dict(self) -> dict[str, bool]:
+        return {
+            "fim_4_t1": self.fim_4_t1,
+            "fim_5_t1": self.fim_5_t1,
+            "fim_6_t1": self.fim_6_t1,
+            "ok": self.ok,
+        }
+
+
+@dataclass(frozen=True)
+class BlankWithoutInputsTestReport:
+    fim_4_blank: bool
+    fim_5_blank: bool
+    fim_6_blank: bool
+    fim_7_expected_path_blank: bool
+
+    @property
+    def ok(self) -> bool:
+        return (
+            self.fim_4_blank
+            and self.fim_5_blank
+            and self.fim_6_blank
+            and self.fim_7_expected_path_blank
+        )
+
+    def as_dict(self) -> dict[str, bool]:
+        return {
+            "fim_4_blank": self.fim_4_blank,
+            "fim_5_blank": self.fim_5_blank,
+            "fim_6_blank": self.fim_6_blank,
+            "fim_7_expected_path_blank": self.fim_7_expected_path_blank,
             "ok": self.ok,
         }
 
@@ -270,6 +349,230 @@ def fim3_mg_advance_recoupment(
     )
 
 
+def fim4_unpaid_additional_work_cost(
+    unpaid_revision_units: RangeLike | None = None,
+    hours_per_unit: RangeLike | None = None,
+    creator_hourly_value: RangeLike | None = None,
+) -> Fim4Result:
+    """FIM-4: unpaid additional-work cost from user-editable scenario inputs."""
+
+    missing = _missing_inputs(
+        (
+            ("unpaid_revision_units", unpaid_revision_units),
+            ("hours_per_unit", hours_per_unit),
+            ("creator_hourly_value", creator_hourly_value),
+        )
+    )
+    if missing:
+        return Fim4Result(
+            unpaid_work_cost=_blank_user_required_exposure(
+                module=FimModule.FIM_4,
+                exposure_type=ExposureType.OPPORTUNITY_COST,
+                missing_inputs=missing,
+            ),
+            missing_inputs=missing,
+        )
+
+    units = _count_range(unpaid_revision_units, "unpaid_revision_units")
+    hours = _range(hours_per_unit, "hours_per_unit")
+    hourly = _range(creator_hourly_value, "creator_hourly_value")
+    values = _ordered_range(
+        units.low * hours.low * hourly.low,
+        units.base * hours.base * hourly.base,
+        units.high * hours.high * hourly.high,
+        "unpaid_work_cost",
+    )
+
+    return Fim4Result(
+        unpaid_work_cost=_exposure(
+            module=FimModule.FIM_4,
+            exposure_type=ExposureType.OPPORTUNITY_COST,
+            values=values,
+            assumptions=(
+                "synthetic assumption: additional-work units, hours, and hourly value "
+                "are user-supplied/editable",
+            ),
+        )
+    )
+
+
+def fim5_exclusivity_renewal_opportunity_cost(
+    exclusivity_duration_months: RangeLike | None = None,
+    alternative_monthly_revenue: RangeLike | None = None,
+    scenario_probability: RangeLike | None = None,
+    annual_discount_rate: RangeLike = Decimal("0.05"),
+    *,
+    renewal_duration_months: RangeLike | None = None,
+    include_renewal: bool = False,
+) -> Fim5Result:
+    """FIM-5: discounted scenario opportunity cost for exclusivity/renewal."""
+
+    if not isinstance(include_renewal, bool):
+        raise FinanceImpactError("include_renewal must be bool")
+    missing_pairs: list[tuple[str, object | None]] = [
+        ("exclusivity_duration_months", exclusivity_duration_months),
+        ("alternative_monthly_revenue", alternative_monthly_revenue),
+        ("scenario_probability", scenario_probability),
+    ]
+    if include_renewal:
+        missing_pairs.append(("renewal_duration_months", renewal_duration_months))
+    missing = _missing_inputs(tuple(missing_pairs))
+    if missing:
+        return Fim5Result(
+            opportunity_cost=_blank_user_required_exposure(
+                module=FimModule.FIM_5,
+                exposure_type=ExposureType.OPPORTUNITY_COST,
+                missing_inputs=missing,
+            ),
+            scenario_months=None,
+            includes_renewal=include_renewal,
+            missing_inputs=missing,
+        )
+
+    exclusivity_months = _count_range(exclusivity_duration_months, "exclusivity_duration_months")
+    renewal_months = (
+        _count_range(renewal_duration_months, "renewal_duration_months")
+        if include_renewal
+        else DecimalRange(low=Decimal("0"), base=Decimal("0"), high=Decimal("0"))
+    )
+    months = (
+        int(exclusivity_months.low + renewal_months.low),
+        int(exclusivity_months.base + renewal_months.base),
+        int(exclusivity_months.high + renewal_months.high),
+    )
+    alternative = _range(alternative_monthly_revenue, "alternative_monthly_revenue")
+    probability = _range(scenario_probability, "scenario_probability", maximum=Decimal("1"))
+    rate = _range(annual_discount_rate, "annual_discount_rate")
+    values = _ordered_range(
+        _discounted_monthly_scenario_sum(
+            alternative.low,
+            probability.low,
+            rate.high,
+            months[0],
+        ),
+        _discounted_monthly_scenario_sum(
+            alternative.base,
+            probability.base,
+            rate.base,
+            months[1],
+        ),
+        _discounted_monthly_scenario_sum(
+            alternative.high,
+            probability.high,
+            rate.low,
+            months[2],
+        ),
+        "opportunity_cost",
+    )
+
+    return Fim5Result(
+        opportunity_cost=_exposure(
+            module=FimModule.FIM_5,
+            exposure_type=ExposureType.OPPORTUNITY_COST,
+            values=values,
+            assumptions=(
+                "synthetic assumption: alternative revenue and scenario probability "
+                "are user-supplied/editable",
+                "synthetic assumption: annual discount rate is user-editable",
+            ),
+        ),
+        scenario_months=months,
+        includes_renewal=include_renewal,
+    )
+
+
+def fim6_ip_secondary_rights_scenario_value(
+    secondary_rights: Sequence[Mapping[str, object]] | None = None,
+    annual_discount_rate: RangeLike | None = Decimal("0.05"),
+) -> Fim6Result:
+    """FIM-6: user-supplied scenario value for IP and secondary rights."""
+
+    missing = _secondary_rights_missing_inputs(secondary_rights)
+    if missing:
+        return Fim6Result(
+            scenario_value=_blank_user_required_exposure(
+                module=FimModule.FIM_6,
+                exposure_type=ExposureType.OPPORTUNITY_COST,
+                missing_inputs=missing,
+            ),
+            right_types=(),
+            missing_inputs=missing,
+        )
+
+    assert secondary_rights is not None
+    has_timing = any(
+        isinstance(right, Mapping) and right.get("timing_months") is not None
+        for right in secondary_rights
+    )
+    rate = (
+        _range(annual_discount_rate, "annual_discount_rate")
+        if has_timing and annual_discount_rate is not None
+        else None
+    )
+    low = Decimal("0")
+    base = Decimal("0")
+    high = Decimal("0")
+    right_types: list[str] = []
+    for idx, right in enumerate(secondary_rights, start=1):
+        if not isinstance(right, Mapping):
+            raise FinanceImpactError(f"secondary_rights[{idx}] must be a mapping")
+        right_type = str(right["type"]).strip()
+        if not right_type:
+            raise FinanceImpactError(f"secondary_rights[{idx}].type must be non-empty")
+        right_types.append(right_type)
+        value = _range(right["value"], f"secondary_rights[{idx}].value")
+        probability = _range(
+            right["prob"],
+            f"secondary_rights[{idx}].prob",
+            maximum=Decimal("1"),
+        )
+        timing = _optional_count(right.get("timing_months"), f"secondary_rights[{idx}].timing")
+        if timing is None:
+            low += probability.low * value.low
+            base += probability.base * value.base
+            high += probability.high * value.high
+        else:
+            low += _discounted_scenario_value(
+                value.low,
+                probability.low,
+                rate,
+                timing,
+                high_case=False,
+            )
+            base += _discounted_scenario_value(
+                value.base,
+                probability.base,
+                rate,
+                timing,
+                high_case=None,
+            )
+            high += _discounted_scenario_value(
+                value.high,
+                probability.high,
+                rate,
+                timing,
+                high_case=True,
+            )
+    values = _ordered_range(low, base, high, "secondary_rights_scenario_value")
+    assumptions = [
+        "synthetic assumption: secondary-rights values and probabilities are "
+        "user-supplied scenarios",
+        "no automatic IP valuation is inferred from contract text",
+    ]
+    if rate is not None:
+        assumptions.append("synthetic assumption: annual discount rate is user-editable")
+
+    return Fim6Result(
+        scenario_value=_exposure(
+            module=FimModule.FIM_6,
+            exposure_type=ExposureType.OPPORTUNITY_COST,
+            values=values,
+            assumptions=tuple(assumptions),
+        ),
+        right_types=tuple(right_types),
+    )
+
+
 def fim7_penalty_liability_exposure(
     explicit_penalty_cap: DecimalLike | None = None,
     *,
@@ -362,6 +665,22 @@ def exposure_type_subtotals(
     return subtotals
 
 
+def _blank_user_required_exposure(
+    *,
+    module: FimModule,
+    exposure_type: ExposureType,
+    missing_inputs: tuple[str, ...],
+) -> MonetaryExposureEstimate:
+    return _exposure(
+        module=module,
+        exposure_type=exposure_type,
+        values=None,
+        assumptions=(),
+        is_user_input_required=True,
+        uncertainty_flags=tuple(f"missing_user_input:{item}" for item in missing_inputs),
+    )
+
+
 def fim_core_unit_tests() -> FimCoreTestReport:
     fim1 = fim1_revenue_base_deduction_leakage(
         gross_sales=Decimal("10000000"),
@@ -415,6 +734,68 @@ def fim_core_unit_tests() -> FimCoreTestReport:
     )
 
 
+def fim_scenario_unit_tests() -> FimScenarioTestReport:
+    fim4 = fim4_unpaid_additional_work_cost(
+        unpaid_revision_units=Decimal("5"),
+        hours_per_unit=Decimal("8"),
+        creator_hourly_value=DecimalRange(
+            low=Decimal("20000"),
+            base=Decimal("30000"),
+            high=Decimal("40000"),
+        ),
+    )
+    fim5 = fim5_exclusivity_renewal_opportunity_cost(
+        exclusivity_duration_months=Decimal("12"),
+        alternative_monthly_revenue=Decimal("1000000"),
+        scenario_probability=DecimalRange(
+            low=Decimal("0.25"),
+            base=Decimal("0.5"),
+            high=Decimal("0.75"),
+        ),
+        annual_discount_rate=Decimal("0.05"),
+    )
+    fim6 = fim6_ip_secondary_rights_scenario_value(
+        secondary_rights=(
+            {"type": "overseas", "value": Decimal("5000000"), "prob": Decimal("0.4")},
+            {"type": "merchandise", "value": Decimal("3000000"), "prob": Decimal("0.2")},
+        )
+    )
+
+    return FimScenarioTestReport(
+        fim_4_t1=fim4.unpaid_work_cost.low == Decimal("800000")
+        and fim4.unpaid_work_cost.base == Decimal("1200000")
+        and fim4.unpaid_work_cost.high == Decimal("1600000")
+        and fim4.unpaid_work_cost.module is FimModule.FIM_4
+        and fim4.unpaid_work_cost.exposure_type is ExposureType.OPPORTUNITY_COST,
+        fim_5_t1=_within_percent(
+            fim5.opportunity_cost.base or Decimal("0"),
+            Decimal("5845000"),
+            Decimal("0.01"),
+        )
+        and fim5.opportunity_cost.module is FimModule.FIM_5
+        and any("synthetic assumption" in item for item in fim5.opportunity_cost.assumptions),
+        fim_6_t1=fim6.scenario_value.base == Decimal("2600000.0")
+        and fim6.scenario_value.module is FimModule.FIM_6
+        and fim6.auto_valued_from_contract_text is False,
+    )
+
+
+def blank_without_inputs_test() -> BlankWithoutInputsTestReport:
+    fim4 = fim4_unpaid_additional_work_cost()
+    fim5 = fim5_exclusivity_renewal_opportunity_cost(
+        exclusivity_duration_months=Decimal("12"),
+    )
+    fim6 = fim6_ip_secondary_rights_scenario_value()
+    fim7 = fim7_penalty_liability_exposure(is_uncapped=True)
+
+    return BlankWithoutInputsTestReport(
+        fim_4_blank=_is_blank_user_required(fim4.unpaid_work_cost),
+        fim_5_blank=_is_blank_user_required(fim5.opportunity_cost),
+        fim_6_blank=_is_blank_user_required(fim6.scenario_value),
+        fim_7_expected_path_blank=_is_blank_user_required(fim7.liability_exposure),
+    )
+
+
 def exposure_separation_test() -> ExposureSeparationTestReport:
     fim1 = fim1_revenue_base_deduction_leakage(
         Decimal("10000000"),
@@ -438,6 +819,12 @@ def exposure_separation_test() -> ExposureSeparationTestReport:
         Decimal("0.7"),
         DecimalRange(low=Decimal("1000000"), base=Decimal("2000000"), high=Decimal("4000000")),
     )
+    fim5 = fim5_exclusivity_renewal_opportunity_cost(
+        exclusivity_duration_months=Decimal("12"),
+        alternative_monthly_revenue=Decimal("1000000"),
+        scenario_probability=Decimal("0.5"),
+        annual_discount_rate=Decimal("0.05"),
+    )
     fim7 = fim7_penalty_liability_exposure(
         Decimal("5000000"),
         penalty_probability=Decimal("0.1"),
@@ -447,12 +834,14 @@ def exposure_separation_test() -> ExposureSeparationTestReport:
         fim1.nominal_leakage,
         fim2.present_value_loss,
         fim3.deferral,
+        fim5.opportunity_cost,
         fim7.liability_exposure,
     )
     partitions = partition_exposures_by_type(exposures)
     subtotals = exposure_type_subtotals(exposures)
     expected_types = {
         ExposureType.NOMINAL_LEAKAGE,
+        ExposureType.OPPORTUNITY_COST,
         ExposureType.PRESENT_VALUE_LOSS,
         ExposureType.DEFERRAL,
         ExposureType.LIABILITY_EXPOSURE,
@@ -500,6 +889,44 @@ def _delay_pv_loss(amount: Decimal, annual_discount_rate: Decimal, delay_days: D
     return amount * (Decimal("1") - factor)
 
 
+def _discounted_monthly_scenario_sum(
+    alternative_monthly_revenue: Decimal,
+    scenario_probability: Decimal,
+    annual_discount_rate: Decimal,
+    months: int,
+) -> Decimal:
+    total = Decimal("0")
+    for month in range(1, months + 1):
+        total += scenario_probability * alternative_monthly_revenue / _discount_factor(
+            annual_discount_rate,
+            month,
+        )
+    return total
+
+
+def _discounted_scenario_value(
+    value: Decimal,
+    probability: Decimal,
+    rate: DecimalRange | None,
+    timing_months: int,
+    *,
+    high_case: bool | None,
+) -> Decimal:
+    if rate is None:
+        return value * probability
+    if high_case is True:
+        selected_rate = rate.low
+    elif high_case is False:
+        selected_rate = rate.high
+    else:
+        selected_rate = rate.base
+    return value * probability / _discount_factor(selected_rate, timing_months)
+
+
+def _discount_factor(annual_discount_rate: Decimal, months: int) -> Decimal:
+    return (Decimal("1") + annual_discount_rate) ** (Decimal(months) / Decimal("12"))
+
+
 def _months_to_recoup(balance: Decimal, monthly_recoupment: Decimal) -> int | float:
     if balance == 0:
         return 0
@@ -513,6 +940,35 @@ def _first_money(candidates: Sequence[tuple[str, DecimalLike | None]]) -> Decima
         if value is not None:
             return _money(value, label)
     raise FinanceImpactError("one of recoupable_advance, advance, or minimum_guarantee is required")
+
+
+def _missing_inputs(candidates: Sequence[tuple[str, object | None]]) -> tuple[str, ...]:
+    return tuple(label for label, value in candidates if value is None)
+
+
+def _secondary_rights_missing_inputs(
+    secondary_rights: Sequence[Mapping[str, object]] | None,
+) -> tuple[str, ...]:
+    if not secondary_rights:
+        return ("secondary_rights",)
+    missing: list[str] = []
+    for idx, right in enumerate(secondary_rights, start=1):
+        if not isinstance(right, Mapping):
+            continue
+        for key in ("type", "value", "prob"):
+            value = right.get(key)
+            if value is None or (key == "type" and not str(value).strip()):
+                missing.append(f"secondary_rights[{idx}].{key}")
+    return tuple(missing)
+
+
+def _is_blank_user_required(exposure: MonetaryExposureEstimate) -> bool:
+    return (
+        exposure.is_user_input_required
+        and exposure.low is None
+        and exposure.base is None
+        and exposure.high is None
+    )
 
 
 def _range(
@@ -541,6 +997,27 @@ def _range(
     base = _decimal(raw_base, f"{label}.base", maximum=maximum)
     high = _decimal(raw_high, f"{label}.high", maximum=maximum)
     return _ordered_range(low, base, high, label)
+
+
+def _count_range(value: RangeLike | None, label: str) -> DecimalRange:
+    raw_range = _range(value, label)
+    return DecimalRange(
+        low=_whole_count(raw_range.low, f"{label}.low"),
+        base=_whole_count(raw_range.base, f"{label}.base"),
+        high=_whole_count(raw_range.high, f"{label}.high"),
+    )
+
+
+def _optional_count(value: object | None, label: str) -> int | None:
+    if value is None:
+        return None
+    return int(_whole_count(_decimal(value, label), label))
+
+
+def _whole_count(value: Decimal, label: str) -> Decimal:
+    if value != value.to_integral_value():
+        raise FinanceImpactError(f"{label} must be a whole number")
+    return value
 
 
 def _ordered_range(low: Decimal, base: Decimal, high: Decimal, label: str) -> DecimalRange:
