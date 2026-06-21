@@ -4,226 +4,188 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="FInk static project page for synthetic creator-contract financial review demos.">
+  <meta name="description" content="FInk: evidence-grounded Contractual Financial Review Priority for creator contracts. Static, public-safe, synthetic-demo only.">
   <title>FInk | Contractual Financial Review Priority</title>
   <link rel="icon" href="assets/images/fink-icon-32.png" sizes="32x32">
   <link rel="stylesheet" href="styles.css">
   <script defer src="app.js"></script>
 </head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
+<body class="lang-en">
+  <a class="skip-link" href="#main" data-en="Skip to content" data-ko="본문으로 건너뛰기">Skip to content</a>
 
-  <header class="hero" data-site-section="hero">
-    <img
-      class="hero-media"
-      src="assets/images/fink-hero.png"
-      alt="FInk abstract ink and finance project artwork"
-      data-figure-id="FIG-S6-01-HERO"
-    >
-    <div class="hero-shade" aria-hidden="true"></div>
-    <nav class="site-nav" aria-label="Project sections">
-      <a href="#method">Method</a>
-      <a href="#demo">Synthetic Demo</a>
-      <a href="#metrics">Metrics</a>
-      <a href="#safety">Safety</a>
+  <header class="topbar">
+    <a class="wordmark" href="#top" aria-label="FInk">F<span>I</span>nk</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#overview" data-en="Overview" data-ko="개요">Overview</a>
+      <a href="#method" data-en="Method" data-ko="방법">Method</a>
+      <a href="#demo" data-en="Demo" data-ko="데모">Demo</a>
+      <a href="#results" data-en="Results" data-ko="결과">Results</a>
+      <a href="#safety" data-en="Safety" data-ko="안전성">Safety</a>
+      <a href="#cite" data-en="Cite" data-ko="인용">Cite</a>
     </nav>
-    <div class="hero-copy">
-      <p class="eyebrow">UNIST IE412 AI for Finance | 2026 Spring</p>
-      <h1>FInk</h1>
-      <p class="hero-subtitle">Evidence-grounded financial review priority for creator contracts.</p>
-      <p class="hero-summary">
-        FInk is a local-first project for prioritizing financially consequential
-        contract clauses. This page is static, public-safe, and synthetic-demo only.
-      </p>
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button type="button" data-lang="en" class="is-active">EN</button>
+      <button type="button" data-lang="ko">한국어</button>
     </div>
   </header>
 
-  <section class="notice-band" aria-label="Required project disclaimers">
-    <p>
-      FInk reports Contractual Financial Review Priority only. It is not legal
-      advice and not a fraud, illegality, validity, unfairness, or guaranteed-loss
-      verdict.
-    </p>
-    <p>
-      Public page data is synthetic or ledger-derived. No real contracts,
-      private-book text, long official excerpts, keys, or private runtime inputs
-      are included.
-    </p>
-  </section>
-
   <main id="main">
-    <section class="status-strip" aria-label="Project status">
-      <div>
-        <span class="label">Runtime</span>
-        <strong>Static page</strong>
-        <span>No remote runtime API</span>
-      </div>
-      <div>
-        <span class="label">Demo data</span>
-        <strong>Synthetic only</strong>
-        <span>No user contracts</span>
-      </div>
-      <div>
-        <span class="label">Results</span>
-        <strong id="result-count">Ledger loading</strong>
-        <span>Measured rows only</span>
-      </div>
-    </section>
-
-    <section id="method" class="section">
-      <div class="section-heading">
-        <p class="eyebrow">Method shape</p>
-        <h2>Four dimensions stay separate</h2>
-      </div>
-      <div class="dimension-grid">
-        <article>
-          <h3>Review Priority</h3>
-          <p>
-            An ordinal Contractual Financial Review Priority signal for deciding
-            which clauses deserve closer human review.
-          </p>
-        </article>
-        <article>
-          <h3>Monetary Exposure Range</h3>
-          <p>
-            Low, base, and high scenarios from extracted values or explicit
-            user-editable synthetic assumptions.
-          </p>
-        </article>
-        <article>
-          <h3>Time Exposure</h3>
-          <p>
-            Payment timing, recoupment duration, contract term, renewal windows,
-            and delay pathways are shown as typed fields.
-          </p>
-        </article>
-        <article>
-          <h3>Evidence and OCR Confidence</h3>
-          <p>
-            Confidence stays separate from the priority score, so missing or
-            unclear data raises uncertainty instead of inventing values.
-          </p>
-        </article>
+    <section id="top" class="hero">
+      <p class="eyebrow">UNIST IE412 · AI for Finance · 2026 Spring</p>
+      <h1 class="title">F<span>I</span>nk</h1>
+      <p class="lede"
+         data-en="Evidence-grounded financial review priority for creator contracts."
+         data-ko="창작자 계약을 위한 근거 기반 금융 검토 우선도.">Evidence-grounded financial review priority for creator contracts.</p>
+      <p class="abstract"
+         data-en="FInk is a Korean/English, local-first system that helps creators see which contract clauses are financially consequential — reporting a Contractual Financial Review Priority signal, a low/base/high monetary-exposure range, time exposure, and evidence confidence as four separate dimensions. This page is static, public-safe, and synthetic-demo only."
+         data-ko="FInk은 한국어/영어, 로컬 우선 시스템으로, 창작자가 어떤 계약 조항이 금전적으로 중요한지 볼 수 있게 돕습니다. 계약 금융 검토 우선도 신호, 저/기준/고 금액 노출 범위, 시간 노출, 근거 신뢰도를 네 개의 분리된 차원으로 보여줍니다. 이 페이지는 정적이며 공개 안전, 합성 데모 전용입니다.">FInk is a Korean/English, local-first system…</p>
+      <div class="links">
+        <a class="btn primary" href="https://github.com/seonukkim/fink" data-en="Code (GitHub)" data-ko="코드 (GitHub)">Code (GitHub)</a>
+        <a class="btn" href="#demo" data-en="Run the demo" data-ko="데모 실행">Run the demo</a>
+        <a class="btn" href="#results" data-en="Measured results" data-ko="측정 결과">Measured results</a>
+        <a class="btn" href="https://github.com/seonukkim/fink/tree/main/docs/paper" data-en="Paper notes" data-ko="논문 노트">Paper notes</a>
       </div>
     </section>
 
-    <section id="demo" class="section demo-section">
-      <div class="section-heading">
-        <p class="eyebrow">Synthetic demo only</p>
-        <h2>Public-safe report preview</h2>
+    <p class="disclaimer">
+      <span data-en="FInk reports Contractual Financial Review Priority only. It is not legal advice, and not a fraud, illegality, validity, unfairness, or guaranteed-loss verdict. Public page data is synthetic or ledger-derived: no real contracts, private-book text, long official excerpts, keys, or private runtime inputs are included."
+            data-ko="FInk은 계약 금융 검토 우선도만 보고합니다. 법률 자문이 아니며, 사기·위법·유효성·불공정·확정 손실에 대한 판정이 아닙니다. 공개 페이지 데이터는 합성이거나 원장에서 파생된 것입니다. 실제 계약, 사적 도서 본문, 긴 공식 발췌, 키, 사적 런타임 입력은 포함되지 않습니다.">FInk reports Contractual Financial Review Priority only…</span>
+    </p>
+
+    <section id="overview" class="band">
+      <h2 data-en="Overview" data-ko="개요">Overview</h2>
+      <p data-en="A creator contract is a financial document: its clauses move real money over time through royalties, settlement timing, deductions, minimum-guarantee recoupment, payment delay, IP rights, exclusivity, and production cost. FInk reads a contract from a phone photo, an image, a PDF, or pasted text, segments the clauses, retrieves authority-aware evidence, and surfaces where the money is — so a creator can ask better questions before signing."
+         data-ko="창작자 계약은 금융 문서입니다. 로열티, 정산 시점, 공제, 최소보장(MG) 회수, 지급 지연, 지식재산권, 독점, 제작비 등 조항이 시간에 걸쳐 실제 돈을 움직입니다. FInk은 사진, 이미지, PDF, 붙여넣은 텍스트에서 계약을 읽고, 조항을 분할하며, 권위 기반 근거를 검색해, 돈이 어디에 있는지 드러냅니다. 창작자가 서명 전에 더 나은 질문을 할 수 있게요.">A creator contract is a financial document…</p>
+      <p class="course-note"
+         data-en="Built for UNIST IE412 (AI for Finance, 2026 Spring) as a Financial AI project: decision-focused evaluation, LLMs for financial-document analysis, and risk-detection methodology adapted into financial triage. FInk does not determine fraud."
+         data-ko="UNIST IE412(AI for Finance, 2026 봄) 금융 AI 프로젝트로 제작: 의사결정 중심 평가, 금융 문서 분석을 위한 LLM, 위험탐지 방법론을 금융 분류로 적응. FInk은 사기 여부를 판정하지 않습니다.">Built for UNIST IE412…</p>
+    </section>
+
+    <section id="method" class="band">
+      <h2 data-en="Method — four separate dimensions" data-ko="방법 — 네 개의 분리된 차원">Method — four separate dimensions</h2>
+      <p class="sub" data-en="Outputs are reported side by side and never merged into one total-loss number." data-ko="출력은 나란히 보고되며 하나의 총손실 숫자로 합쳐지지 않습니다.">Outputs are reported side by side and never merged into one total-loss number.</p>
+      <div class="grid4">
+        <article>
+          <h3 data-en="Review Priority" data-ko="검토 우선도">Review Priority</h3>
+          <p data-en="An ordinal Contractual Financial Review Priority signal for which clauses deserve closer human review." data-ko="어떤 조항을 사람이 더 자세히 검토해야 하는지에 대한 순서형 계약 금융 검토 우선도 신호.">An ordinal signal for which clauses deserve closer review.</p>
+        </article>
+        <article>
+          <h3 data-en="Monetary Exposure" data-ko="금액 노출">Monetary Exposure</h3>
+          <p data-en="Low, base, and high scenarios from extracted values or explicit, user-editable synthetic assumptions." data-ko="추출된 값 또는 사용자가 편집 가능한 합성 가정에서 나온 저·기준·고 시나리오.">Low / base / high scenarios from values or user assumptions.</p>
+        </article>
+        <article>
+          <h3 data-en="Time Exposure" data-ko="시간 노출">Time Exposure</h3>
+          <p data-en="Payment timing, recoupment duration, term, and delay pathways shown as typed fields." data-ko="지급 시점, 회수 기간, 계약 기간, 지연 경로를 타입 지정 필드로 표시.">Payment timing, recoupment, term, and delay as typed fields.</p>
+        </article>
+        <article>
+          <h3 data-en="Evidence &amp; OCR Confidence" data-ko="근거 · OCR 신뢰도">Evidence &amp; OCR Confidence</h3>
+          <p data-en="Confidence stays separate from priority, so unclear data raises uncertainty instead of inventing values." data-ko="신뢰도는 우선도와 분리되어, 불명확한 데이터는 값을 지어내지 않고 불확실성을 높입니다.">Confidence stays separate, so unclear data raises uncertainty.</p>
+        </article>
       </div>
-      <div class="demo-grid">
-        <article class="demo-panel">
-          <h3>Synthetic input placeholder</h3>
-          <p class="placeholder-line">Creator contract sample: synthetic fixture only.</p>
-          <p class="placeholder-line">No real contract text or private source excerpt appears here.</p>
-          <p class="placeholder-line">Financial values require user-provided assumptions.</p>
-        </article>
-        <article class="demo-panel">
-          <h3>Review output preview</h3>
-          <dl class="preview-list">
-            <dt>Priority frame</dt>
-            <dd>Contractual Financial Review Priority</dd>
-            <dt>Financial category examples</dt>
-            <dd>Settlement, deductions, payment timing, MG recoupment, IP monetization</dd>
-            <dt>Exposure state</dt>
-            <dd>Requires low, base, and high assumptions before values are shown</dd>
-            <dt>Evidence state</dt>
-            <dd>Official-source grounding remains date-stamped and unverified for current-law claims</dd>
-          </dl>
-        </article>
+      <figure class="teaser">
+        <img src="assets/images/fink-hero.png"
+             alt="FInk pipeline: input to OCR, clause segmentation, authority-aware retrieval, financial signals, and a mobile review report"
+             data-figure-id="FIG-S6-01-HERO" loading="lazy">
+        <figcaption data-en="Pipeline: camera / image / PDF / pasted clause → OCR → clause segmentation → authority-aware retrieval → financial risk signals → cash-flow scenarios → mobile review report." data-ko="파이프라인: 카메라 / 이미지 / PDF / 붙여넣은 조항 → OCR → 조항 분할 → 권위 기반 검색 → 금융 위험 신호 → 현금흐름 시나리오 → 모바일 검토 리포트.">Pipeline figure.</figcaption>
+      </figure>
+    </section>
+
+    <section id="demo" class="band">
+      <h2 data-en="Demo (synthetic-demo only)" data-ko="데모 (합성 데모 전용)">Demo (synthetic-demo only)</h2>
+      <p data-en="The interactive demo is a local-first, responsive web app (desktop + mobile browser). It runs on loopback with no outbound calls, uses synthetic/sanitized fixtures only, and never accepts a real contract on this public page. Disclaimers and privacy banners are shown in both Korean and English." data-ko="대화형 데모는 로컬 우선, 반응형 웹앱입니다(데스크톱 + 모바일 브라우저). 루프백에서 실행되며 외부 호출이 없고, 합성/정제된 픽스처만 사용하며, 이 공개 페이지에서는 실제 계약을 받지 않습니다. 면책 및 개인정보 배너는 한국어와 영어로 모두 표시됩니다.">The interactive demo is a local-first, responsive web app…</p>
+      <div class="run">
+        <p class="run-title" data-en="Run it locally" data-ko="로컬에서 실행">Run it locally</p>
+        <pre><code>git clone https://github.com/seonukkim/fink
+cd fink &amp;&amp; uv sync
+PYTHONPATH=src python3 -m fink.web.app
+# open http://127.0.0.1:8000  (loopback only)</code></pre>
+        <p class="run-note" data-en="Responsive: the layout reflows for phone and desktop widths; the page sets a mobile viewport and uses width breakpoints. Language can be switched in-app (KO / EN)." data-ko="반응형: 레이아웃이 휴대폰과 데스크톱 너비에 맞게 재배치됩니다. 모바일 뷰포트와 너비 분기점을 사용합니다. 앱 내에서 언어 전환(한국어 / 영어) 가능.">Responsive across phone and desktop; language switch in-app (KO / EN).</p>
       </div>
     </section>
 
-    <section id="metrics" class="section">
-      <div class="section-heading">
-        <p class="eyebrow">Ledger-sourced</p>
-        <h2>Metric table</h2>
-        <p>
-          This table is populated from the embedded public snapshot of
-          <code>docs/paper/RESULT_LEDGER.csv</code>. Empty ledgers render as no
-          measured results rather than placeholder numbers.
-        </p>
-      </div>
+    <section id="results" class="band">
+      <h2 data-en="Measured results (synthetic)" data-ko="측정 결과 (합성)">Measured results (synthetic)</h2>
+      <p class="sub" data-en="Values are embedded from a public snapshot of RESULT_LEDGER.csv and are measured on synthetic/sanitized fixtures only — not a generalized performance claim. Figures are registered in FIGURE_REGISTRY.csv." data-ko="값은 RESULT_LEDGER.csv의 공개 스냅샷에서 포함되었으며, 합성/정제 픽스처에서만 측정됩니다. 일반화된 성능 주장이 아닙니다. 그림은 FIGURE_REGISTRY.csv에 등록됩니다.">Embedded from RESULT_LEDGER.csv; figures from FIGURE_REGISTRY.csv.</p>
+      <p class="figtags">
+        <span class="figtag" data-figure-id="FIG-S7-01-RESULT-METRIC-TABLE">metric table</span>
+        <span class="figtag" data-figure-id="FIG-S7-01-RISK-ABLATION">risk ablation</span>
+        <span class="figtag" data-figure-id="FIG-S7-01-RUNTIME-PRIVACY">runtime / privacy</span>
+      </p>
       <div class="table-wrap">
         <table>
-          <caption>Measured result rows from RESULT_LEDGER.csv</caption>
+          <caption data-en="Measured result rows from RESULT_LEDGER.csv" data-ko="RESULT_LEDGER.csv의 측정 결과 행">Measured result rows from RESULT_LEDGER.csv</caption>
           <thead>
             <tr>
-              <th scope="col">Metric</th>
-              <th scope="col">Value</th>
-              <th scope="col">Status</th>
-              <th scope="col">Artifact</th>
-              <th scope="col">Notes</th>
+              <th scope="col" data-en="Metric" data-ko="지표">Metric</th>
+              <th scope="col" data-en="Value" data-ko="값">Value</th>
+              <th scope="col" data-en="Status" data-ko="상태">Status</th>
+              <th scope="col" data-en="Artifact" data-ko="산출물">Artifact</th>
+              <th scope="col" data-en="Notes" data-ko="비고">Notes</th>
             </tr>
           </thead>
           <tbody id="result-ledger-rows">
-            <tr>
-              <td colspan="5">JavaScript disabled: no measured result rows are embedded.</td>
-            </tr>
+            <tr><td colspan="5">JavaScript disabled: no measured result rows are embedded in this fallback view.</td></tr>
           </tbody>
         </table>
       </div>
-
-      <div class="section-heading compact">
-        <p class="eyebrow">Figure registry</p>
-        <h2>Public figures used on this page</h2>
-        <p>
-          Figure entries come from <code>docs/paper/FIGURE_REGISTRY.csv</code>
-          and point only at public-safe assets in <code>site/</code>.
-        </p>
-      </div>
+      <h3 class="mini" data-en="Registered public figures" data-ko="등록된 공개 그림">Registered public figures</h3>
       <div class="table-wrap">
         <table>
-          <caption>Figure rows with project-page sections</caption>
+          <caption data-en="Figure rows from FIGURE_REGISTRY.csv" data-ko="FIGURE_REGISTRY.csv의 그림 행">Figure rows from FIGURE_REGISTRY.csv</caption>
           <thead>
             <tr>
-              <th scope="col">Figure ID</th>
-              <th scope="col">Title</th>
-              <th scope="col">Source artifact</th>
-              <th scope="col">Site section</th>
-              <th scope="col">Status</th>
+              <th scope="col" data-en="Figure" data-ko="그림">Figure</th>
+              <th scope="col" data-en="Title" data-ko="제목">Title</th>
+              <th scope="col" data-en="Source" data-ko="출처">Source</th>
+              <th scope="col" data-en="Section" data-ko="섹션">Section</th>
+              <th scope="col" data-en="Status" data-ko="상태">Status</th>
             </tr>
           </thead>
           <tbody id="figure-registry-rows">
-            <tr>
-              <td colspan="5">JavaScript disabled: figure registry rows are not rendered.</td>
-            </tr>
+            <tr><td colspan="5">JavaScript disabled: figure rows are not rendered.</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <section id="safety" class="section safety-section">
-      <div class="section-heading">
-        <p class="eyebrow">Public safety</p>
-        <h2>Boundaries carried into the page</h2>
-      </div>
-      <div class="safety-grid">
+    <section id="safety" class="band">
+      <h2 data-en="Responsible use &amp; safety" data-ko="책임있는 사용 · 안전성">Responsible use &amp; safety</h2>
+      <div class="grid3">
         <article>
-          <h3>No private material</h3>
-          <p>No user contract, private corpus passage, PDF, ZIP, token, or model weight is included.</p>
+          <h3 data-en="No legal verdict" data-ko="법적 판정 없음">No legal verdict</h3>
+          <p data-en="FInk frames review priority and scenario analysis. It does not decide fraud, illegality, validity, voidness, unfairness, or guaranteed loss; only A0–A2 official sources support authority-grounded scoring." data-ko="FInk은 검토 우선도와 시나리오 분석을 제시합니다. 사기·위법·유효성·무효·불공정·확정 손실을 결정하지 않으며, A0–A2 공식 출처만 권위 기반 점수를 뒷받침합니다.">Review priority and scenarios, not legal conclusions.</p>
         </article>
         <article>
-          <h3>No unsupported result claim</h3>
-          <p>Metrics are shown only when <code>RESULT_LEDGER.csv</code> contains measured rows.</p>
+          <h3 data-en="No private material" data-ko="사적 자료 없음">No private material</h3>
+          <p data-en="No user contract, private corpus passage, PDF, ZIP, token, or model weight is included on this public page or in Git." data-ko="이 공개 페이지나 Git에는 사용자 계약, 사적 말뭉치 구절, PDF, ZIP, 토큰, 모델 가중치가 포함되지 않습니다.">No private contracts, corpora, keys, or weights.</p>
         </article>
         <article>
-          <h3>No legal verdict</h3>
-          <p>The project frames review priority and scenario analysis, not legal conclusions.</p>
+          <h3 data-en="No invented numbers" data-ko="지어낸 숫자 없음">No invented numbers</h3>
+          <p data-en="Metrics appear only when RESULT_LEDGER.csv has measured rows; missing inputs lower confidence rather than inventing money." data-ko="지표는 RESULT_LEDGER.csv에 측정 행이 있을 때만 표시됩니다. 누락된 입력은 돈을 지어내지 않고 신뢰도를 낮춥니다.">Measured rows only; missing inputs lower confidence.</p>
         </article>
       </div>
+    </section>
+
+    <section id="cite" class="band">
+      <h2 data-en="Citation" data-ko="인용">Citation</h2>
+      <p class="sub" data-en="Provisional citation for a work in progress — no published venue, DOI, or results." data-ko="진행 중인 작업의 잠정 인용 — 출판 게재처, DOI, 결과 없음.">Provisional citation for a work in progress.</p>
+      <pre class="bibtex"><code>@misc{kim2026fink,
+  author       = {Kim, Seonuk},
+  title        = {{FInk}: Evidence-Grounded Financial AI for Creator Contract Review},
+  year         = {2026},
+  note         = {UNIST IE412 AI for Finance (2026 Spring) final project. Work in progress.},
+  howpublished = {\url{https://github.com/seonukkim/fink}}
+}</code></pre>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>FInk static project page. Generated from public ledgers on <span id="snapshot-date">unknown</span>.</p>
-    <p>Course context: IE412 AI for Finance, 2026 Spring.</p>
+    <p><span data-en="FInk static project page. Synthetic-demo only. Generated from public ledgers on" data-ko="FInk 정적 프로젝트 페이지. 합성 데모 전용. 공개 원장에서 생성됨:">FInk static project page. Synthetic-demo only. Generated from public ledgers on</span> <span id="snapshot-date">unknown</span>.</p>
+    <p data-en="UNIST IE412 AI for Finance · 2026 Spring." data-ko="UNIST IE412 AI for Finance · 2026 봄.">UNIST IE412 AI for Finance · 2026 Spring.</p>
   </footer>
 
-  <script id="ledger-snapshot" type="application/json">
-{
-  "generated_at": "2026-06-21",
+  <script id="ledger-snapshot" type="application/json">{
+  "generated_at": "2026-06-22",
   "sources": {
     "result_ledger": "docs/paper/RESULT_LEDGER.csv",
     "figure_registry": "docs/paper/FIGURE_REGISTRY.csv"
@@ -238,7 +200,278 @@
     "reviewer",
     "notes"
   ],
-  "results": [],
+  "results": [
+    {
+      "result_id": "FINK-S5-02-EV-OCR-CER",
+      "experiment_id": "ocr_extract_metric_run",
+      "metric": "EV-OCR-CER",
+      "value": "0.052632",
+      "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-02-EV-OCR-WER",
+      "experiment_id": "ocr_extract_metric_run",
+      "metric": "EV-OCR-WER",
+      "value": "0.125000",
+      "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-02-EV-EXACT-MONEY",
+      "experiment_id": "ocr_extract_metric_run",
+      "metric": "EV-EXACT-MONEY",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-02-EV-EXACT-PCT",
+      "experiment_id": "ocr_extract_metric_run",
+      "metric": "EV-EXACT-PCT",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-02-EV-EXACT-DATE",
+      "experiment_id": "ocr_extract_metric_run",
+      "metric": "EV-EXACT-DATE",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-02-EV-EXACT-DUR",
+      "experiment_id": "ocr_extract_metric_run",
+      "metric": "EV-EXACT-DUR",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-02-EV-SEG",
+      "experiment_id": "ocr_extract_metric_run",
+      "metric": "EV-SEG",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-03-EV-R@3",
+      "experiment_id": "retrieval_metric_run",
+      "metric": "EV-R@3",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-03-EV-R@5",
+      "experiment_id": "retrieval_metric_run",
+      "metric": "EV-R@5",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-03-EV-AUTH",
+      "experiment_id": "retrieval_metric_run",
+      "metric": "EV-AUTH",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-03-EV-SPAN",
+      "experiment_id": "retrieval_metric_run",
+      "metric": "EV-SPAN",
+      "value": "0.850000",
+      "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-03-EV-KOEN",
+      "experiment_id": "retrieval_metric_run",
+      "metric": "EV-KOEN",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/retrieval_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim"
+    },
+    {
+      "result_id": "FINK-S5-04-rule_only-EV-F1",
+      "experiment_id": "risk_metric_run:rule_only",
+      "metric": "EV-F1",
+      "value": "0.833333",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-rule_only-EV-BENIGN-FPR",
+      "experiment_id": "risk_metric_run:rule_only",
+      "metric": "EV-BENIGN-FPR",
+      "value": "0.250000",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-rule_only-EV-SEV",
+      "experiment_id": "risk_metric_run:rule_only",
+      "metric": "EV-SEV",
+      "value": "0.870000",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-model_only-EV-F1",
+      "experiment_id": "risk_metric_run:model_only",
+      "metric": "EV-F1",
+      "value": "0.857143",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-model_only-EV-BENIGN-FPR",
+      "experiment_id": "risk_metric_run:model_only",
+      "metric": "EV-BENIGN-FPR",
+      "value": "0.500000",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-model_only-EV-SEV",
+      "experiment_id": "risk_metric_run:model_only",
+      "metric": "EV-SEV",
+      "value": "0.910000",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-hybrid-EV-F1",
+      "experiment_id": "risk_metric_run:hybrid",
+      "metric": "EV-F1",
+      "value": "0.923077",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-hybrid-EV-BENIGN-FPR",
+      "experiment_id": "risk_metric_run:hybrid",
+      "metric": "EV-BENIGN-FPR",
+      "value": "0.250000",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-04-hybrid-EV-SEV",
+      "experiment_id": "risk_metric_run:hybrid",
+      "metric": "EV-SEV",
+      "value": "0.988333",
+      "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim"
+    },
+    {
+      "result_id": "FINK-S5-05-EV-UNIT",
+      "experiment_id": "formula_unit_suite",
+      "metric": "EV-UNIT",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/formula_unit_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "13/13 registered unit cases passed; includes FIM-1..FIM-8 and SC invariants; synthetic/sanitized worked examples only"
+    },
+    {
+      "result_id": "FINK-S5-05-EV-FINSCEN",
+      "experiment_id": "formula_unit_suite",
+      "metric": "EV-FINSCEN",
+      "value": "1.000000",
+      "artifact_path": "scripts/eval/formula_unit_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "10/10 financial scenario cases passed; values are worked examples or user-labeled synthetic assumptions"
+    },
+    {
+      "result_id": "FINK-S5-06-EV-OFFLINE",
+      "experiment_id": "offline_integration_test",
+      "metric": "EV-OFFLINE",
+      "value": "0",
+      "artifact_path": "scripts/eval/runtime_gate_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "network_attempts observed across 2 accepted synthetic PDF/paste runs; runtime_error=null; workspace_removed_runs=2"
+    },
+    {
+      "result_id": "FINK-S5-06-EV-PRIV",
+      "experiment_id": "privacy_redaction_test",
+      "metric": "EV-PRIV",
+      "value": "0",
+      "artifact_path": "scripts/eval/runtime_gate_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "leak_count observed across 6 log/export surfaces; synthetic contract text, raw filenames, and temp paths omitted"
+    },
+    {
+      "result_id": "FINK-S5-06-EV-LAT",
+      "experiment_id": "latency_memory_run",
+      "metric": "EV-LAT",
+      "value": "0.003412999",
+      "artifact_path": "scripts/eval/runtime_gate_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "max_latency_seconds across 2 synthetic local runs; no SLA asserted"
+    },
+    {
+      "result_id": "FINK-S5-06-EV-MEM",
+      "experiment_id": "latency_memory_run",
+      "metric": "EV-MEM",
+      "value": "37279",
+      "artifact_path": "scripts/eval/runtime_gate_suite_results.json",
+      "status": "measured",
+      "reviewer": "codex",
+      "notes": "max_peak_memory_bytes across 2 synthetic local runs; no memory SLA asserted"
+    }
+  ],
   "figure_columns": [
     "figure_id",
     "title",
@@ -257,9 +490,35 @@
       "site_section": "hero",
       "status": "registered",
       "notes": "Public-safe brand artwork; no contract text, private-book text, official excerpt, key, or user data."
+    },
+    {
+      "figure_id": "FIG-S7-01-RESULT-METRIC-TABLE",
+      "title": "Measured synthetic evaluation metrics table",
+      "source_artifact": "docs/paper/RESULT_LEDGER.csv",
+      "paper_section": "06_results.md",
+      "site_section": "metrics-table",
+      "status": "registered",
+      "notes": "Table source is RESULT_LEDGER rows with status=measured; no unmeasured metric values."
+    },
+    {
+      "figure_id": "FIG-S7-01-RISK-ABLATION",
+      "title": "Synthetic risk-arm ablation metrics",
+      "source_artifact": "scripts/eval/risk_metric_suite_results.json",
+      "paper_section": "06_results.md",
+      "site_section": "metrics-table",
+      "status": "registered",
+      "notes": "Source artifact reports rule_only, model_only, and hybrid rows; no generalized optimality claim."
+    },
+    {
+      "figure_id": "FIG-S7-01-RUNTIME-PRIVACY",
+      "title": "Offline/privacy/runtime measured gate summary",
+      "source_artifact": "scripts/eval/runtime_gate_suite_results.json",
+      "paper_section": "06_results.md",
+      "site_section": "metrics-table",
+      "status": "registered",
+      "notes": "Source artifact uses synthetic PDF/paste runs; no SLA claim."
     }
   ]
-}
-  </script>
+}</script>
 </body>
 </html>
