@@ -99,6 +99,25 @@ class AnalyzeRobustnessTests(unittest.TestCase):
         payload = analysis_result_to_payload(result, "ko")  # type: ignore[arg-type]
         self.assertEqual(payload["ui_locale"], "ko")
 
+    def test_secondary_rights_flat_input_invents_no_money(self) -> None:
+        """A flat secondary_rights number is not a valid FIM-6 input: it is
+        skipped and must yield no invented monetary value (honest input-required),
+        never a fabricated finite exposure or a crash (directive P0-VERIFY-00 1.3).
+        """
+        status, payload = asyncio.run(
+            _post(
+                _app(),
+                "/api/analyze",
+                {
+                    "paste_text": "회사는 2차적저작물 작성권을 가진다.",
+                    "locale": "ko",
+                    "assumptions": {"secondary_rights": 5},
+                },
+            )
+        )
+        self.assertEqual(status, 200)
+        self.assertFalse(payload["dimensions"]["monetary"]["present"])
+
 
 if __name__ == "__main__":
     unittest.main()

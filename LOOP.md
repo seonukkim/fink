@@ -56,3 +56,18 @@ bash scripts/agent_loop/run_backlog.sh --max-tasks 100
 # stop the loop after the current task
 touch loop/STOP
 ```
+
+## Direct (non-loop) implementation log
+
+The status above is auto-generated from the agent-loop `STATE.json` and does
+**not** track work implemented directly (outside the Codex→Claude loop). Direct,
+checkpoint-committed work is logged in `docs/ai-use-log.md`; mirrored here for
+traceability:
+
+- `0ffa1fe` — P0 web robustness: structured bilingual errors for known
+  engine/setup failures (no 500 traceback), `secondary_rights` crash fix, locale
+  guard. Verified: `tests/web/test_analyze_robustness.py` + 29 web tests pass;
+  `run_gates.sh` → GATES_OK.
+- (current checkpoint) — P0-VERIFY-00 corrections: a `secondary_rights`
+  *semantic* regression (a flat numeric input is skipped and yields no invented
+  monetary value, not a fabricated exposure) and this LOOP.md record.
