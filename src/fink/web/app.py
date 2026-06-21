@@ -7,6 +7,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
+from fink.web.assumptions import render_assumptions_panel_html
 from fink.web.ingest_ui import (
     PAGE_OPERATIONS,
     PDF_LOCAL_NOTICE,
@@ -233,6 +234,7 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
         <p class="eyebrow">Preview report</p>
         <h2 id="report-heading">Four separate dimensions</h2>
       </div>
+      {render_assumptions_panel_html()}
       {render_empty_report_shell_html()}
       <aside class="export-disclosures" aria-label="Report and export disclosures">
         <h3>Report disclosures</h3>
@@ -675,6 +677,47 @@ textarea {
 .report-ui {
   display: grid;
   gap: 1rem;
+}
+.assumptions-panel {
+  display: grid;
+  gap: .85rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+.assumption-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: .65rem;
+}
+.assumption-field {
+  display: grid;
+  gap: .25rem;
+}
+.assumption-field span {
+  font-weight: 700;
+}
+.assumption-field small {
+  color: var(--muted);
+}
+.assumption-field input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .55rem .65rem;
+}
+.assumption-results {
+  display: grid;
+  gap: .6rem;
+  margin: 0;
+  padding-left: 1.15rem;
+}
+.assumption-results output {
+  margin-top: .25rem;
+  font-size: 1rem;
 }
 article {
   min-height: 8rem;
