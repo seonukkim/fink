@@ -13,6 +13,7 @@ from fink.web.ingest_ui import (
     input_mode_controls,
     responsive_ingest_layouts,
 )
+from fink.web.report_ui import render_empty_report_shell_html
 
 DEFAULT_LOOPBACK_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -232,24 +233,7 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
         <p class="eyebrow">Preview report</p>
         <h2 id="report-heading">Four separate dimensions</h2>
       </div>
-      <div class="dimension-grid">
-        <article>
-          <h3>Review Priority</h3>
-          <output aria-label="Review priority score">0 / 100</output>
-        </article>
-        <article>
-          <h3>Monetary Exposure</h3>
-          <p>Low / base / high scenario ranges stay separate by exposure type.</p>
-        </article>
-        <article>
-          <h3>Time Exposure</h3>
-          <p>Typed timing fields and pathway labels appear here.</p>
-        </article>
-        <article>
-          <h3>Evidence &amp; OCR Confidence</h3>
-          <p>UNVERIFIED source status and OCR confidence appear here.</p>
-        </article>
-      </div>
+      {render_empty_report_shell_html()}
       <aside class="export-disclosures" aria-label="Report and export disclosures">
         <h3>Report disclosures</h3>
         <ul>
@@ -688,6 +672,10 @@ textarea {
   gap: .75rem;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
+.report-ui {
+  display: grid;
+  gap: 1rem;
+}
 article {
   min-height: 8rem;
   border: 1px solid var(--line);
@@ -696,6 +684,73 @@ article {
 }
 .dimension-grid article {
   background: var(--panel);
+}
+.category-cards, .non-scoring-context {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+.risk-category-card {
+  display: grid;
+  gap: .9rem;
+  margin-bottom: .75rem;
+  background: #fbfcfe;
+}
+.risk-category-card header {
+  display: grid;
+  gap: .2rem;
+}
+.risk-category-card h4, .risk-category-card h5 {
+  margin: 0;
+}
+.badge {
+  display: inline-block;
+  width: fit-content;
+  padding: .2rem .45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent-strong);
+  font-size: .8rem;
+  font-weight: 700;
+}
+.unverified-badge {
+  color: var(--warn-ink);
+  background: var(--warn-bg);
+  border-color: #b7791f;
+}
+.generated-label, .synthetic-assumption {
+  margin-left: .25rem;
+}
+.flagged-clauses, .exposure-list, .reference-list,
+.questions-before-signing ul, .non-scoring-context ul {
+  display: grid;
+  gap: .6rem;
+  margin: 0;
+  padding-left: 1.15rem;
+}
+mark {
+  padding: .05rem .2rem;
+  background: #fff0a8;
+}
+.source-grid {
+  display: grid;
+  gap: .6rem;
+}
+.source-card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .75rem;
+  background: #fff;
+}
+.metric-list {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(5rem, auto);
+  gap: .35rem .75rem;
+  margin: 0;
+}
+.metric-list dd {
+  margin: 0;
+  font-weight: 700;
 }
 output {
   display: block;
@@ -723,6 +778,9 @@ footer {
   }
   .thumbnail-strip {
     grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+  .source-grid {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
 }
 @media (max-width: 640px) {
