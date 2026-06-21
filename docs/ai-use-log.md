@@ -56,3 +56,18 @@
 - Verification: 4 new regressions + 29 web tests pass; `run_gates.sh` → GATES_OK.
 - Privacy: no `.env`, token, weights, private corpora, PDFs/ZIPs, `.fink`
   artifacts, or raw user content were read or committed.
+
+## 2026-06-22 — Installable package and web CLI
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: FINK-PKG-01. Updated packaging metadata so the `src/` layout is
+  installable without `PYTHONPATH`, added the `web` optional dependency extra
+  and `fink-web` console entry point, preserved module invocation for
+  `python -m fink.web`, and documented the new local run command. No model/OCR
+  heavy dependency, runtime download, remote API dependency, or `.env` access was
+  added.
+- Verification: packaging/CLI regressions added under `tests/web/`; final gate
+  commands for this task are recorded in the Codex result.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.

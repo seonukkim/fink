@@ -1298,25 +1298,27 @@ tasks:
   - tests/web/
   - README.md
   - docs/
-  description: >-
-    Make FInk installable from a clean clone with no PYTHONPATH hacks. Configure a
-    valid build backend and src-layout discovery (remove/replace any tool.uv
-    package=false), add a web optional-dependency extra (fastapi, uvicorn,
-    python-multipart), and a fink-web console entry point invoking the app factory
-    with --host/--port/--help, loopback default, trusted-LAN-gated binding. Keep
-    model/OCR/heavy deps OUT of core. uv sync --extra web, uv run fink-web --help,
-    and uv run python -c "import fink; import fink.web.app" must work; module
-    invocation preserved where practical. No runtime download; no .env read.
+  description: Make FInk installable from a clean clone with no PYTHONPATH hacks.
+    Configure a valid build backend and src-layout discovery (remove/replace any tool.uv
+    package=false), add a web optional-dependency extra (fastapi, uvicorn, python-multipart),
+    and a fink-web console entry point invoking the app factory with --host/--port/--help,
+    loopback default, trusted-LAN-gated binding. Keep model/OCR/heavy deps OUT of
+    core. uv sync --extra web, uv run fink-web --help, and uv run python -c "import
+    fink; import fink.web.app" must work; module invocation preserved where practical.
+    No runtime download; no .env read.
   acceptance_criteria:
-  - 'uv sync --extra web installs; uv run fink-web --help exits 0; import works with no PYTHONPATH'
-  - 'invalid port and wildcard host rejected with nonzero exit; new packaging/CLI tests pass; GATES_OK'
+  - uv sync --extra web installs; uv run fink-web --help exits 0; import works with
+    no PYTHONPATH
+  - invalid port and wildcard host rejected with nonzero exit; new packaging/CLI tests
+    pass; GATES_OK
   machine_gates:
   - run_gates
   - web_smoke
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-21T20:34:39+00:00'
 - id: FINK-LOC-01
   phase: P0
   priority: P0
@@ -1326,13 +1328,13 @@ tasks:
   allowed_paths:
   - src/fink/web/
   - tests/web/
-  description: >-
-    Complete locale semantics: missing API locale defaults to ko; valid ko/en
-    strings and UILocale enums behave identically; an explicitly invalid API locale
-    returns a structured 422 (not silent ko, not 500); invalid browser-stored locale
-    falls back to ko. A locale problem never returns a generic 500.
+  description: 'Complete locale semantics: missing API locale defaults to ko; valid
+    ko/en strings and UILocale enums behave identically; an explicitly invalid API
+    locale returns a structured 422 (not silent ko, not 500); invalid browser-stored
+    locale falls back to ko. A locale problem never returns a generic 500.'
   acceptance_criteria:
-  - 'invalid API locale returns structured 422; missing defaults ko; ko/en string equals enum; tests cover all'
+  - invalid API locale returns structured 422; missing defaults ko; ko/en string equals
+    enum; tests cover all
   machine_gates:
   - web_smoke
   paper_sections: []
@@ -1348,21 +1350,23 @@ tasks:
   allowed_paths:
   - src/fink/web/
   - tests/web/
-  description: >-
-    One real paste/upload analyze path. Wire file upload (plain text, text-layer PDF;
-    image/scanned PDF via installed local OCR) into the SAME canonical analysis service
-    and serializer as paste (no separate financial logic). multipart on /api/analyze or
-    a clearly-named file endpoint sharing code. Enforce max size, extension/MIME
-    validation, corrupt/encrypted/empty/unsupported handling, temp-dir isolation and
-    cleanup, no raw input in logs, no network, no model download. When OCR is required
-    but absent, return structured error_code OCR_NOT_INSTALLED with Korean guidance and
-    a paste fallback, never a 500. Both-supplied returns a clear validation state. One
-    simple front-end input area and one Analyze button (no four competing tiles), loading
-    and duplicate-submit prevention and aria-busy. Also: unexpected internal TypeError
-    must produce a controlled 500 (no traceback/contract/path leak), not a 4xx.
+  description: 'One real paste/upload analyze path. Wire file upload (plain text,
+    text-layer PDF; image/scanned PDF via installed local OCR) into the SAME canonical
+    analysis service and serializer as paste (no separate financial logic). multipart
+    on /api/analyze or a clearly-named file endpoint sharing code. Enforce max size,
+    extension/MIME validation, corrupt/encrypted/empty/unsupported handling, temp-dir
+    isolation and cleanup, no raw input in logs, no network, no model download. When
+    OCR is required but absent, return structured error_code OCR_NOT_INSTALLED with
+    Korean guidance and a paste fallback, never a 500. Both-supplied returns a clear
+    validation state. One simple front-end input area and one Analyze button (no four
+    competing tiles), loading and duplicate-submit prevention and aria-busy. Also:
+    unexpected internal TypeError must produce a controlled 500 (no traceback/contract/path
+    leak), not a 4xx.'
   acceptance_criteria:
-  - 'JSON paste still 200; multipart text upload reaches analysis; text-layer PDF works'
-  - 'image without OCR returns friendly OCR_NOT_INSTALLED; unsupported/empty/oversized/corrupt return structured errors; temp files cleaned; no contract text logged; FastAPI and ASGI fallback compatible'
+  - JSON paste still 200; multipart text upload reaches analysis; text-layer PDF works
+  - image without OCR returns friendly OCR_NOT_INSTALLED; unsupported/empty/oversized/corrupt
+    return structured errors; temp files cleaned; no contract text logged; FastAPI
+    and ASGI fallback compatible
   machine_gates:
   - web_smoke
   - legal_verdict_scan
@@ -1380,18 +1384,19 @@ tasks:
   - scripts/
   - tests/
   - src/fink/web/
-  description: >-
-    Reproducible clean-clone end-to-end smoke test using a temporary LOCAL clone of the
-    committed tree (not the working tree, not a network clone, no PYTHONPATH).
-    scripts/smoke/clean_clone_web.sh: create temp clone, verify no .fink private data and
-    no tracked weights, uv sync --extra web, import, start fink-web on a free loopback
-    port with bounded readiness wait, send a synthetic paste request and a supported
-    synthetic multipart upload, assert structured success, assert graceful no-model
-    fallback, assert no outbound network at runtime, stop the server cleanly even on
-    failure, keep logs under non-Git .fink/, remove temp inputs. No real contract, no HF
-    token, no weight download, no 0.0.0.0, no repo mutation, no push, no left-running server.
+  description: 'Reproducible clean-clone end-to-end smoke test using a temporary LOCAL
+    clone of the committed tree (not the working tree, not a network clone, no PYTHONPATH).
+    scripts/smoke/clean_clone_web.sh: create temp clone, verify no .fink private data
+    and no tracked weights, uv sync --extra web, import, start fink-web on a free
+    loopback port with bounded readiness wait, send a synthetic paste request and
+    a supported synthetic multipart upload, assert structured success, assert graceful
+    no-model fallback, assert no outbound network at runtime, stop the server cleanly
+    even on failure, keep logs under non-Git .fink/, remove temp inputs. No real contract,
+    no HF token, no weight download, no 0.0.0.0, no repo mutation, no push, no left-running
+    server.'
   acceptance_criteria:
-  - 'bash scripts/smoke/clean_clone_web.sh exits 0 without PYTHONPATH; runtime offline; clean shutdown; temp clone removed'
+  - bash scripts/smoke/clean_clone_web.sh exits 0 without PYTHONPATH; runtime offline;
+    clean shutdown; temp clone removed
   machine_gates:
   - run_gates
   paper_sections: []
@@ -1407,21 +1412,21 @@ tasks:
   allowed_paths:
   - src/fink/web/
   - tests/web/
-  description: >-
-    Canonical CreatorReviewViewModel as the ONLY semantic source consumed by the web
-    result, HTML report, Markdown/JSON export, and the project-page synthetic example.
-    JavaScript must NOT consume raw scoring/FIM objects. Separate statuses (do not merge
-    into one confidence): reading_status, evidence_status, scenario_status,
-    quantification_status. Each finding has a stable finding_id plus rank, title, source
-    clause id and exact excerpt, why_it_matters, question_to_ask, cash_flow_consequence,
-    money/timing/reading/evidence/scenario/quantification states, priority_basis, FIM
-    module (advanced only), extracted fields, missing inputs, citations, model path.
-    Centralize Korean-canonical and English-aid copy keys (one source, not Python/JS/export
-    duplicates). Raw technical ids (FIM-2, F3, authority_factor, runtime_s,
-    overall_confidence) appear only in audit detail.
+  description: 'Canonical CreatorReviewViewModel as the ONLY semantic source consumed
+    by the web result, HTML report, Markdown/JSON export, and the project-page synthetic
+    example. JavaScript must NOT consume raw scoring/FIM objects. Separate statuses
+    (do not merge into one confidence): reading_status, evidence_status, scenario_status,
+    quantification_status. Each finding has a stable finding_id plus rank, title,
+    source clause id and exact excerpt, why_it_matters, question_to_ask, cash_flow_consequence,
+    money/timing/reading/evidence/scenario/quantification states, priority_basis,
+    FIM module (advanced only), extracted fields, missing inputs, citations, model
+    path. Centralize Korean-canonical and English-aid copy keys (one source, not Python/JS/export
+    duplicates). Raw technical ids (FIM-2, F3, authority_factor, runtime_s, overall_confidence)
+    appear only in audit detail.'
   acceptance_criteria:
-  - 'web and exports consume the same view model; no duplicate result semantics remain'
-  - 'KO and EN copy contain the same required keys; technical engine labels absent from the primary view; tests prove it'
+  - web and exports consume the same view model; no duplicate result semantics remain
+  - KO and EN copy contain the same required keys; technical engine labels absent
+    from the primary view; tests prove it
   machine_gates:
   - web_smoke
   - legal_verdict_scan
@@ -1440,18 +1445,19 @@ tasks:
   - src/fink/retrieval/
   - src/fink/scoring/
   - tests/
-  description: >-
-    Wire the local retrieval engine into the analysis path. Pasted text must NOT
-    auto-imply global UNVERIFIED or grounded-score-zero. Use the versioned local corpus
-    and deterministic BM25; pass REAL eligible authority tiers and evidence ids into
-    scoring. A finding with no eligible official evidence is shown as a candidate
+  description: 'Wire the local retrieval engine into the analysis path. Pasted text
+    must NOT auto-imply global UNVERIFIED or grounded-score-zero. Use the versioned
+    local corpus and deterministic BM25; pass REAL eligible authority tiers and evidence
+    ids into scoring. A finding with no eligible official evidence is shown as a candidate
     (미확인 후보): contributes zero, no fake citation, no verdict, states what evidence
     is missing. Model/embedding similarity alone NEVER creates score eligibility.
     Distinguish missing-optional-index (fall back to deterministic corpus/BM25) from
-    corrupt-required-corpus (structured setup error). Never fabricate grounding.
+    corrupt-required-corpus (structured setup error). Never fabricate grounding.'
   acceptance_criteria:
-  - 'an eligible official source yields a nonzero grounded contribution offline; an unverified candidate contributes zero with no fake citation'
-  - 'generated English is never evidence; similarity cannot change eligibility; corrupt required corpus returns a structured failure (no 500)'
+  - an eligible official source yields a nonzero grounded contribution offline; an
+    unverified candidate contributes zero with no fake citation
+  - generated English is never evidence; similarity cannot change eligibility; corrupt
+    required corpus returns a structured failure (no 500)
   machine_gates:
   - run_gates
   - legal_verdict_scan
@@ -1470,23 +1476,23 @@ tasks:
   allowed_paths:
   - src/fink/web/
   - tests/web/
-  description: >-
-    Exact provenance-backed selective source highlighting. A highlight is allowed ONLY
-    when an exact validated source span exists (offsets in-range, start less than end,
-    exact_text equals source slice, finding/clause exist; overlapping spans
-    deterministically segmented; malformed fail safe). Build validated display SEGMENTS on
-    the backend (Unicode-safe); the browser renders via text nodes (never innerHTML for
-    contract/model/source text; escape all). No client-side regex highlights; no
-    LLM-chosen highlights; no paraphrase rendered as source. Semantic roles describe
-    FINANCIAL FUNCTION not severity/legality: amount_or_rate, timing_or_term,
-    deduction_recoupment_or_liability, rights_scope_or_exclusivity, ambiguity_or_missing_bound,
-    with Korean labels and a non-color cue (underline/border/pattern) and a data attribute.
-    No green=safe, no red=illegal. Legend plus a highlight on/off toggle (off preserves
-    text and links). Bidirectional finding-to-source navigation with stable anchors. XSS
-    regression cases (HTML, script, event attributes, prompt-injection text).
+  description: 'Exact provenance-backed selective source highlighting. A highlight
+    is allowed ONLY when an exact validated source span exists (offsets in-range,
+    start less than end, exact_text equals source slice, finding/clause exist; overlapping
+    spans deterministically segmented; malformed fail safe). Build validated display
+    SEGMENTS on the backend (Unicode-safe); the browser renders via text nodes (never
+    innerHTML for contract/model/source text; escape all). No client-side regex highlights;
+    no LLM-chosen highlights; no paraphrase rendered as source. Semantic roles describe
+    FINANCIAL FUNCTION not severity/legality: amount_or_rate, timing_or_term, deduction_recoupment_or_liability,
+    rights_scope_or_exclusivity, ambiguity_or_missing_bound, with Korean labels and
+    a non-color cue (underline/border/pattern) and a data attribute. No green=safe,
+    no red=illegal. Legend plus a highlight on/off toggle (off preserves text and
+    links). Bidirectional finding-to-source navigation with stable anchors. XSS regression
+    cases (HTML, script, event attributes, prompt-injection text).'
   acceptance_criteria:
-  - 'for the synthetic clause, 90일 이내 is timing_or_term and 일반 경비 is deduction plus ambiguity; no whole-clause coloring'
-  - 'HTML/script in source is inert; a missing span yields a 정확한 문구 위치 확인 필요 state'
+  - for the synthetic clause, 90일 이내 is timing_or_term and 일반 경비 is deduction plus
+    ambiguity; no whole-clause coloring
+  - HTML/script in source is inert; a missing span yields a 정확한 문구 위치 확인 필요 state
   machine_gates:
   - web_smoke
   - legal_verdict_scan
@@ -1504,21 +1510,22 @@ tasks:
   allowed_paths:
   - src/fink/web/
   - tests/web/
-  description: >-
-    Creator-first result hierarchy. Lead with 지금 먼저 확인할 것 (dominant): action
-    heading, top finding title, exact highlighted excerpt, one cash-flow sentence, a copy
-    question button and an open-in-source link, evidence and quantification status. Then
-    four compact plain-language cards (검토 순서 / 현금흐름 영향 / 시점 / 판독 상태) with
-    honest states (입력 필요 / 상한 미확정 / 통화 확인 필요) and NO raw keys (score,
-    grounding, runtime_s, overall). Then 서명 전에 확인할 항목 (ranked findings; first
-    expanded; collapsed header at most three badges; fixed expanded order: 왜 확인 / 문구 /
-    영향 / 물어볼 말 / 근거 / 상세). Demote /100 to advanced diagnostics only, labeled
-    규칙 기반 검토 집중도 지수 with the note that it is not a risk probability, loss amount,
-    or safety verdict. Remove 우선도/브리프/local-first/Decision Brief. Single KO/EN toggle
-    switching the whole UI (not side-by-side).
+  description: 'Creator-first result hierarchy. Lead with 지금 먼저 확인할 것 (dominant):
+    action heading, top finding title, exact highlighted excerpt, one cash-flow sentence,
+    a copy question button and an open-in-source link, evidence and quantification
+    status. Then four compact plain-language cards (검토 순서 / 현금흐름 영향 / 시점 / 판독 상태)
+    with honest states (입력 필요 / 상한 미확정 / 통화 확인 필요) and NO raw keys (score, grounding,
+    runtime_s, overall). Then 서명 전에 확인할 항목 (ranked findings; first expanded; collapsed
+    header at most three badges; fixed expanded order: 왜 확인 / 문구 / 영향 / 물어볼 말 / 근거
+    / 상세). Demote /100 to advanced diagnostics only, labeled 규칙 기반 검토 집중도 지수 with
+    the note that it is not a risk probability, loss amount, or safety verdict. Remove
+    우선도/브리프/local-first/Decision Brief. Single KO/EN toggle switching the whole UI
+    (not side-by-side).'
   acceptance_criteria:
-  - 'recommended action precedes the four cards; top excerpt precedes /100; /100 only in advanced; first finding expanded'
-  - 'each actionable finding has a question; cash-flow and confidence not merged; analysis runtime is not contract timing; banned jargon absent'
+  - recommended action precedes the four cards; top excerpt precedes /100; /100 only
+    in advanced; first finding expanded
+  - each actionable finding has a question; cash-flow and confidence not merged; analysis
+    runtime is not contract timing; banned jargon absent
   machine_gates:
   - web_smoke
   - legal_verdict_scan
@@ -1535,17 +1542,18 @@ tasks:
   allowed_paths:
   - src/fink/web/
   - tests/web/
-  description: >-
-    Synchronized contract reader. Desktop at or above 1100px: stable two-column workspace
-    (source left, report right; no draggable splitter v1; no focus-obscuring sticky).
-    Mobile/tablet: single column with 원문 보기 and 검토 항목으로 돌아가기 links preserving
+  description: 'Synchronized contract reader. Desktop at or above 1100px: stable two-column
+    workspace (source left, report right; no draggable splitter v1; no focus-obscuring
+    sticky). Mobile/tablet: single column with 원문 보기 and 검토 항목으로 돌아가기 links preserving
     focus and scroll. Render exact selectable text for paste/text-PDF with inline
-    highlights; for OCR highlight reconstructed text (page-box overlay only with real bbox
-    provenance; label corrected OCR). Open-in-source navigates to the exact span and sets
-    keyboard focus and a temporary non-color active outline; a source link navigates back
-    to the finding; stable anchor ids; scroll-margin; no hover-only meaning.
+    highlights; for OCR highlight reconstructed text (page-box overlay only with real
+    bbox provenance; label corrected OCR). Open-in-source navigates to the exact span
+    and sets keyboard focus and a temporary non-color active outline; a source link
+    navigates back to the finding; stable anchor ids; scroll-margin; no hover-only
+    meaning.'
   acceptance_criteria:
-  - 'finding-to-source and source-to-finding navigation works with anchors, focus, and a non-color active state; no fabricated OCR boxes'
+  - finding-to-source and source-to-finding navigation works with anchors, focus,
+    and a non-color active state; no fabricated OCR boxes
   machine_gates:
   - web_smoke
   paper_sections: []
@@ -1561,18 +1569,20 @@ tasks:
   allowed_paths:
   - src/fink/web/
   - tests/web/
-  description: >-
-    Scenario input UX. The primary flow shows at most six context-relevant inputs chosen
-    from active findings and missing FIM inputs (no filler). Each field states its value
-    origin (계약서에서 읽음 / 사용자가 입력 / 모델 제안 — 확인 필요 / 입력되지 않음); a
-    model suggestion never looks like a contract value; no invented placeholder numbers
-    (descriptive placeholders only). Explicit 시나리오 다시 계산 (no silent mid-edit
-    recompute); after recompute, indicate which findings changed and which input caused
-    it, preserve the prior value in audit, announce via a status region, never alter
-    source text or evidence eligibility. The full grid goes under 고급 시나리오 입력.
+  description: Scenario input UX. The primary flow shows at most six context-relevant
+    inputs chosen from active findings and missing FIM inputs (no filler). Each field
+    states its value origin (계약서에서 읽음 / 사용자가 입력 / 모델 제안 — 확인 필요 / 입력되지 않음); a model
+    suggestion never looks like a contract value; no invented placeholder numbers
+    (descriptive placeholders only). Explicit 시나리오 다시 계산 (no silent mid-edit recompute);
+    after recompute, indicate which findings changed and which input caused it, preserve
+    the prior value in audit, announce via a status region, never alter source text
+    or evidence eligibility. The full grid goes under 고급 시나리오 입력.
   acceptance_criteria:
-  - 'missing values show input-required; missing currency is not assumed KRW; unbounded values render no finite range bar'
-  - 'incompatible exposure types are not combined; model-suggested values are visibly distinct; recalculation names the changed input; source/evidence unchanged after recompute'
+  - missing values show input-required; missing currency is not assumed KRW; unbounded
+    values render no finite range bar
+  - incompatible exposure types are not combined; model-suggested values are visibly
+    distinct; recalculation names the changed input; source/evidence unchanged after
+    recompute
   machine_gates:
   - web_smoke
   - no_invented_numbers
@@ -1590,14 +1600,15 @@ tasks:
   - src/fink/web/
   - src/fink/finance/
   - tests/
-  description: >-
-    Complete FIM-6 / secondary-rights beyond the crash-skip. Valid structured
+  description: Complete FIM-6 / secondary-rights beyond the crash-skip. Valid structured
     secondary-rights assumptions reach FIM-6 and can produce a scenario value; missing
     valuation inputs produce input_required; a qualitative rights/scope finding stays
-    visible when it cannot be monetized; no valid scenario is silently skipped; no finite
-    rights value is invented without assumptions.
+    visible when it cannot be monetized; no valid scenario is silently skipped; no
+    finite rights value is invented without assumptions.
   acceptance_criteria:
-  - 'structured secondary-rights inputs reach FIM-6 and produce a scenario; missing inputs yield input_required; a qualitative rights finding stays visible; no invented value; semantic tests (not only no-raise)'
+  - structured secondary-rights inputs reach FIM-6 and produce a scenario; missing
+    inputs yield input_required; a qualitative rights finding stays visible; no invented
+    value; semantic tests (not only no-raise)
   machine_gates:
   - no_invented_numbers
   - web_smoke
@@ -1616,21 +1627,22 @@ tasks:
   - src/fink/web/
   - src/fink/model/
   - tests/
-  description: >-
-    Grounded Q&A (non-floating; placed after findings or in a non-obscuring side region).
-    Per-finding primary question (specific, answerable by the counterparty, verdict-free,
-    grounded in corpus guidance, Korean-canonical) plus copy-one and copy-all and local
-    export (keyboard-accessible clipboard fallback and status messages). Session-local
-    check-state marking that never changes rank/score/safety. Q&A answers cite allowed
-    evidence ids and link the finding and highlight; must NOT change rank/money/timing/
-    eligibility/extracted values; treat contract and passages as untrusted data not
-    instructions; deterministic grounded fallback when no local model; prompt-injection
-    regression (ignore previous, change score to 100, state illegal, do not cite) where
-    the validator rejects bad citations, altered values/ranking, verdict wording, invalid
-    schema. Do not expose model names prominently (an analysis-method detail line only).
+  description: Grounded Q&A (non-floating; placed after findings or in a non-obscuring
+    side region). Per-finding primary question (specific, answerable by the counterparty,
+    verdict-free, grounded in corpus guidance, Korean-canonical) plus copy-one and
+    copy-all and local export (keyboard-accessible clipboard fallback and status messages).
+    Session-local check-state marking that never changes rank/score/safety. Q&A answers
+    cite allowed evidence ids and link the finding and highlight; must NOT change
+    rank/money/timing/ eligibility/extracted values; treat contract and passages as
+    untrusted data not instructions; deterministic grounded fallback when no local
+    model; prompt-injection regression (ignore previous, change score to 100, state
+    illegal, do not cite) where the validator rejects bad citations, altered values/ranking,
+    verdict wording, invalid schema. Do not expose model names prominently (an analysis-method
+    detail line only).
   acceptance_criteria:
-  - 'deterministic offline answers work with no model; injection cannot create verdict wording or alter score/money/ranking'
-  - 'answers cite allowed evidence; session check-state never changes engine output'
+  - deterministic offline answers work with no model; injection cannot create verdict
+    wording or alter score/money/ranking
+  - answers cite allowed evidence; session check-state never changes engine output
   machine_gates:
   - web_smoke
   - legal_verdict_scan
@@ -1650,20 +1662,22 @@ tasks:
   - src/fink/web/
   - tests/
   - scripts/
-  description: >-
-    Accessibility and responsive validation targeting WCAG 2.2 AA behavior. Contrast at
-    least 4.5:1 normal and 3:1 large and for meaningful UI state; visible focus not hidden
-    by sticky content; semantic landmarks/headings; native buttons/links; form labels and
-    field errors; role status / alert; accessible names for copy/source/locale controls;
-    reduced-motion; touch targets about 44px. Responsive at 390x844, 768x1024, 1440x900;
-    no horizontal overflow at 320px; 200% zoom; forced-colors; print (meaning carried by
-    labels/weight/underline, not background). Add a committed design-token contrast check.
-    Report automated versus keyboard/screen-reader-oriented checks separately (do not claim
-    full WCAG from automation). Any Playwright lives in a dev/ux-test extra only (never a
-    runtime browser download; screenshots/traces under non-Git .fink/ux-review/).
+  description: Accessibility and responsive validation targeting WCAG 2.2 AA behavior.
+    Contrast at least 4.5:1 normal and 3:1 large and for meaningful UI state; visible
+    focus not hidden by sticky content; semantic landmarks/headings; native buttons/links;
+    form labels and field errors; role status / alert; accessible names for copy/source/locale
+    controls; reduced-motion; touch targets about 44px. Responsive at 390x844, 768x1024,
+    1440x900; no horizontal overflow at 320px; 200% zoom; forced-colors; print (meaning
+    carried by labels/weight/underline, not background). Add a committed design-token
+    contrast check. Report automated versus keyboard/screen-reader-oriented checks
+    separately (do not claim full WCAG from automation). Any Playwright lives in a
+    dev/ux-test extra only (never a runtime browser download; screenshots/traces under
+    non-Git .fink/ux-review/).
   acceptance_criteria:
-  - 'design-token contrast check passes; the keyboard-only path (analyze, result, finding, source, back, copy, scenario, evidence, locale) works'
-  - 'reduced-motion, forced-colors, and print fallbacks present; no color-only or icon-only semantics'
+  - design-token contrast check passes; the keyboard-only path (analyze, result, finding,
+    source, back, copy, scenario, evidence, locale) works
+  - reduced-motion, forced-colors, and print fallbacks present; no color-only or icon-only
+    semantics
   machine_gates:
   - web_smoke
   paper_sections: []
@@ -1681,23 +1695,23 @@ tasks:
   - src/fink/scoring/
   - src/fink/finance/
   - tests/
-  description: >-
-    Exposure-aware production review ordering replacing the user-facing
+  description: 'Exposure-aware production review ordering replacing the user-facing
     severity-times-confidence sort. Transparent policies: ranking_policy in exposure_aware
-    (production) or severity_baseline (evaluation only); authority_gate in enforce or
-    bypass_for_ablation (evaluation only). Each finding carries priority_basis in
-    quantified_exposure, present_value_timing, uncapped_or_unbounded,
-    counterparty_verification, grounded_qualitative_signal, or unverified_candidate, and
-    quantification_status in quantified, partially_bounded, unbounded, input_required, or
-    not_applicable, plus exposure_type, FIM module, source assumptions, and missing inputs.
-    Never sum incompatible exposure types. Scenario-based exposure drives ordering when
-    comparable; uncapped/unbounded/non-monetized use an explicit deterministic override or
-    a separate class (never invent a value). Confidence controls abstention/correction,
+    (production) or severity_baseline (evaluation only); authority_gate in enforce
+    or bypass_for_ablation (evaluation only). Each finding carries priority_basis
+    in quantified_exposure, present_value_timing, uncapped_or_unbounded, counterparty_verification,
+    grounded_qualitative_signal, or unverified_candidate, and quantification_status
+    in quantified, partially_bounded, unbounded, input_required, or not_applicable,
+    plus exposure_type, FIM module, source assumptions, and missing inputs. Never
+    sum incompatible exposure types. Scenario-based exposure drives ordering when
+    comparable; uncapped/unbounded/non-monetized use an explicit deterministic override
+    or a separate class (never invent a value). Confidence controls abstention/correction,
     never multiplies away a large exposure. The web production policy and the evaluated
-    production arm share code.
+    production arm share code.'
   acceptance_criteria:
-  - 'exposure-aware ranking uses actual FIM outputs; incompatible types are not summed; an unbounded finding never gets a fabricated high'
-  - 'the same production code is shared with the evaluation arms'
+  - exposure-aware ranking uses actual FIM outputs; incompatible types are not summed;
+    an unbounded finding never gets a fabricated high
+  - the same production code is shared with the evaluation arms
   machine_gates:
   - run_gates
   - no_invented_numbers
@@ -1717,15 +1731,15 @@ tasks:
   - config/
   - data/corpus/
   - tests/
-  description: >-
-    Pre-signing verification pathway (NOT fraud detection). Triggers only when supported by
-    the local corpus: counterparty and payment-channel verification signals presented as
-    상대방·지급 경로 확인 신호, kept separate from legal and financial-loss conclusions.
-    Wording such as advising the creator to independently verify the company name, business
-    registration, official contact, and payment account before signing or transferring.
-    NEVER uses 사기입니다, 사기 확률, 사기 계약, or 사기 패턴.
+  description: 'Pre-signing verification pathway (NOT fraud detection). Triggers only
+    when supported by the local corpus: counterparty and payment-channel verification
+    signals presented as 상대방·지급 경로 확인 신호, kept separate from legal and financial-loss
+    conclusions. Wording such as advising the creator to independently verify the
+    company name, business registration, official contact, and payment account before
+    signing or transferring. NEVER uses 사기입니다, 사기 확률, 사기 계약, or 사기 패턴.'
   acceptance_criteria:
-  - 'verification triggers fire on supported synthetic patterns, never assert fraud/illegality, stay separate from score and legal conclusions; gate-tested for verdict-free wording'
+  - verification triggers fire on supported synthetic patterns, never assert fraud/illegality,
+    stay separate from score and legal conclusions; gate-tested for verdict-free wording
   machine_gates:
   - legal_verdict_scan
   - authority_invariant
@@ -1744,21 +1758,23 @@ tasks:
   - configs/models/
   - src/fink/
   - tests/
-  description: >-
-    Installable local model runtime (no weights in Git). scripts/install_local.sh,
-    run_demo.sh, model_doctor.sh (bash set -euo pipefail, --help, idempotent, clear exit
-    codes, no sudo, no global pip, no curl pipe sh, no .env). Committed runtime profile
-    manifest (core/standard/full/optional_vl_fallback/evaluation_baseline) using EXACT
-    pinned approved revisions; data root FINK_HOME default under the user share dir; disk
-    checks; resumable downloads; safetensors preferred; reject pickle unless approved;
-    public ungated models downloadable without a token; refactor the token wrapper so its
-    absence does not block public installs; never print a token. Runtime adapters (OCR,
-    embedding, reranker, optional extractor, optional explanation/Q&A) with STRICT offline
-    enforcement (HF_HUB_OFFLINE and related flags, explicit local paths, no download on
-    Analyze/Q&A) and a deterministic fallback. Mocked/deterministic installer self-tests
-    only; NO real download in this task (a real download is a separate gated step).
+  description: Installable local model runtime (no weights in Git). scripts/install_local.sh,
+    run_demo.sh, model_doctor.sh (bash set -euo pipefail, --help, idempotent, clear
+    exit codes, no sudo, no global pip, no curl pipe sh, no .env). Committed runtime
+    profile manifest (core/standard/full/optional_vl_fallback/evaluation_baseline)
+    using EXACT pinned approved revisions; data root FINK_HOME default under the user
+    share dir; disk checks; resumable downloads; safetensors preferred; reject pickle
+    unless approved; public ungated models downloadable without a token; refactor
+    the token wrapper so its absence does not block public installs; never print a
+    token. Runtime adapters (OCR, embedding, reranker, optional extractor, optional
+    explanation/Q&A) with STRICT offline enforcement (HF_HUB_OFFLINE and related flags,
+    explicit local paths, no download on Analyze/Q&A) and a deterministic fallback.
+    Mocked/deterministic installer self-tests only; NO real download in this task
+    (a real download is a separate gated step).
   acceptance_criteria:
-  - 'scripts pass --help and idempotent self-tests; the manifest pins exact revisions and licenses; runtime sets offline flags and never downloads on Analyze; no weight tracked by Git; deterministic fallback intact'
+  - scripts pass --help and idempotent self-tests; the manifest pins exact revisions
+    and licenses; runtime sets offline flags and never downloads on Analyze; no weight
+    tracked by Git; deterministic fallback intact
   machine_gates:
   - run_gates
   - model_license_floor
@@ -1776,16 +1792,18 @@ tasks:
   - scripts/
   - src/fink/
   - tests/
-  description: >-
-    Real inference health checks (not file-existence): OCR (synthetic KO/EN financial image
-    yields required normalized fields), embedding (synthetic query/document ranking),
-    reranker (expected ordering of a synthetic pair), extractor (schema-valid output with a
-    source span), explanation (citation-bound Korean response with no score mutation).
-    Expose model status to the UI (not installed, installed, loading, active, failed health
-    check, deterministic fallback active). Every report records the execution path used. A
-    model is installed only if its health check passes; never fake success.
+  description: 'Real inference health checks (not file-existence): OCR (synthetic
+    KO/EN financial image yields required normalized fields), embedding (synthetic
+    query/document ranking), reranker (expected ordering of a synthetic pair), extractor
+    (schema-valid output with a source span), explanation (citation-bound Korean response
+    with no score mutation). Expose model status to the UI (not installed, installed,
+    loading, active, failed health check, deterministic fallback active). Every report
+    records the execution path used. A model is installed only if its health check
+    passes; never fake success.'
   acceptance_criteria:
-  - 'health checks perform inference and fail honestly when a model is absent/broken; UI status reflects real state; the report records the execution path; deterministic fallback when checks fail'
+  - health checks perform inference and fail honestly when a model is absent/broken;
+    UI status reflects real state; the report records the execution path; deterministic
+    fallback when checks fail
   machine_gates:
   - run_gates
   paper_sections: []
@@ -1804,26 +1822,28 @@ tasks:
   - data/eval/
   - tests/
   - docs/paper/
-  description: >-
-    Real production-path 2x2 factorial experiment replacing hand-authored prediction tables.
-    Factor A authority_gate OFF (bypass_for_ablation) or ON (enforce); Factor B
-    ranking_policy severity_baseline or exposure_aware; four arms all calling the SAME real
-    production engines (aggregate_document_signals or its successor plus FIM-1..8) on
-    identical frozen synthetic documents (seed plus SHA-256 manifest; at least 64 paired
-    synthetic docs unless a larger suite exists; every FIM module; benign and counterfactual
-    pairs; KO canonical plus bilingual; noisy-OCR/missing/unbounded/eligible-ineligible
-    variants; NO real contract). The generator owns hidden oracle fields; production receives
-    only the rendered doc and permitted inputs (never oracle ranking). Avoid circularity:
-    oracle exposure (not predicted) weights metrics; capture within-type then macro-average.
-    Primary metrics: Oracle Exposure Capture at 1 and 3, Benign Scored-Warning Rate,
-    Unsupported Scored-Finding Rate, plus secondary diagnostics. Guard the five evaluation
-    biases. Include an actual failure analysis. The artifact records commit, config/corpus/
-    fixture hashes, seed, arm config, metric defs, denominators, raw and aggregate values,
-    CIs, failures, timestamp, and the synthetic-only boundary. Do not declare the production
-    arm superior unless measured; if a baseline wins a metric, report it.
+  description: 'Real production-path 2x2 factorial experiment replacing hand-authored
+    prediction tables. Factor A authority_gate OFF (bypass_for_ablation) or ON (enforce);
+    Factor B ranking_policy severity_baseline or exposure_aware; four arms all calling
+    the SAME real production engines (aggregate_document_signals or its successor
+    plus FIM-1..8) on identical frozen synthetic documents (seed plus SHA-256 manifest;
+    at least 64 paired synthetic docs unless a larger suite exists; every FIM module;
+    benign and counterfactual pairs; KO canonical plus bilingual; noisy-OCR/missing/unbounded/eligible-ineligible
+    variants; NO real contract). The generator owns hidden oracle fields; production
+    receives only the rendered doc and permitted inputs (never oracle ranking). Avoid
+    circularity: oracle exposure (not predicted) weights metrics; capture within-type
+    then macro-average. Primary metrics: Oracle Exposure Capture at 1 and 3, Benign
+    Scored-Warning Rate, Unsupported Scored-Finding Rate, plus secondary diagnostics.
+    Guard the five evaluation biases. Include an actual failure analysis. The artifact
+    records commit, config/corpus/ fixture hashes, seed, arm config, metric defs,
+    denominators, raw and aggregate values, CIs, failures, timestamp, and the synthetic-only
+    boundary. Do not declare the production arm superior unless measured; if a baseline
+    wins a metric, report it.'
   acceptance_criteria:
-  - 'all four arms share production code and identical fixtures; metrics are weighted by oracle (not predicted) exposure'
-  - 'the artifact is complete with real measured values and at least one failure case; no fabricated metric'
+  - all four arms share production code and identical fixtures; metrics are weighted
+    by oracle (not predicted) exposure
+  - the artifact is complete with real measured values and at least one failure case;
+    no fabricated metric
   machine_gates:
   - run_gates
   - no_invented_numbers
@@ -1843,17 +1863,18 @@ tasks:
   - data/eval/
   - tests/
   - docs/paper/
-  description: >-
-    Cost-sensitive, verdict-free verification evaluation. Derive decision costs from explicit
-    fixture values (false negative is the oracle transfer/prepayment exposure left unchecked;
-    true and false positive are verification effort cost from fixture verification-minutes
-    times creator-hourly-value; true negative is zero). If inputs are absent, report a
-    NORMALIZED decision loss and a sensitivity analysis (never invent currency). The threshold
-    is selected on dev fixtures only; the frozen test uses the fixed threshold. Metrics:
-    missed-exposure cost, verification effort cost, total decision cost, false-trigger rate,
-    trigger recall. NEVER labeled fraud accuracy.
+  description: 'Cost-sensitive, verdict-free verification evaluation. Derive decision
+    costs from explicit fixture values (false negative is the oracle transfer/prepayment
+    exposure left unchecked; true and false positive are verification effort cost
+    from fixture verification-minutes times creator-hourly-value; true negative is
+    zero). If inputs are absent, report a NORMALIZED decision loss and a sensitivity
+    analysis (never invent currency). The threshold is selected on dev fixtures only;
+    the frozen test uses the fixed threshold. Metrics: missed-exposure cost, verification
+    effort cost, total decision cost, false-trigger rate, trigger recall. NEVER labeled
+    fraud accuracy.'
   acceptance_criteria:
-  - 'costs derived from fixtures (no hardcoded KRW); dev-set threshold and frozen-test fixed; metrics reported; no fraud-accuracy label'
+  - costs derived from fixtures (no hardcoded KRW); dev-set threshold and frozen-test
+    fixed; metrics reported; no fraud-accuracy label
   machine_gates:
   - no_invented_numbers
   - legal_verdict_scan
@@ -1873,19 +1894,19 @@ tasks:
   - README.md
   - site/
   - docs/
-  description: >-
-    Synchronize docs, project page, paper, and ledgers to the canonical positioning (FInk:
-    Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts; no DFL-training,
-    expected-exposure, legal/fraud, or real-accuracy claims). Use the canonical KO/EN
-    accessible description. Update README run instructions (uv sync --extra web; fink-web),
-    model card (optional or when-installed only; no model claimed active without a passing
-    health check), privacy, limitations, paper method/experiments/results/responsible-ai/
-    conclusion, CLAIM_LEDGER.csv and RESULT_LEDGER.csv (only actual measured results), and
-    the bibliography (study-guide references by theme). The project page mirrors the real app
-    (selective highlighted words in the synthetic example; remove score-dominant copy; /100
-    not primary; colors do not encode safety). Do NOT touch paper/template/icml2026.
+  description: 'Synchronize docs, project page, paper, and ledgers to the canonical
+    positioning (FInk: Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts;
+    no DFL-training, expected-exposure, legal/fraud, or real-accuracy claims). Use
+    the canonical KO/EN accessible description. Update README run instructions (uv
+    sync --extra web; fink-web), model card (optional or when-installed only; no model
+    claimed active without a passing health check), privacy, limitations, paper method/experiments/results/responsible-ai/
+    conclusion, CLAIM_LEDGER.csv and RESULT_LEDGER.csv (only actual measured results),
+    and the bibliography (study-guide references by theme). The project page mirrors
+    the real app (selective highlighted words in the synthetic example; remove score-dominant
+    copy; /100 not primary; colors do not encode safety). Do NOT touch paper/template/icml2026.'
   acceptance_criteria:
-  - 'docs/site/paper/ledgers are consistent with the canonical claim boundary; only measured results entered; the ICML template is untouched; GATES_OK (paper_sync)'
+  - docs/site/paper/ledgers are consistent with the canonical claim boundary; only
+    measured results entered; the ICML template is untouched; GATES_OK (paper_sync)
   machine_gates:
   - run_gates
   - legal_verdict_scan

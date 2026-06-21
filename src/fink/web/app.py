@@ -814,17 +814,32 @@ async def _read_request_body(receive: Any) -> bytes:
 
 def run(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the FInk local FastAPI web app.")
-    parser.add_argument("--host", default=None)
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--allow-lan", action="store_true")
-    parser.add_argument("--trusted-lan-ack", action="store_true")
-    args = parser.parse_args(argv)
-    settings = resolve_bind_settings(
-        host=args.host,
-        port=args.port,
-        allow_lan=args.allow_lan,
-        trusted_lan_ack=args.trusted_lan_ack,
+    parser.add_argument(
+        "--host",
+        default=None,
+        help="Bind host. Defaults to loopback; LAN addresses require --allow-lan.",
     )
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument(
+        "--allow-lan",
+        action="store_true",
+        help="Allow binding to a specific private LAN interface.",
+    )
+    parser.add_argument(
+        "--trusted-lan-ack",
+        action="store_true",
+        help="Acknowledge the trusted-LAN warning before LAN binding.",
+    )
+    args = parser.parse_args(argv)
+    try:
+        settings = resolve_bind_settings(
+            host=args.host,
+            port=args.port,
+            allow_lan=args.allow_lan,
+            trusted_lan_ack=args.trusted_lan_ack,
+        )
+    except WebBindingError as exc:
+        parser.error(str(exc))
     try:
         import uvicorn
     except ModuleNotFoundError as exc:

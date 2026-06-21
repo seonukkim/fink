@@ -54,10 +54,17 @@ and never set the score. Everything runs on the machine, offline.
 ```bash
 git clone https://github.com/seonukkim/fink
 cd fink
-PYTHONPATH=src uv run --with fastapi --with uvicorn \
-  uvicorn fink.web.app:create_app --factory --host 127.0.0.1 --port 8000
+uv sync --extra web
+uv run fink-web --host 127.0.0.1 --port 8000
 # wait for "Uvicorn running on http://127.0.0.1:8000", then open that address
 # (loopback only; desktop + mobile browser; Korean / English)
+```
+
+The default bind is loopback. To expose the demo to a trusted device on the same
+private LAN, bind a specific private interface and acknowledge the warning:
+
+```bash
+uv run fink-web --host 192.168.1.25 --port 8000 --allow-lan --trusted-lan-ack
 ```
 
 ## Evaluation

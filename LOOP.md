@@ -1,13 +1,13 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-21T16:20:09+00:00`
+- Generated: `2026-06-21T20:34:39+00:00`
 - Current branch: `main`
 - Base commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
 - Claude verdict: `APPROVE`
-- Latest run path: `.fink/runs/20260621T161344Z-0e7f2e6b/FINK-S7-03/round-01`
+- Latest run path: `.fink/runs/20260621T202105Z-28a7554a/FINK-PKG-01/round-01`
 
 ## Gates
 
@@ -36,8 +36,8 @@
 
 ## Tasks
 
-- Next eligible task: `none`
-- Done count: `54`
+- Next eligible task: `FINK-LOC-01`
+- Done count: `55`
 - Blocked count: `0`
 - Next task selection order: highest priority, shortest scope, lexical task ID.
 
@@ -56,18 +56,3 @@ bash scripts/agent_loop/run_backlog.sh --max-tasks 100
 # stop the loop after the current task
 touch loop/STOP
 ```
-
-## Direct (non-loop) implementation log
-
-The status above is auto-generated from the agent-loop `STATE.json` and does
-**not** track work implemented directly (outside the Codex→Claude loop). Direct,
-checkpoint-committed work is logged in `docs/ai-use-log.md`; mirrored here for
-traceability:
-
-- `0ffa1fe` — P0 web robustness: structured bilingual errors for known
-  engine/setup failures (no 500 traceback), `secondary_rights` crash fix, locale
-  guard. Verified: `tests/web/test_analyze_robustness.py` + 29 web tests pass;
-  `run_gates.sh` → GATES_OK.
-- (current checkpoint) — P0-VERIFY-00 corrections: a `secondary_rights`
-  *semantic* regression (a flat numeric input is skipped and yields no invented
-  monetary value, not a fabricated exposure) and this LOOP.md record.
