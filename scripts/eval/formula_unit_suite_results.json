@@ -1,0 +1,400 @@
+{
+  "cases": [
+    {
+      "description": "Revenue-base and deduction leakage matches the worked KRW vector.",
+      "expected": {
+        "exposure_type": "nominal_leakage",
+        "maximum_nominal_leakage": "1400000.0",
+        "nominal_leakage": {
+          "base": "700000.0",
+          "high": "1400000.0",
+          "low": "0.0"
+        }
+      },
+      "id": "FIM-1-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "exposure_type": "nominal_leakage",
+        "maximum_nominal_leakage": "1400000.0",
+        "nominal_leakage": {
+          "base": "700000.0",
+          "high": "1400000.0",
+          "low": "0.0"
+        }
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Payment-delay present-value loss remains separate from nominal unpaid amount.",
+      "expected": {
+        "delay_pv_loss_krw": "237700",
+        "exposure_type": "present_value_loss",
+        "nominal_amount": "10000000"
+      },
+      "id": "FIM-2-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "delay_pv_loss": "237737.4704107600093800165820",
+        "delay_pv_loss_krw": "237737",
+        "exposure_type": "present_value_loss",
+        "nominal_amount": "10000000"
+      },
+      "status": "PASS",
+      "tolerance": "+/-1% on delay_pv_loss"
+    },
+    {
+      "description": "MG/advance recoupment reports 18/9/5 months by low/base/high sales.",
+      "expected": {
+        "deferral_base": "12000000",
+        "months_to_recoup": [
+          18,
+          9,
+          5
+        ],
+        "sales_label_note_has_monthly_sales": true
+      },
+      "id": "FIM-3-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "deferral_base": "12000000",
+        "months_to_recoup": [
+          18,
+          9,
+          5
+        ],
+        "sales_label_note_has_monthly_sales": true
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Additional-work scenario cost matches low/base/high user assumptions.",
+      "expected": {
+        "exposure_type": "opportunity_cost",
+        "module": "FIM-4",
+        "synthetic_assumption_labeled": true,
+        "unpaid_work_cost": {
+          "base": "1200000",
+          "high": "1600000",
+          "low": "800000"
+        }
+      },
+      "id": "FIM-4-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "exposure_type": "opportunity_cost",
+        "module": "FIM-4",
+        "synthetic_assumption_labeled": true,
+        "unpaid_work_cost": {
+          "base": "1200000",
+          "high": "1600000",
+          "low": "800000"
+        }
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Exclusivity opportunity-cost scenario matches the discounted worked example.",
+      "expected": {
+        "module": "FIM-5",
+        "opportunity_cost_krw": {
+          "base": "5845000",
+          "high": "8767500",
+          "low": "2922500"
+        },
+        "synthetic_assumption_labeled": true
+      },
+      "id": "FIM-5-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "module": "FIM-5",
+        "opportunity_cost": {
+          "base": "5844084.537903467066964869703",
+          "high": "8766126.806855200600447304553",
+          "low": "2922042.268951733533482434851"
+        },
+        "opportunity_cost_krw": {
+          "base": "5844085",
+          "high": "8766127",
+          "low": "2922042"
+        },
+        "synthetic_assumption_labeled": true
+      },
+      "status": "PASS",
+      "tolerance": "+/-1% on discounted opportunity-cost range"
+    },
+    {
+      "description": "Secondary-rights value comes only from user supplied scenarios.",
+      "expected": {
+        "auto_valued_from_contract_text": false,
+        "module": "FIM-6",
+        "right_types": [
+          "overseas",
+          "merchandise"
+        ],
+        "scenario_value": {
+          "base": "2600000.0",
+          "high": "2600000.0",
+          "low": "2600000.0"
+        }
+      },
+      "id": "FIM-6-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "auto_valued_from_contract_text": false,
+        "module": "FIM-6",
+        "right_types": [
+          "overseas",
+          "merchandise"
+        ],
+        "scenario_value": {
+          "base": "2600000.0",
+          "high": "2600000.0",
+          "low": "2600000.0"
+        }
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Capped liability reports max nominal exposure and expected penalty.",
+      "expected": {
+        "expected_penalty": "500000.0",
+        "liability_exposure_base": "500000.0",
+        "liability_nominal_amount": "5000000",
+        "max_nominal_exposure": "5000000"
+      },
+      "id": "FIM-7-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "expected_penalty": "500000.0",
+        "liability_exposure_base": "500000.0",
+        "liability_nominal_amount": "5000000",
+        "max_nominal_exposure": "5000000"
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Uncapped liability without probability emits no invented monetary number.",
+      "expected": {
+        "expected_penalty": null,
+        "has_uncapped_flag": true,
+        "liability_exposure": {
+          "base": null,
+          "high": null,
+          "low": null
+        },
+        "max_nominal_exposure": null,
+        "uncapped_signal": true,
+        "user_input_required": true
+      },
+      "id": "FIM-7-T2",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "expected_penalty": null,
+        "has_uncapped_flag": true,
+        "liability_exposure": {
+          "base": null,
+          "high": null,
+          "low": null
+        },
+        "max_nominal_exposure": null,
+        "uncapped_signal": true,
+        "user_input_required": true
+      },
+      "status": "PASS",
+      "tolerance": "exact null/no-number behavior"
+    },
+    {
+      "description": "Evidence opacity widens low/high while preserving base and score.",
+      "expected": {
+        "adjusted_krw": {
+          "base": "5250000",
+          "high": "7140000",
+          "low": "3791667"
+        },
+        "band_widen_factor": "1.2",
+        "base_unchanged": true,
+        "data_completeness_down": true,
+        "score_unchanged": true
+      },
+      "id": "FIM-8-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "adjusted_krw": {
+          "base": "5250000",
+          "high": "7140000",
+          "low": "3791667"
+        },
+        "band_widen_factor": "1.2",
+        "base_unchanged": true,
+        "data_completeness_down": true,
+        "score_unchanged": true
+      },
+      "status": "PASS",
+      "tolerance": "exact KRW rounding for widened range"
+    },
+    {
+      "description": "B/C practice references contribute zero to review-priority scoring.",
+      "expected": {
+        "bc_category_score": 0.0,
+        "bc_contribution": 0.0,
+        "bc_practice_reference": true,
+        "bc_review_priority_score": 0,
+        "mixed_equals_grounded": true
+      },
+      "id": "SC-AGG-T1",
+      "metrics": [
+        "EV-UNIT"
+      ],
+      "observed": {
+        "bc_category_score": 0.0,
+        "bc_contribution": 0.0,
+        "bc_practice_reference": true,
+        "bc_review_priority_score": 0,
+        "mixed_equals_grounded": true
+      },
+      "status": "PASS",
+      "tolerance": "exact"
+    },
+    {
+      "description": "Category and document scores saturate inside the 0-100 range.",
+      "expected": {
+        "all_category_scores_bounded": true,
+        "f7_category_score": ">99 and <=100",
+        "review_priority_score": "0..100"
+      },
+      "id": "SC-AGG-T2",
+      "metrics": [
+        "EV-UNIT"
+      ],
+      "observed": {
+        "all_category_scores_bounded": true,
+        "f7_category_score": 100.0,
+        "review_priority_score": 11
+      },
+      "status": "PASS",
+      "tolerance": "bounded 0-100 with F7 saturation > 99"
+    },
+    {
+      "description": "Low confidence lowers D4 without lowering priority below the confidence floor.",
+      "expected": {
+        "category_score_same_as_floor": true,
+        "driver_present": true,
+        "overall_confidence_lower": true,
+        "priority_same_as_floor": true
+      },
+      "id": "SC-AGG-T3",
+      "metrics": [
+        "EV-UNIT"
+      ],
+      "observed": {
+        "category_score_same_as_floor": true,
+        "driver_present": true,
+        "overall_confidence_lower": true,
+        "priority_same_as_floor": true
+      },
+      "status": "PASS",
+      "tolerance": "exact invariant"
+    },
+    {
+      "description": "Exposure types stay partitioned with no cross-type grand total.",
+      "expected": {
+        "exposure_types": [
+          "deferral",
+          "liability_exposure",
+          "nominal_leakage",
+          "opportunity_cost",
+          "present_value_loss"
+        ],
+        "grand_total_present": false,
+        "no_cross_type_summation": true
+      },
+      "id": "SC-SEP-T1",
+      "metrics": [
+        "EV-UNIT",
+        "EV-FINSCEN"
+      ],
+      "observed": {
+        "exposure_types": [
+          "deferral",
+          "liability_exposure",
+          "nominal_leakage",
+          "opportunity_cost",
+          "present_value_loss"
+        ],
+        "grand_total_present": false,
+        "no_cross_type_summation": true
+      },
+      "status": "PASS",
+      "tolerance": "exact exposure-type set"
+    }
+  ],
+  "metrics": {
+    "EV-FINSCEN": {
+      "failed": 0,
+      "ok": true,
+      "passed": 10,
+      "total": 10
+    },
+    "EV-UNIT": {
+      "failed": 0,
+      "ok": true,
+      "passed": 13,
+      "total": 13
+    }
+  },
+  "registered_cases": [
+    "FIM-1-T1",
+    "FIM-2-T1",
+    "FIM-3-T1",
+    "FIM-4-T1",
+    "FIM-5-T1",
+    "FIM-6-T1",
+    "FIM-7-T1",
+    "FIM-7-T2",
+    "FIM-8-T1",
+    "SC-AGG-T1",
+    "SC-AGG-T2",
+    "SC-AGG-T3",
+    "SC-SEP-T1"
+  ],
+  "suite": "formula_unit_suite",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 13,
+    "total": 13
+  },
+  "task_id": "FINK-S5-05"
+}
