@@ -1,0 +1,439 @@
+{
+  "cases": [
+    {
+      "description": "Report EV-DFU against a deterministic baseline on synthetic DR-11-style decision cases, execute the EV-USAB usability checklist, and measure EV-CALIB calibration.",
+      "expected": {
+        "baseline_reported": true,
+        "calibration_measured": true,
+        "scoring_frame": "Contractual Financial Review Priority",
+        "synthetic_only": true,
+        "usability_rubric_executed": true
+      },
+      "id": "dfu_run",
+      "metrics": [
+        "EV-DFU",
+        "EV-USAB",
+        "EV-CALIB"
+      ],
+      "observed": {
+        "baseline_EV-DFU": 0.516,
+        "calibration_bin_count": 3,
+        "case_count": 6,
+        "fixture_sha256": "ef395dc8114bcb5ffd3853fa8d6701372c001f115fb9caa94511512a7b3c9d86",
+        "issue_count": 0,
+        "issues": [],
+        "metric_values": {
+          "EV-CALIB": 0.798333,
+          "EV-DFU": 1.0,
+          "EV-USAB": 1.0
+        },
+        "rubric_item_count": 8,
+        "utility_lift_vs_baseline": 0.484
+      },
+      "status": "PASS"
+    },
+    {
+      "description": "Measure repeat-run stability on synthetic decision cases using priority score drift, top-k agreement, and category agreement.",
+      "expected": {
+        "max_priority_score_delta_lte": 0.5,
+        "repeat_runs": 3,
+        "synthetic_only": true,
+        "top_k_jaccard_min": 1.0
+      },
+      "id": "stability_run",
+      "metrics": [
+        "EV-STAB"
+      ],
+      "observed": {
+        "issue_count": 0,
+        "issues": [],
+        "metric_values": {
+          "EV-STAB": 0.999,
+          "category_agreement": 1.0,
+          "max_priority_score_delta": 0.3,
+          "score_stability_component": 0.997,
+          "top_k_jaccard": 1.0
+        },
+        "repeat_runs": 3,
+        "score_range_by_case": {
+          "DR11-dev-deduction-leakage": 0.3,
+          "DR11-dev-payment-delay": 0.3,
+          "DR11-dev-style-guide-note": 0.2,
+          "DR11-frozen-formatting-notice": 0.2,
+          "DR11-frozen-secondary-rights": 0.3,
+          "DR11-frozen-termination-penalty": 0.3
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "claim_boundary": {
+    "no_generalized_performance_claim": true,
+    "no_legal_verdict": true,
+    "scope": "synthetic/sanitized fixture",
+    "statement": "Measured on synthetic/sanitized fixtures only; EV-DFU, EV-USAB, EV-CALIB, and EV-STAB are not generalized performance claims."
+  },
+  "metric_definitions": {
+    "EV-CALIB": "One minus expected calibration error for the synthetic financially-consequential probability.",
+    "EV-DFU": "Decision-focused utility: top-k synthetic attention value captured by FInk priority ranking, normalized by the oracle top-k value.",
+    "EV-STAB": "Repeat-run score stability from maximum priority-score drift, top-k agreement, and category agreement on synthetic cases.",
+    "EV-USAB": "Usability checklist pass rate for report framing, four-dimensional separation, synthetic-assumption labeling, and actionability."
+  },
+  "metric_values": {
+    "EV-CALIB": 0.798333,
+    "EV-DFU": 1.0,
+    "EV-STAB": 0.999,
+    "EV-USAB": 1.0
+  },
+  "metrics": {
+    "EV-CALIB": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-DFU": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-STAB": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-USAB": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "paper_sections": [
+    "05_experiments.md",
+    "06_results.md",
+    "07_discussion_and_limitations.md"
+  ],
+  "registered_gates": [
+    "dfu_run",
+    "stability_run"
+  ],
+  "reports": {
+    "calibration": {
+      "binning": "fixed probability bins",
+      "bins": [
+        {
+          "abs_gap": 0.225,
+          "avg_confidence": 0.225,
+          "bin": "(0.00,0.50]",
+          "count": 2,
+          "observed_positive_rate": 0.0,
+          "weighted_gap": 0.075
+        },
+        {
+          "abs_gap": 0.3,
+          "avg_confidence": 0.7,
+          "bin": "(0.50,0.75]",
+          "count": 1,
+          "observed_positive_rate": 1.0,
+          "weighted_gap": 0.05
+        },
+        {
+          "abs_gap": 0.153333,
+          "avg_confidence": 0.846667,
+          "bin": "(0.75,1.00]",
+          "count": 3,
+          "observed_positive_rate": 1.0,
+          "weighted_gap": 0.076667
+        }
+      ],
+      "case_count": 6,
+      "metric_values": {
+        "EV-CALIB": 0.798333,
+        "brier_score": 0.045083,
+        "expected_calibration_error": 0.201667
+      },
+      "target": "synthetic financially consequential label"
+    },
+    "decision_utility": {
+      "attention_budget_k": 3,
+      "inputs_are_synthetic_assumptions": true,
+      "metric_values": {
+        "EV-DFU": 1.0,
+        "baseline_EV-DFU": 0.516,
+        "utility_lift_vs_baseline": 0.484
+      },
+      "no_guaranteed_outcome_claim": true,
+      "rankings": {
+        "baseline": [
+          {
+            "case_id": "DR11-frozen-termination-penalty",
+            "category": "F7",
+            "fim_module": "FIM-7",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 1200000
+          },
+          {
+            "case_id": "DR11-dev-payment-delay",
+            "category": "F3",
+            "fim_module": "FIM-2",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 90000
+          },
+          {
+            "case_id": "DR11-dev-style-guide-note",
+            "category": "X3",
+            "fim_module": "FIM-8",
+            "financially_consequential": false,
+            "synthetic_exposure_base_krw": 0
+          }
+        ],
+        "fink": [
+          {
+            "case_id": "DR11-frozen-termination-penalty",
+            "category": "F7",
+            "fim_module": "FIM-7",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 1200000
+          },
+          {
+            "case_id": "DR11-frozen-secondary-rights",
+            "category": "F5",
+            "fim_module": "FIM-6",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 800000
+          },
+          {
+            "case_id": "DR11-dev-deduction-leakage",
+            "category": "F2",
+            "fim_module": "FIM-1",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 500000
+          }
+        ],
+        "oracle": [
+          {
+            "case_id": "DR11-frozen-termination-penalty",
+            "category": "F7",
+            "fim_module": "FIM-7",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 1200000
+          },
+          {
+            "case_id": "DR11-frozen-secondary-rights",
+            "category": "F5",
+            "fim_module": "FIM-6",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 800000
+          },
+          {
+            "case_id": "DR11-dev-deduction-leakage",
+            "category": "F2",
+            "fim_module": "FIM-1",
+            "financially_consequential": true,
+            "synthetic_exposure_base_krw": 500000
+          }
+        ]
+      },
+      "totals": {
+        "baseline_top_k_value": 1290000,
+        "fink_top_k_value": 2500000,
+        "oracle_top_k_value": 2500000
+      },
+      "utility_unit": "synthetic_exposure_base_krw"
+    },
+    "stability": {
+      "attention_budget_k": 3,
+      "metric_values": {
+        "EV-STAB": 0.999,
+        "category_agreement": 1.0,
+        "max_priority_score_delta": 0.3,
+        "score_stability_component": 0.997,
+        "top_k_jaccard": 1.0
+      },
+      "repeat_runs": 3,
+      "runs": [
+        {
+          "run_id": "run-1",
+          "score_by_case": {
+            "DR11-dev-deduction-leakage": 82.0,
+            "DR11-dev-payment-delay": 63.0,
+            "DR11-dev-style-guide-note": 22.0,
+            "DR11-frozen-formatting-notice": 16.0,
+            "DR11-frozen-secondary-rights": 88.0,
+            "DR11-frozen-termination-penalty": 91.0
+          },
+          "top_k_case_ids": [
+            "DR11-frozen-termination-penalty",
+            "DR11-frozen-secondary-rights",
+            "DR11-dev-deduction-leakage"
+          ]
+        },
+        {
+          "run_id": "run-2",
+          "score_by_case": {
+            "DR11-dev-deduction-leakage": 82.2,
+            "DR11-dev-payment-delay": 62.9,
+            "DR11-dev-style-guide-note": 22.1,
+            "DR11-frozen-formatting-notice": 15.9,
+            "DR11-frozen-secondary-rights": 87.8,
+            "DR11-frozen-termination-penalty": 91.1
+          },
+          "top_k_case_ids": [
+            "DR11-frozen-termination-penalty",
+            "DR11-frozen-secondary-rights",
+            "DR11-dev-deduction-leakage"
+          ]
+        },
+        {
+          "run_id": "run-3",
+          "score_by_case": {
+            "DR11-dev-deduction-leakage": 81.9,
+            "DR11-dev-payment-delay": 63.2,
+            "DR11-dev-style-guide-note": 21.9,
+            "DR11-frozen-formatting-notice": 16.1,
+            "DR11-frozen-secondary-rights": 88.1,
+            "DR11-frozen-termination-penalty": 90.8
+          },
+          "top_k_case_ids": [
+            "DR11-frozen-termination-penalty",
+            "DR11-frozen-secondary-rights",
+            "DR11-dev-deduction-leakage"
+          ]
+        }
+      ],
+      "score_range_by_case": {
+        "DR11-dev-deduction-leakage": 0.3,
+        "DR11-dev-payment-delay": 0.3,
+        "DR11-dev-style-guide-note": 0.2,
+        "DR11-frozen-formatting-notice": 0.2,
+        "DR11-frozen-secondary-rights": 0.3,
+        "DR11-frozen-termination-penalty": 0.3
+      }
+    },
+    "usability": {
+      "mandatory_items_all_passed": true,
+      "metric_values": {
+        "EV-USAB": 1.0
+      },
+      "passed_item_count": 8,
+      "rubric_id": "EV-USAB-S5-07-v1",
+      "rubric_item_count": 8,
+      "rubric_items": [
+        {
+          "criterion": "report_frame_is_contractual_financial_review_priority",
+          "evidence": "Contractual Financial Review Priority",
+          "item_id": "USAB-01",
+          "passed": true
+        },
+        {
+          "criterion": "four_dimensions_remain_separate",
+          "evidence": "D1/D2/D3/D4 separated",
+          "item_id": "USAB-02",
+          "passed": true
+        },
+        {
+          "criterion": "synthetic_assumption_labels_present",
+          "evidence": "all exposure ranges",
+          "item_id": "USAB-03",
+          "passed": true
+        },
+        {
+          "criterion": "evidence_and_confidence_visible",
+          "evidence": "confidence dimension shown",
+          "item_id": "USAB-04",
+          "passed": true
+        },
+        {
+          "criterion": "action_questions_present",
+          "evidence": "creator review questions shown",
+          "item_id": "USAB-05",
+          "passed": true
+        },
+        {
+          "criterion": "baseline_comparison_labeled_synthetic",
+          "evidence": "EV-DFU baseline",
+          "item_id": "USAB-06",
+          "passed": true
+        },
+        {
+          "criterion": "forbidden_verdict_framing_absent",
+          "evidence": "string scan clean",
+          "item_id": "USAB-07",
+          "passed": true
+        },
+        {
+          "criterion": "calibration_and_stability_labels_are_measured",
+          "evidence": "measured-on-synthetic",
+          "item_id": "USAB-08",
+          "passed": true
+        }
+      ]
+    }
+  },
+  "result_ledger": {
+    "columns": [
+      "result_id",
+      "experiment_id",
+      "metric",
+      "value",
+      "artifact_path",
+      "status",
+      "reviewer",
+      "notes"
+    ],
+    "name": "RESULT_LEDGER",
+    "rows": [
+      {
+        "artifact_path": "scripts/eval/decision_utility_suite_results.json",
+        "experiment_id": "dfu_run",
+        "metric": "EV-DFU",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-07-EV-DFU",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/decision_utility_suite_results.json",
+        "experiment_id": "dfu_run",
+        "metric": "EV-USAB",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-07-EV-USAB",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/decision_utility_suite_results.json",
+        "experiment_id": "dfu_run",
+        "metric": "EV-CALIB",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-07-EV-CALIB",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.798333"
+      },
+      {
+        "artifact_path": "scripts/eval/decision_utility_suite_results.json",
+        "experiment_id": "stability_run",
+        "metric": "EV-STAB",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-07-EV-STAB",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.999000"
+      }
+    ]
+  },
+  "suite": "decision_utility_suite",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 2,
+    "total": 2
+  },
+  "task_id": "FINK-S5-07"
+}
