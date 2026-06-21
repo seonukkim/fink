@@ -65,6 +65,13 @@ class _SpanText:
     text: str
     page_index: int
     global_start: int
+    text_source: str
+    bbox: dict[str, int]
+    page_width: int
+    page_height: int
+    confidence: float
+    is_user_corrected: bool
+    has_real_bbox: bool
 
 
 _ROLE_PATTERNS: tuple[tuple[str, tuple[re.Pattern[str], ...]], ...] = (
@@ -214,7 +221,7 @@ def validate_source_highlight_candidates(
 def _source_for_finding(
     finding: dict[str, Any],
     clause_by_id: dict[str, Any],
-    span_lookup: dict[str, tuple[int, str]],
+    span_lookup: dict[str, _SpanText],
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     finding_id = str(finding.get("finding_id") or "")
     source = finding.get("source") or {}
@@ -256,33 +263,39 @@ def _source_for_finding(
         span_text_by_id={record.span_id: record.text for record in span_records},
     )
     segments = _display_segments(source_text, span_records, validated)
+    _attach_segment_anchor_ids(segments, source_anchor_id)
+    focus_anchor_id = _focus_anchor_id(source_anchor_id, segments)
     has_highlight = any(segment.get("highlighted") for segment in segments)
     status = HIGHLIGHT_STATUS_VALIDATED if has_highlight else HIGHLIGHT_STATUS_MISSING
     role_ids = _roles_from_segments(segments)
+    source_meta = _source_text_metadata(span_records)
 
     updated_finding["source"].update(
         {
             "anchor_id": source_anchor_id,
+            "focus_anchor_id": focus_anchor_id,
             "finding_anchor_id": finding_anchor_id,
             "highlight_status": status,
             "highlight_status_label": _status_label(status),
             "segments": segments,
             "semantic_roles": role_ids,
             "source_link_label": {
-                "ko": "출처 문구 보기",
-                "en": "View source phrase",
+                "ko": "원문 보기",
+                "en": "View source",
             },
         }
     )
     return updated_finding, {
         "source_id": source_anchor_id,
         "anchor_id": source_anchor_id,
+        "focus_anchor_id": focus_anchor_id,
         "finding_anchor_id": finding_anchor_id,
         "finding_ids": [finding_id],
         "clause_id": clause_id,
         "page_index": span_records[0].page_index,
         "status": status,
         "status_label": _status_label(status),
+        **source_meta,
         "segments": segments,
         "semantic_roles": role_ids,
         "validated_span_count": len(validated),
@@ -299,14 +312,15 @@ def _attach_missing_source(
     finding["source"].update(
         {
             "anchor_id": source_anchor_id,
+            "focus_anchor_id": source_anchor_id,
             "finding_anchor_id": finding_anchor_id,
             "highlight_status": HIGHLIGHT_STATUS_MISSING,
             "highlight_status_label": _status_label(HIGHLIGHT_STATUS_MISSING),
             "segments": [],
             "semantic_roles": [],
             "source_link_label": {
-                "ko": "출처 문구 확인 필요",
-                "en": "Source phrase needs confirmation",
+                "ko": "원문 위치 확인 필요",
+                "en": "Source position needs confirmation",
             },
         }
     )
@@ -324,12 +338,18 @@ def _missing_source_payload(
     return {
         "source_id": source_anchor_id,
         "anchor_id": source_anchor_id,
+        "focus_anchor_id": source_anchor_id,
         "finding_anchor_id": finding_anchor_id,
         "finding_ids": [finding_id],
         "clause_id": clause_id,
         "page_index": page_index,
         "status": HIGHLIGHT_STATUS_MISSING,
         "status_label": _status_label(HIGHLIGHT_STATUS_MISSING),
+        "text_source": "missing",
+        "render_mode": "inline_selectable_text",
+        "text_source_label": _text_source_label("missing", False),
+        "has_real_bbox_provenance": False,
+        "is_user_corrected": False,
         "segments": [{"text": source_text, "highlighted": False}] if source_text else [],
         "semantic_roles": [],
         "validated_span_count": 0,
@@ -420,6 +440,12 @@ def _display_segments(
                 if range_start <= start and end <= range_end
             )
         )
+        page_boxes = tuple(
+            box
+            for span_id in span_ids
+            for box in (_page_box_for_span(span_records, span_id),)
+            if box is not None
+        )
         item: dict[str, Any] = {
             "segment_id": _stable_id("segment", start, end, text, roles),
             "text": text,
@@ -433,6 +459,9 @@ def _display_segments(
                 SEMANTIC_ROLE_DEFINITIONS[role]["label_ko"] for role in roles
             ]
             item["source_span_ids"] = list(span_ids)
+            if page_boxes:
+                item["bbox_provenance"] = "real_ocr_bbox"
+                item["page_boxes"] = list(page_boxes)
         segments.append(item)
     return _merge_adjacent_plain_segments(segments)
 
@@ -461,38 +490,167 @@ def _merge_adjacent_plain_segments(segments: list[dict[str, Any]]) -> list[dict[
 
 def _source_span_records(
     clause: Any,
-    span_lookup: dict[str, tuple[int, str]],
+    span_lookup: dict[str, _SpanText],
 ) -> tuple[_SpanText, ...]:
     records: list[_SpanText] = []
     cursor = 0
     for span_id in tuple(getattr(clause, "source_span_ids", ())):
         if span_id not in span_lookup:
             continue
-        page_index, text = span_lookup[span_id]
+        span = span_lookup[span_id]
         if records:
             cursor += 1
         records.append(
             _SpanText(
                 span_id=span_id,
-                text=text,
-                page_index=page_index,
+                text=span.text,
+                page_index=span.page_index,
                 global_start=cursor,
+                text_source=span.text_source,
+                bbox=dict(span.bbox),
+                page_width=span.page_width,
+                page_height=span.page_height,
+                confidence=span.confidence,
+                is_user_corrected=span.is_user_corrected,
+                has_real_bbox=span.has_real_bbox,
             )
         )
-        cursor += len(text)
+        cursor += len(span.text)
     return tuple(records)
 
 
-def _span_lookup(source_pages: tuple[Any, ...]) -> dict[str, tuple[int, str]]:
-    lookup: dict[str, tuple[int, str]] = {}
+def _span_lookup(source_pages: tuple[Any, ...]) -> dict[str, _SpanText]:
+    lookup: dict[str, _SpanText] = {}
     for page in source_pages:
         page_index = int(getattr(page, "page_index", 0))
+        page_source = _text_source_value(getattr(page, "text_source", ""))
+        page_width = int(getattr(page, "width_px", 1))
+        page_height = int(getattr(page, "height_px", 1))
         for span in tuple(getattr(page, "spans", ())):
             text = getattr(span, "corrected_text", None)
+            is_user_corrected = text is not None
             if text is None:
                 text = getattr(span, "text", "")
-            lookup[str(span.span_id)] = (page_index, str(text))
+            span_id = str(span.span_id)
+            span_source = _span_text_source(page_source, span_id)
+            confidence = float(getattr(span, "confidence", 1.0))
+            lookup[span_id] = _SpanText(
+                span_id=span_id,
+                text=str(text),
+                page_index=page_index,
+                global_start=0,
+                text_source=span_source,
+                bbox=dict(getattr(span, "bbox", {})),
+                page_width=page_width,
+                page_height=page_height,
+                confidence=confidence,
+                is_user_corrected=is_user_corrected,
+                has_real_bbox=span_source == "ocr" and confidence < 1.0,
+            )
     return lookup
+
+
+def _attach_segment_anchor_ids(segments: list[dict[str, Any]], source_anchor_id: str) -> None:
+    for segment in segments:
+        if not segment.get("highlighted"):
+            continue
+        segment["anchor_id"] = _stable_id(
+            "source-span",
+            source_anchor_id,
+            segment.get("segment_id", ""),
+        )
+
+
+def _focus_anchor_id(source_anchor_id: str, segments: list[dict[str, Any]]) -> str:
+    for segment in segments:
+        if segment.get("highlighted") and segment.get("anchor_id"):
+            return str(segment["anchor_id"])
+    return source_anchor_id
+
+
+def _source_text_metadata(span_records: tuple[_SpanText, ...]) -> dict[str, Any]:
+    text_source = _source_text_summary(span_records)
+    is_user_corrected = any(record.is_user_corrected for record in span_records)
+    return {
+        "text_source": text_source,
+        "render_mode": _render_mode_for_source(text_source),
+        "text_source_label": _text_source_label(text_source, is_user_corrected),
+        "has_real_bbox_provenance": any(record.has_real_bbox for record in span_records),
+        "is_user_corrected": is_user_corrected,
+    }
+
+
+def _source_text_summary(span_records: tuple[_SpanText, ...]) -> str:
+    sources = {record.text_source for record in span_records if record.text_source}
+    if not sources:
+        return "missing"
+    if sources == {"text_layer"}:
+        return "text_layer"
+    if sources == {"ocr"}:
+        return "ocr"
+    return "mixed"
+
+
+def _render_mode_for_source(text_source: str) -> str:
+    if text_source == "ocr":
+        return "reconstructed_ocr_text"
+    if text_source == "mixed":
+        return "mixed_inline_text"
+    return "inline_selectable_text"
+
+
+def _text_source_label(text_source: str, is_user_corrected: bool) -> dict[str, str]:
+    if text_source == "ocr" and is_user_corrected:
+        return {"ko": "수정된 OCR 재구성 텍스트", "en": "Corrected OCR reconstructed text"}
+    if text_source == "ocr":
+        return {"ko": "OCR 재구성 텍스트", "en": "OCR reconstructed text"}
+    if text_source == "mixed" and is_user_corrected:
+        return {
+            "ko": "텍스트 레이어와 수정된 OCR 재구성 텍스트",
+            "en": "Text layer plus corrected OCR reconstructed text",
+        }
+    if text_source == "mixed":
+        return {"ko": "텍스트 레이어와 OCR 재구성 텍스트", "en": "Text layer plus OCR text"}
+    if text_source == "missing":
+        return {"ko": "원문 위치 확인 필요", "en": "Source position needs confirmation"}
+    return {"ko": "선택 가능한 원문 텍스트", "en": "Selectable source text"}
+
+
+def _page_box_for_span(
+    span_records: tuple[_SpanText, ...],
+    span_id: str,
+) -> dict[str, Any] | None:
+    record = next((item for item in span_records if item.span_id == span_id), None)
+    if record is None or not record.has_real_bbox:
+        return None
+    return {
+        "span_id": record.span_id,
+        "page_index": record.page_index,
+        "x": record.bbox["x"],
+        "y": record.bbox["y"],
+        "w": record.bbox["w"],
+        "h": record.bbox["h"],
+        "page_width": record.page_width,
+        "page_height": record.page_height,
+        "provenance": "real_ocr_bbox",
+    }
+
+
+def _text_source_value(raw: Any) -> str:
+    value = getattr(raw, "value", raw)
+    return str(value or "").strip().lower()
+
+
+def _span_text_source(page_source: str, span_id: str) -> str:
+    if page_source == "mixed":
+        if ":ocr-" in span_id:
+            return "ocr"
+        if ":text-" in span_id:
+            return "text_layer"
+        return "mixed"
+    if page_source in {"ocr", "text_layer"}:
+        return page_source
+    return "text_layer"
 
 
 def _role_payload() -> list[dict[str, str]]:

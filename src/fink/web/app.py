@@ -1259,9 +1259,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   outline-offset: 2px;
 }
 .disclosure-bar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   display: grid;
   gap: .5rem;
   padding: .75rem clamp(1rem, 4vw, 2rem);
@@ -1438,6 +1435,39 @@ textarea {
   display: grid;
   gap: 1rem;
 }
+.reader-jump-links {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.reader-jump-links a, .reader-back-link, .source-status a, .source-highlight-card > a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+.synchronized-reader {
+  display: grid;
+  gap: var(--space-2);
+}
+.source-reader-panel, .report-reader-panel,
+.source-highlight-card, .source-highlight, .finding-card {
+  scroll-margin: var(--space-4);
+}
+.source-reader-panel:focus,
+.report-reader-panel:focus,
+.source-highlight-card:focus,
+.source-highlight:focus,
+.finding-card:focus {
+  outline: 3px solid currentColor;
+  outline-offset: 4px;
+}
+[data-active-anchor="true"] {
+  outline: 3px solid currentColor;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px #fff;
+}
 .assumptions-panel {
   display: grid;
   gap: .85rem;
@@ -1600,6 +1630,9 @@ mark {
   padding: .04rem .12rem;
   background: #f6f0ff;
   color: inherit;
+}
+.source-kind {
+  background: var(--accent-tint);
 }
 .source-highlight[data-semantic-role="amount_or_rate"] {
   border-bottom: 3px solid #5f6f95;
@@ -1828,6 +1861,15 @@ footer {
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
 }
+@media (min-width: 1100px) {
+  .reader-jump-links, .reader-back-link {
+    display: none;
+  }
+  .synchronized-reader {
+    align-items: start;
+    grid-template-columns: minmax(18rem, .9fr) minmax(0, 1.35fr);
+  }
+}
 @media (max-width: 640px) {
   .topbar, footer {
     align-items: stretch;
@@ -1967,8 +2009,10 @@ _APP_JS = r"""(function () {
         finding.source && finding.source.finding_anchor_id
           ? finding.source.finding_anchor_id
           : finding.finding_id;
+      item.tabIndex = -1;
       item.setAttribute("data-finding-id", finding.finding_id);
       item.setAttribute("data-finding-rank", String(finding.rank));
+      item.setAttribute("data-reader-focus-target", "finding");
       var head = el("div", "finding-head", null);
       head.appendChild(el("span", "badge", "#" + finding.rank));
       var evidenceLabel =
@@ -2034,8 +2078,10 @@ _APP_JS = r"""(function () {
     status.setAttribute("data-highlight-status", source.highlight_status || "missing_exact_span");
     if (source.anchor_id) {
       var link = el("a", null, localized(source.source_link_label) || "출처 문구 보기");
-      link.href = "#" + source.anchor_id;
+      var targetId = source.focus_anchor_id || source.anchor_id;
+      link.href = "#" + targetId;
       link.setAttribute("data-source-nav", "finding-to-source");
+      link.setAttribute("data-source-focus-target", targetId);
       status.appendChild(link);
       status.appendChild(document.createTextNode(" "));
     }
@@ -2056,10 +2102,20 @@ _APP_JS = r"""(function () {
       var marker = document.createElement("mark");
       var roles = segment.roles || [];
       marker.className = "source-highlight";
+      if (segment.anchor_id) {
+        marker.id = segment.anchor_id;
+        marker.tabIndex = -1;
+        marker.setAttribute("data-source-focus-target", "exact-span");
+      }
       marker.setAttribute("data-semantic-roles", roles.join(" "));
       marker.setAttribute("data-semantic-role", roles[0] || "");
       marker.setAttribute("data-role-label-ko", (segment.role_labels_ko || []).join(", "));
       marker.setAttribute("data-source-span-ids", (segment.source_span_ids || []).join(" "));
+      if (segment.page_boxes && segment.page_boxes.length > 0) {
+        marker.setAttribute("data-bbox-provenance", segment.bbox_provenance || "");
+        marker.setAttribute("data-page-box-overlay", "real-bbox");
+        marker.setAttribute("data-page-boxes", JSON.stringify(segment.page_boxes));
+      }
       marker.appendChild(document.createTextNode(text(segment.text)));
       container.appendChild(marker);
     });
@@ -2070,6 +2126,7 @@ _APP_JS = r"""(function () {
     var section = el("section", "source-highlights", null);
     section.setAttribute("data-source-highlights", "true");
     section.setAttribute("data-source-highlights-enabled", "true");
+    section.setAttribute("data-reader-source-content", "true");
 
     var header = el("div", "source-highlight-header", null);
     header.appendChild(el("h3", null, "출처 문구 하이라이트"));
@@ -2104,12 +2161,23 @@ _APP_JS = r"""(function () {
     sources.forEach(function (source) {
       var card = el("article", "source-highlight-card", null);
       card.id = source.anchor_id || source.source_id;
+      card.tabIndex = -1;
       card.setAttribute("data-source-highlight-status", source.status || "missing_exact_span");
       card.setAttribute("data-clause-id", source.clause_id || "");
+      card.setAttribute("data-text-source", source.text_source || "");
+      card.setAttribute("data-render-mode", source.render_mode || "");
+      card.setAttribute(
+        "data-has-real-bbox-provenance",
+        source.has_real_bbox_provenance ? "true" : "false"
+      );
+      card.setAttribute("data-focus-anchor-id", source.focus_anchor_id || card.id);
       var cardHeader = el("header", null, null);
       cardHeader.appendChild(el("strong", null, source.clause_id || ""));
       cardHeader.appendChild(
         el("span", "badge", localized(source.status_label) || "정확한 문구 위치 확인 필요")
+      );
+      cardHeader.appendChild(
+        el("span", "badge source-kind", localized(source.text_source_label) || "")
       );
       card.appendChild(cardHeader);
       var sourceText = el("p", "source-text", null);
@@ -2117,15 +2185,31 @@ _APP_JS = r"""(function () {
       renderSourceSegments(sourceText, source.segments || []);
       card.appendChild(sourceText);
       if (source.finding_anchor_id) {
-        var back = el("a", null, "발견사항으로 이동");
+        var back = el("a", null, "검토 항목으로 돌아가기");
         back.href = "#" + source.finding_anchor_id;
         back.setAttribute("data-source-nav", "source-to-finding");
+        back.setAttribute("data-source-focus-target", source.finding_anchor_id);
         card.appendChild(back);
       }
       sourceList.appendChild(card);
     });
     section.appendChild(sourceList);
     container.appendChild(section);
+  }
+
+  function renderReaderShortcutNav() {
+    var nav = el("nav", "reader-jump-links", null);
+    nav.setAttribute("aria-label", "Reader shortcuts");
+    nav.setAttribute("data-mobile-reader-links", "true");
+    var sourceLink = el("a", null, "원문 보기");
+    sourceLink.href = "#source-reader";
+    sourceLink.setAttribute("data-reader-jump", "source");
+    nav.appendChild(sourceLink);
+    var reportLink = el("a", null, "검토 항목으로 돌아가기");
+    reportLink.href = "#review-reader";
+    reportLink.setAttribute("data-reader-jump", "report");
+    nav.appendChild(reportLink);
+    return nav;
   }
 
   function dimensionCard(titlePair, rows) {
@@ -2277,27 +2361,56 @@ _APP_JS = r"""(function () {
     container.hidden = false;
     clearNode(container);
 
+    container.appendChild(renderReaderShortcutNav());
+
+    var workspace = el("div", "synchronized-reader", null);
+    workspace.setAttribute("data-contract-reader", "synchronized");
+    workspace.setAttribute("data-reader-layout", "source-left-report-right");
+    workspace.setAttribute("data-desktop-min-width-px", "1100");
+    workspace.setAttribute("data-mobile-layout", "single-column");
+
+    var sourcePane = el("section", "source-reader-panel", null);
+    sourcePane.id = "source-reader";
+    sourcePane.tabIndex = -1;
+    sourcePane.setAttribute("data-reader-pane", "source");
+    sourcePane.setAttribute("aria-labelledby", "source-highlights-heading");
+    var backToReport = el("a", "reader-back-link", "검토 항목으로 돌아가기");
+    backToReport.href = "#review-reader";
+    backToReport.setAttribute("data-source-nav", "source-to-finding");
+    sourcePane.appendChild(backToReport);
+    renderSourceHighlights(sourcePane, payload);
+
+    var reportPane = el("section", "report-reader-panel", null);
+    reportPane.id = "review-reader";
+    reportPane.tabIndex = -1;
+    reportPane.setAttribute("data-reader-pane", "report");
+    reportPane.setAttribute("aria-labelledby", "reader-report-heading");
+    reportPane.appendChild(el("h3", "sr-only", "검토 항목"));
+
     var heading = el("div", "section-heading", null);
     heading.appendChild(el("p", "eyebrow", "CreatorReviewViewModel"));
     heading.appendChild(bilingual("h2", null, copyPair(payload, "app.summary_heading")));
-    container.appendChild(heading);
+    reportPane.appendChild(heading);
 
-    container.appendChild(bilingual("p", "nl-summary", payload.summary));
+    reportPane.appendChild(bilingual("p", "nl-summary", payload.summary));
 
     var action = payload.recommendation;
     var actionBox = el("div", "recommended-action", null);
     actionBox.setAttribute("data-recommended-action", payload.statuses.reading_status.state);
     actionBox.appendChild(bilingual("p", "action-line", action.action));
     actionBox.appendChild(bilingual("p", "cash-flow-line", action.cash_flow));
-    container.appendChild(actionBox);
+    reportPane.appendChild(actionBox);
 
-    renderDimensions(container, payload);
-    renderScenarioInputs(container, payload);
+    renderDimensions(reportPane, payload);
+    renderScenarioInputs(reportPane, payload);
 
     var findingsHeading = bilingual("h3", null, copyPair(payload, "app.findings_heading"));
-    container.appendChild(findingsHeading);
-    renderFindings(container, payload.findings);
-    renderSourceHighlights(container, payload);
+    reportPane.appendChild(findingsHeading);
+    renderFindings(reportPane, payload.findings);
+
+    workspace.appendChild(sourcePane);
+    workspace.appendChild(reportPane);
+    container.appendChild(workspace);
 
     setLocale(activeLocale());
     container.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2508,6 +2621,54 @@ _APP_JS = r"""(function () {
     });
   }
 
+  function targetIdFromLink(link) {
+    var explicit = link.getAttribute("data-source-focus-target");
+    if (explicit) {
+      return explicit;
+    }
+    var href = link.getAttribute("href") || "";
+    if (href.charAt(0) !== "#") {
+      return "";
+    }
+    try {
+      return decodeURIComponent(href.slice(1));
+    } catch (error) {
+      return href.slice(1);
+    }
+  }
+
+  function activateReaderAnchor(link) {
+    var targetId = targetIdFromLink(link);
+    if (!targetId) {
+      return false;
+    }
+    var target = document.getElementById(targetId);
+    if (!target) {
+      return false;
+    }
+    if (!target.hasAttribute("tabindex")) {
+      target.setAttribute("tabindex", "-1");
+    }
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    try {
+      target.focus({ preventScroll: true });
+    } catch (error) {
+      target.focus();
+    }
+    var active = document.querySelectorAll("[data-active-anchor='true']");
+    active.forEach(function (item) {
+      item.removeAttribute("data-active-anchor");
+    });
+    target.setAttribute("data-active-anchor", "true");
+    window.setTimeout(function () {
+      target.removeAttribute("data-active-anchor");
+    }, 2400);
+    if (window.history && window.history.pushState) {
+      window.history.pushState(null, "", "#" + targetId);
+    }
+    return true;
+  }
+
   function init() {
     var toggle = document.querySelector("[data-locale-toggle]");
     if (toggle) {
@@ -2532,6 +2693,10 @@ _APP_JS = r"""(function () {
       var scenarioButton = target.closest("[data-scenario-recalculate-button]");
       if (scenarioButton) {
         analyze({ scenarioRecompute: true });
+      }
+      var readerLink = target.closest("[data-source-nav], [data-reader-jump]");
+      if (readerLink && activateReaderAnchor(readerLink)) {
+        event.preventDefault();
       }
       var highlightToggle = target.closest("[data-source-highlight-toggle]");
       if (highlightToggle) {

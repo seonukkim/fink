@@ -289,11 +289,11 @@ def _resolve_pages(
 
 
 def _pages_from_text(text: str) -> tuple[OCRPage, ...]:
-    """Build a single deterministic OCR page from pasted contract text.
+    """Build a single deterministic text page from pasted contract text.
 
-    Each nonblank line becomes one full-confidence OCR span. Bounding boxes are
-    synthetic but monotonic in y, which is all the rule-based segmenter needs to
-    reconstruct logical lines.
+    Each nonblank line becomes one full-confidence span for segmentation, but
+    the page is marked as ``text_layer`` so the reader does not imply OCR or
+    real page-box provenance for pasted text.
     """
 
     if not isinstance(text, str) or not text.strip():
@@ -322,7 +322,7 @@ def _pages_from_text(text: str) -> tuple[OCRPage, ...]:
         height_px=max(len(lines) * line_height, 1),
         spans=spans,
         page_ocr_confidence=1.0,
-        text_source=TextSource.OCR,
+        text_source=TextSource.TEXT_LAYER,
         is_user_corrected=False,
     )
     return (page,)

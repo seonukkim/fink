@@ -167,16 +167,44 @@ def render_creator_review_html(
 ) -> str:
     """Render the canonical creator-review view model as the HTML report."""
 
+    source_highlights = view_model.source_highlights or empty_source_highlights()
     return f"""<section class="report-ui" data-four-dimension-report="true"
       data-creator-review-view-model="true"
       data-view-model="{_escape(view_model.view_model)}">
-      {_render_creator_dimensions(view_model)}
-      {_render_creator_scenario_inputs(view_model)}
-      {_render_creator_findings(view_model)}
-      {_render_source_highlight_controls(view_model.source_highlights or empty_source_highlights())}
-      {_render_creator_audit_detail(view_model)}
-      {render_export_controls_html(contains_raw_image=contains_raw_image)}
+      {_render_synchronized_reader(view_model, source_highlights, contains_raw_image)}
     </section>"""
+
+
+def _render_synchronized_reader(
+    view_model: CreatorReviewViewModel,
+    source_highlights: dict[str, Any],
+    contains_raw_image: bool,
+) -> str:
+    return f"""<nav class="reader-jump-links" aria-label="Reader shortcuts"
+      data-mobile-reader-links="true">
+      <a href="#source-reader" data-reader-jump="source">원문 보기</a>
+      <a href="#review-reader" data-reader-jump="report">검토 항목으로 돌아가기</a>
+    </nav>
+    <div class="synchronized-reader" data-contract-reader="synchronized"
+      data-reader-layout="source-left-report-right" data-desktop-min-width-px="1100"
+      data-mobile-layout="single-column">
+      <section id="source-reader" class="source-reader-panel" data-reader-pane="source"
+        tabindex="-1" aria-labelledby="source-highlights-heading">
+        <a class="reader-back-link" href="#review-reader" data-source-nav="source-to-finding">
+          검토 항목으로 돌아가기
+        </a>
+        {_render_source_highlight_controls(source_highlights)}
+      </section>
+      <section id="review-reader" class="report-reader-panel" data-reader-pane="report"
+        tabindex="-1" aria-labelledby="reader-report-heading">
+        <h3 id="reader-report-heading" class="sr-only">검토 항목</h3>
+        {_render_creator_dimensions(view_model)}
+        {_render_creator_scenario_inputs(view_model)}
+        {_render_creator_findings(view_model)}
+        {_render_creator_audit_detail(view_model)}
+        {render_export_controls_html(contains_raw_image=contains_raw_image)}
+      </section>
+    </div>"""
 
 
 def render_export_controls_html(*, contains_raw_image: bool = False) -> str:
@@ -322,10 +350,13 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
         additional_questions = _render_creator_additional_questions(
             finding.get("additional_questions") or []
         )
+        source = finding.get("source") or {}
+        finding_anchor_id = str(source.get("finding_anchor_id") or finding["finding_id"])
         items.append(
-            f"""<li id="{_escape(finding['finding_id'])}"
+            f"""<li id="{_escape(finding_anchor_id)}" tabindex="-1"
               class="finding-card" data-finding-id="{_escape(finding['finding_id'])}"
-              data-finding-rank="{_escape(finding['rank'])}">
+              data-finding-rank="{_escape(finding['rank'])}"
+              data-reader-focus-target="finding">
               <div class="finding-head">
                 <span class="badge">#{_escape(finding['rank'])}</span>
                 <span class="badge">{_escape(finding['states']['evidence_state'])}</span>
@@ -358,14 +389,16 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
 def _render_finding_source_link(finding: dict[str, Any]) -> str:
     source = finding.get("source") or {}
     anchor_id = str(source.get("anchor_id") or "")
+    focus_anchor_id = str(source.get("focus_anchor_id") or anchor_id)
     status = str(source.get("highlight_status") or HIGHLIGHT_STATUS_MISSING)
     label = source.get("highlight_status_label") or {}
-    if not anchor_id:
+    if not focus_anchor_id:
         return f'<p class="source-status" data-highlight-status="{_escape(status)}">{MISSING_EXACT_SPAN_KO}</p>'
     link_label = (source.get("source_link_label") or {}).get("ko") or "출처 문구 보기"
     return (
         f'<p class="source-status" data-highlight-status="{_escape(status)}">'
-        f'<a href="#{_escape(anchor_id)}" data-source-nav="finding-to-source">'
+        f'<a href="#{_escape(focus_anchor_id)}" data-source-nav="finding-to-source"'
+        f' data-source-focus-target="{_escape(focus_anchor_id)}">'
         f"{_escape(link_label)}</a> "
         f"<span>{_escape(label.get('ko') or MISSING_EXACT_SPAN_KO)}</span></p>"
     )
@@ -392,6 +425,7 @@ def _render_source_highlight_controls(source_highlights: dict[str, Any]) -> str:
     return f"""<section class="source-highlights"
       data-source-highlights="true"
       data-source-highlights-enabled="true"
+      data-reader-source-content="true"
       aria-labelledby="source-highlights-heading">
       <div class="source-highlight-header">
         <h3 id="source-highlights-heading">출처 문구 하이라이트</h3>
@@ -410,22 +444,31 @@ def _render_source_highlight_controls(source_highlights: dict[str, Any]) -> str:
 def _render_source_highlight_item(source: dict[str, Any]) -> str:
     status = str(source.get("status") or HIGHLIGHT_STATUS_MISSING)
     label = source.get("status_label") or {}
+    text_source_label = source.get("text_source_label") or {}
     source_id = str(source.get("anchor_id") or source.get("source_id") or "")
+    focus_anchor_id = str(source.get("focus_anchor_id") or source_id)
     finding_anchor_id = str(source.get("finding_anchor_id") or "")
     segments = _render_source_segments(source.get("segments") or [])
     nav = (
-        f'<a href="#{_escape(finding_anchor_id)}" data-source-nav="source-to-finding">'
-        "발견사항으로 이동</a>"
+        f'<a href="#{_escape(finding_anchor_id)}" data-source-nav="source-to-finding"'
+        f' data-source-focus-target="{_escape(finding_anchor_id)}">'
+        "검토 항목으로 돌아가기</a>"
         if finding_anchor_id
         else ""
     )
     return f"""<article id="{_escape(source_id)}"
       class="source-highlight-card"
       data-source-highlight-status="{_escape(status)}"
-      data-clause-id="{_escape(source.get('clause_id', ''))}">
+      data-clause-id="{_escape(source.get('clause_id', ''))}"
+      data-text-source="{_escape(source.get('text_source', ''))}"
+      data-render-mode="{_escape(source.get('render_mode', ''))}"
+      data-has-real-bbox-provenance="{str(bool(source.get('has_real_bbox_provenance'))).lower()}"
+      data-focus-anchor-id="{_escape(focus_anchor_id)}"
+      tabindex="-1">
       <header>
         <strong>{_escape(source.get('clause_id', ''))}</strong>
         <span class="badge">{_escape(label.get('ko') or MISSING_EXACT_SPAN_KO)}</span>
+        <span class="badge source-kind">{_escape(text_source_label.get('ko') or '')}</span>
       </header>
       <p class="source-text" data-source-text="true">{segments}</p>
       {nav}
@@ -441,12 +484,28 @@ def _render_source_segments(segments: list[dict[str, Any]]) -> str:
             continue
         roles = tuple(str(role) for role in segment.get("roles", ()))
         role_label = ", ".join(str(label) for label in segment.get("role_labels_ko", ()))
+        anchor = str(segment.get("anchor_id") or "")
+        anchor_attrs = (
+            f' id="{_escape(anchor)}" tabindex="-1" data-source-focus-target="exact-span"'
+            if anchor
+            else ""
+        )
+        page_boxes = segment.get("page_boxes") or []
+        box_attrs = ""
+        if page_boxes:
+            box_attrs = (
+                f' data-bbox-provenance="{_escape(segment.get("bbox_provenance", ""))}"'
+                f' data-page-box-overlay="real-bbox"'
+                f' data-page-boxes="{_escape(json.dumps(page_boxes, ensure_ascii=False, sort_keys=True))}"'
+            )
         rendered.append(
             '<mark class="source-highlight"'
+            f"{anchor_attrs}"
             f' data-semantic-roles="{_escape(" ".join(roles))}"'
             f' data-semantic-role="{_escape(roles[0] if roles else "")}"'
             f' data-role-label-ko="{_escape(role_label)}"'
-            f' data-source-span-ids="{_escape(" ".join(segment.get("source_span_ids", ())))}">'
+            f' data-source-span-ids="{_escape(" ".join(segment.get("source_span_ids", ())))}"'
+            f"{box_attrs}>"
             f"{text}</mark>"
         )
     return "".join(rendered)
