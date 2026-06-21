@@ -59,8 +59,10 @@ from fink.web.report_ui import (
     active_financial_category_codes,
     category_label,
     render_empty_report_shell_html,
+    render_export_controls_html,
     render_report_html,
     report_dimension_ids,
+    report_export_formats,
 )
 
 __all__ = [
@@ -106,11 +108,13 @@ __all__ = [
     "preview_text",
     "reorder_preview_pages",
     "render_empty_report_shell_html",
+    "render_export_controls_html",
     "render_assumptions_panel_html",
     "render_index_html",
     "render_report_html",
     "recompute_assumptions",
     "report_dimension_ids",
+    "report_export_formats",
     "responsive_ingest_layouts",
     "resolve_bind_settings",
     "rotate_preview_page",

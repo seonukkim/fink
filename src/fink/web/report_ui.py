@@ -10,6 +10,7 @@ from fink.schemas import (
     AnalysisReport,
     ClauseAssessment,
     EvidenceRecord,
+    ExportFormat,
     MonetaryExposureEstimate,
     RiskCategory,
     RiskSignal,
@@ -22,6 +23,7 @@ FOUR_DIMENSION_IDS = (
     "time-exposure",
     "evidence-ocr-confidence",
 )
+EXPORT_FORMATS = (ExportFormat.HTML.value, ExportFormat.MD.value, ExportFormat.JSON.value)
 
 FINANCIAL_CATEGORY_ORDER = (
     RiskCategory.F1,
@@ -85,6 +87,10 @@ def report_dimension_ids() -> tuple[str, str, str, str]:
     return FOUR_DIMENSION_IDS
 
 
+def report_export_formats() -> tuple[str, str, str]:
+    return EXPORT_FORMATS
+
+
 def category_label(category: RiskCategory | str) -> str:
     return CATEGORY_LABELS[_coerce_category(category)]
 
@@ -116,6 +122,7 @@ def render_empty_report_shell_html() -> str:
         </span>
       </section>
       {_render_context_section(())}
+      {render_export_controls_html()}
     </section>"""
 
 
@@ -139,6 +146,30 @@ def render_report_html(
           highlighted_evidence=highlighted_evidence,
       )}
       {_render_context_section(cross_cutting_signals)}
+      {render_export_controls_html(contains_raw_image=report.contains_raw_image)}
+    </section>"""
+
+
+def render_export_controls_html(*, contains_raw_image: bool = False) -> str:
+    buttons = "\n".join(
+        f"""<button type="button" class="secondary"
+          data-export-format="{_escape(fmt)}"
+          data-export-local-only="true"
+          data-contains-raw-image="false">{_escape(fmt.upper())}</button>"""
+        for fmt in EXPORT_FORMATS
+    )
+    return f"""<section class="report-export-controls"
+      aria-labelledby="report-export-heading"
+      data-export-formats="{_escape(' '.join(EXPORT_FORMATS))}"
+      data-export-local-only="true"
+      data-outbound-network-clients="0"
+      data-contains-raw-image="{str(False).lower()}"
+      data-source-report-contains-raw-image="{str(contains_raw_image).lower()}">
+      <h3 id="report-export-heading">Local export</h3>
+      <div class="action-row" role="group" aria-label="Local report export formats">
+        {buttons}
+      </div>
+      <p class="hint">HTML, Markdown, and JSON exports exclude raw image bytes by default.</p>
     </section>"""
 
 
