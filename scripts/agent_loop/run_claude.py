@@ -74,6 +74,39 @@ def _review_from_text(text: str) -> dict[str, object] | None:
     return None
 
 
+def _verdict_from_prose(text: str) -> str | None:
+    """Recover the verdict when Claude only states it in prose.
+
+    The agentic reviewer (acceptEdits, many turns) often writes the review JSON to
+    the file itself and returns a prose summary like ``## Verdict: `APPROVE` ``.
+    Anchor to a line that starts with "verdict" so a mid-sentence mention does not
+    win.
+    """
+    match = re.search(
+        r"(?im)^\W*verdict\W{0,8}(APPROVE|REQUEST_CHANGES|BLOCKED)\b", text
+    )
+    return match.group(1).upper() if match else None
+
+
+def _load_disk_review(path: Path) -> dict[str, object] | None:
+    """A schema-valid review Claude wrote to the file itself (agentic mode)."""
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(data, dict) or data.get("verdict") not in {
+        "APPROVE",
+        "REQUEST_CHANGES",
+        "BLOCKED",
+    }:
+        return None
+    if validate_against_schema(data, CLAUDE_REVIEW_SCHEMA) is not None:
+        return None
+    return data
+
+
 def parse_review_payload(stdout: str) -> dict[str, object]:
     """Extract the review object from `claude -p --output-format json` output.
 
@@ -94,9 +127,12 @@ def parse_review_payload(stdout: str) -> dict[str, object]:
         return empty_review("BLOCKED", f"Claude CLI error: {envelope.get('subtype', 'unknown')}.")
     text = envelope.get("result", "") if isinstance(envelope, dict) else str(envelope)
     review = _review_from_text(str(text))
-    if review is None:
-        return empty_review("BLOCKED", "Claude response contained no parseable review JSON.")
-    return review
+    if review is not None:
+        return review
+    prose = _verdict_from_prose(str(text))
+    if prose is not None:
+        return empty_review(prose, "Verdict parsed from Claude prose summary.")
+    return empty_review("BLOCKED", "Claude response contained no parseable review JSON.")
 
 
 def emit_review(review_path: Path, review: object) -> None:
@@ -168,7 +204,11 @@ def run() -> None:
             empty_review("BLOCKED", "Claude CLI returned a non-zero exit status."),
         )
         raise SystemExit(proc.returncode)
-    parsed = parse_review_payload(proc.stdout)
+    # Agentic Claude may write the full, schema-valid review to the file itself;
+    # prefer that, otherwise recover the verdict from the stdout envelope/summary.
+    parsed = _load_disk_review(run_dir / "claude_review.json")
+    if parsed is None:
+        parsed = parse_review_payload(proc.stdout)
     emit_review(run_dir / "claude_review.json", parsed)
 
 

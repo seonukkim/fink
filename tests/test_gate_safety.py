@@ -269,6 +269,22 @@ class ClaudeEnvelopeParsingTests(unittest.TestCase):
     def test_non_json_stdout_becomes_blocked(self) -> None:
         self.assertEqual(run_claude.parse_review_payload("not json").get("verdict"), "BLOCKED")
 
+    def test_prose_verdict_recovered(self) -> None:
+        # Agentic Claude wrote the JSON to a file and only summarized on stdout.
+        envelope = {
+            "is_error": False,
+            "result": "## Verdict: `APPROVE`\n\nReview JSON written to claude_review.json.",
+        }
+        self.assertEqual(
+            run_claude.parse_review_payload(json.dumps(envelope))["verdict"], "APPROVE"
+        )
+
+    def test_prose_request_changes_recovered(self) -> None:
+        envelope = {"is_error": False, "result": "Verdict: REQUEST_CHANGES\nNotes follow."}
+        self.assertEqual(
+            run_claude.parse_review_payload(json.dumps(envelope))["verdict"], "REQUEST_CHANGES"
+        )
+
 
 class AgentModelPinTests(unittest.TestCase):
     def test_codex_model_is_pinned(self) -> None:

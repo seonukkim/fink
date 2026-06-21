@@ -115,6 +115,50 @@ class AgentLoopTests(unittest.TestCase):
             self.assertTrue((repo / "outside" / "new.txt").exists())
             self.assertTrue((repo / "runs" / "failed" / "FAILED.patch").exists())
 
+    def test_rollback_tolerates_allowed_path_absent_at_base(self) -> None:
+        # Reproduces the crash: an allowed path the task newly created (tests/release)
+        # does not exist at base, so a combined `git restore` errored. Rollback must
+        # still succeed: restore tracked files, remove the new ones.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "t@e.invalid"], cwd=repo, check=True)
+            subprocess.run(["git", "config", "user.name", "T"], cwd=repo, check=True)
+            (repo / "scripts").mkdir()
+            (repo / "scripts" / "keep.py").write_text("base\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "base"], cwd=repo, check=True, capture_output=True)
+            base = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=repo, check=True, text=True, capture_output=True
+            ).stdout.strip()
+            (repo / "scripts" / "new.py").write_text("x\n", encoding="utf-8")
+            (repo / "tests" / "release").mkdir(parents=True)
+            (repo / "tests" / "release" / "t.py").write_text("x\n", encoding="utf-8")
+
+            old_root, old_git = rollback.REPO_ROOT, rollback.git
+
+            def temp_git(args: list[str], *, check: bool = True, capture: bool = True):
+                return subprocess.run(
+                    ["git", *args], cwd=repo, check=check, text=True, capture_output=capture
+                )
+
+            try:
+                rollback.REPO_ROOT = repo
+                rollback.git = temp_git
+                rollback.rollback_task(
+                    {"allowed_paths": ["scripts/", "tests/release/"]},
+                    base,
+                    repo / "runs" / "f",
+                    "BLOCKED",
+                )
+            finally:
+                rollback.REPO_ROOT = old_root
+                rollback.git = old_git
+
+            self.assertFalse((repo / "scripts" / "new.py").exists())
+            self.assertFalse((repo / "tests" / "release" / "t.py").exists())
+            self.assertTrue((repo / "scripts" / "keep.py").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

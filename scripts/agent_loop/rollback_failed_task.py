@@ -53,7 +53,12 @@ def rollback_task(task: dict[str, object], base_commit: str, run_dir: Path, stat
     write_text(run_dir / "FAILED.patch", diff)
     write_text(run_dir / "FAILED.status", status + "\n")
 
-    git(["restore", "--source", base_commit, "--", *allowed], capture=True)
+    for path in allowed:
+        # Restore per-path and tolerate failure: an allowed path the task newly
+        # created has nothing tracked to restore (only untracked files, removed
+        # below). A single combined `git restore` aborts the whole rollback if ANY
+        # pathspec matches no tracked file at base.
+        git(["restore", "--source", base_commit, "--", path], check=False, capture=True)
     for path in allowed:
         remove_untracked_under(path)
 
