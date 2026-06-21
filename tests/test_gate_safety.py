@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -178,6 +179,43 @@ class UntrackedScanCoverageTests(unittest.TestCase):
                     vr.secret_scan()
             finally:
                 vr.REPO_ROOT, vr.tracked_files, vr.untracked_files = saved
+
+
+class ClaudeEnvelopeParsingTests(unittest.TestCase):
+    """run_claude must read the review out of the CLI's JSON envelope."""
+
+    def test_extracts_review_from_fenced_result(self) -> None:
+        review = {"verdict": "APPROVE", "summary": "ok"}
+        envelope = {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": "Here is my review:\n```json\n" + json.dumps(review) + "\n```",
+        }
+        out = run_claude.parse_review_payload(json.dumps(envelope))
+        self.assertEqual(out["verdict"], "APPROVE")
+
+    def test_extracts_review_from_raw_result(self) -> None:
+        envelope = {"is_error": False, "result": json.dumps({"verdict": "REQUEST_CHANGES"})}
+        out = run_claude.parse_review_payload(json.dumps(envelope))
+        self.assertEqual(out["verdict"], "REQUEST_CHANGES")
+
+    def test_cli_error_envelope_becomes_blocked(self) -> None:
+        envelope = {"is_error": True, "subtype": "error_max_turns", "result": ""}
+        out = run_claude.parse_review_payload(json.dumps(envelope))
+        self.assertEqual(out["verdict"], "BLOCKED")
+
+    def test_bare_review_passthrough(self) -> None:
+        out = run_claude.parse_review_payload(json.dumps({"verdict": "BLOCKED", "summary": "x"}))
+        self.assertEqual(out["verdict"], "BLOCKED")
+
+    def test_unparseable_result_becomes_blocked(self) -> None:
+        envelope = {"is_error": False, "result": "I could not produce a verdict."}
+        out = run_claude.parse_review_payload(json.dumps(envelope))
+        self.assertEqual(out["verdict"], "BLOCKED")
+
+    def test_non_json_stdout_becomes_blocked(self) -> None:
+        self.assertEqual(run_claude.parse_review_payload("not json").get("verdict"), "BLOCKED")
 
 
 class AgentModelPinTests(unittest.TestCase):

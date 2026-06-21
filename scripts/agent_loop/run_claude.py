@@ -9,6 +9,7 @@ if __package__ in {None, ""}:
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 
@@ -50,6 +51,51 @@ def empty_review(verdict: str, summary: str) -> dict[str, object]:
     review["verdict"] = verdict
     review["summary"] = summary
     review["confidence"] = "dry_run"
+    return review
+
+
+def _review_from_text(text: str) -> dict[str, object] | None:
+    """Pull a review object out of free-form model text (fenced or bare JSON)."""
+    candidates: list[str] = []
+    fence = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.DOTALL)
+    if fence:
+        candidates.append(fence.group(1))
+    candidates.append(text.strip())
+    brace = re.search(r"\{.*\}", text, re.DOTALL)
+    if brace:
+        candidates.append(brace.group(0))
+    for candidate in candidates:
+        try:
+            obj = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and "verdict" in obj:
+            return obj
+    return None
+
+
+def parse_review_payload(stdout: str) -> dict[str, object]:
+    """Extract the review object from `claude -p --output-format json` output.
+
+    That command wraps the model's answer in an envelope; the review JSON the
+    model produced lives in the ``result`` string. Be tolerant of markdown
+    fences or surrounding prose, and fall back to a BLOCKED review on any parse
+    failure so the orchestrator rolls back rather than acting on a missing
+    verdict.
+    """
+    try:
+        envelope = json.loads(stdout)
+    except json.JSONDecodeError:
+        return empty_review("BLOCKED", "Claude did not return a valid JSON envelope.")
+    # Defensive: the model output was already the bare review object.
+    if isinstance(envelope, dict) and "verdict" in envelope:
+        return envelope
+    if isinstance(envelope, dict) and envelope.get("is_error"):
+        return empty_review("BLOCKED", f"Claude CLI error: {envelope.get('subtype', 'unknown')}.")
+    text = envelope.get("result", "") if isinstance(envelope, dict) else str(envelope)
+    review = _review_from_text(str(text))
+    if review is None:
+        return empty_review("BLOCKED", "Claude response contained no parseable review JSON.")
     return review
 
 
@@ -122,10 +168,7 @@ def run() -> None:
             empty_review("BLOCKED", "Claude CLI returned a non-zero exit status."),
         )
         raise SystemExit(proc.returncode)
-    try:
-        parsed = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        parsed = empty_review("BLOCKED", "Claude did not return valid JSON.")
+    parsed = parse_review_payload(proc.stdout)
     emit_review(run_dir / "claude_review.json", parsed)
 
 

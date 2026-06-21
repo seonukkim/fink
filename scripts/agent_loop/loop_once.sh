@@ -61,6 +61,10 @@ run_task() {
   if [[ "$dry_run" != "1" ]]; then
     export FINK_TASK_START=1
     bash scripts/agent_loop/run_gates.sh >/tmp/fink-task-start-gates.log
+    # Only the initial pre-Codex gate requires a clean tree. Unset so the gate
+    # runs AFTER Codex/Claude -- which deliberately modify the tree -- do not
+    # re-trigger the clean-tree "task start" check and abort the round.
+    unset FINK_TASK_START
   fi
 
   select_args=(--json)
