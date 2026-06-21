@@ -56,8 +56,8 @@ gates:
     priority: P1
     notes: "Governing offering 2026 Spring IE412 AI for Finance; deadline 2026-06-24 23:59 KST."
   HR-08:
-    status: OPEN
-    approved: false
+    status: RESOLVED
+    approved: true
     approval: human
     priority: P1
     notes: "STAYS HUMAN. Academic-integrity attestation that the author personally reviewed the AI-assisted outputs before release. Auto-attesting would misrepresent the author's review to the course. Flip to approved:true / RESOLVED only at submission, after reviewing. Everything up to release automates; this is the single final human step."
