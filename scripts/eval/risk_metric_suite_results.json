@@ -1,0 +1,524 @@
+{
+  "arm_reports": {
+    "hybrid": {
+      "arm": "hybrid",
+      "confusion": {
+        "fn": 0,
+        "fp": 1,
+        "tn": 3,
+        "tp": 6
+      },
+      "measured_result_scope": "synthetic/sanitized fixture only",
+      "metric_values": {
+        "EV-BENIGN-FPR": 0.25,
+        "EV-F1": 0.923077,
+        "EV-SEV": 0.988333
+      },
+      "optimality_claim": "none",
+      "review_priority_scores": {
+        "max_case_score": 4,
+        "mean_all_cases": 2.3,
+        "mean_predicted_positive_cases": 3.285714,
+        "per_case": [
+          {
+            "case_id": "risk-f1-settlement",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f2-deduction",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f3-payment",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "risk-f5-secondary",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f7-termination",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f8-scope",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "benign-f1-audit-present",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          },
+          {
+            "case_id": "benign-f2-closed-deductions",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          },
+          {
+            "case_id": "benign-f5-limited-license",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          },
+          {
+            "case_id": "benign-x1-formatting",
+            "predicted_positive": true,
+            "review_priority_score": 1
+          }
+        ],
+        "scoring_frame": "Contractual Financial Review Priority"
+      },
+      "severity": {
+        "gold_risk_case_count": 6,
+        "mae_on_gold_risk_cases": 0.011667,
+        "missed_risks_scored_as_zero": true
+      }
+    },
+    "model_only": {
+      "arm": "model_only",
+      "confusion": {
+        "fn": 0,
+        "fp": 2,
+        "tn": 2,
+        "tp": 6
+      },
+      "measured_result_scope": "synthetic/sanitized fixture only",
+      "metric_values": {
+        "EV-BENIGN-FPR": 0.5,
+        "EV-F1": 0.857143,
+        "EV-SEV": 0.91
+      },
+      "optimality_claim": "none",
+      "review_priority_scores": {
+        "max_case_score": 4,
+        "mean_all_cases": 2.3,
+        "mean_predicted_positive_cases": 2.875,
+        "per_case": [
+          {
+            "case_id": "risk-f1-settlement",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f2-deduction",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "risk-f3-payment",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "risk-f5-secondary",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "risk-f7-termination",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "risk-f8-scope",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "benign-f1-audit-present",
+            "predicted_positive": true,
+            "review_priority_score": 2
+          },
+          {
+            "case_id": "benign-f2-closed-deductions",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          },
+          {
+            "case_id": "benign-f5-limited-license",
+            "predicted_positive": true,
+            "review_priority_score": 2
+          },
+          {
+            "case_id": "benign-x1-formatting",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          }
+        ],
+        "scoring_frame": "Contractual Financial Review Priority"
+      },
+      "severity": {
+        "gold_risk_case_count": 6,
+        "mae_on_gold_risk_cases": 0.09,
+        "missed_risks_scored_as_zero": true
+      }
+    },
+    "rule_only": {
+      "arm": "rule_only",
+      "confusion": {
+        "fn": 1,
+        "fp": 1,
+        "tn": 3,
+        "tp": 5
+      },
+      "measured_result_scope": "synthetic/sanitized fixture only",
+      "metric_values": {
+        "EV-BENIGN-FPR": 0.25,
+        "EV-F1": 0.833333,
+        "EV-SEV": 0.87
+      },
+      "optimality_claim": "none",
+      "review_priority_scores": {
+        "max_case_score": 4,
+        "mean_all_cases": 2.1,
+        "mean_predicted_positive_cases": 3.5,
+        "per_case": [
+          {
+            "case_id": "risk-f1-settlement",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f2-deduction",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f3-payment",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          },
+          {
+            "case_id": "risk-f5-secondary",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f7-termination",
+            "predicted_positive": true,
+            "review_priority_score": 4
+          },
+          {
+            "case_id": "risk-f8-scope",
+            "predicted_positive": true,
+            "review_priority_score": 3
+          },
+          {
+            "case_id": "benign-f1-audit-present",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          },
+          {
+            "case_id": "benign-f2-closed-deductions",
+            "predicted_positive": true,
+            "review_priority_score": 2
+          },
+          {
+            "case_id": "benign-f5-limited-license",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          },
+          {
+            "case_id": "benign-x1-formatting",
+            "predicted_positive": false,
+            "review_priority_score": 0
+          }
+        ],
+        "scoring_frame": "Contractual Financial Review Priority"
+      },
+      "severity": {
+        "gold_risk_case_count": 6,
+        "mae_on_gold_risk_cases": 0.13,
+        "missed_risks_scored_as_zero": true
+      }
+    }
+  },
+  "cases": [
+    {
+      "description": "Compute EV-F1, EV-BENIGN-FPR, and EV-SEV for each ablation arm on synthetic/sanitized risk labels.",
+      "expected": {
+        "arms": [
+          "rule_only",
+          "model_only",
+          "hybrid"
+        ],
+        "benign_fpr_measured": true,
+        "no_legal_verdict": true,
+        "required_metrics": [
+          "EV-F1",
+          "EV-BENIGN-FPR",
+          "EV-SEV"
+        ],
+        "synthetic_only": true
+      },
+      "id": "risk_metric_run",
+      "metrics": [
+        "EV-F1",
+        "EV-BENIGN-FPR",
+        "EV-SEV"
+      ],
+      "observed": {
+        "case_count": 10,
+        "fixture_sha256": "bd4f7fdca199d6e299b538b78928c9dd65a4ee37c4c783080394f82fa1a32785",
+        "gold_benign_cases": 4,
+        "gold_risk_cases": 6,
+        "issue_count": 0,
+        "issues": [],
+        "metric_values": {
+          "hybrid": {
+            "EV-BENIGN-FPR": 0.25,
+            "EV-F1": 0.923077,
+            "EV-SEV": 0.988333
+          },
+          "model_only": {
+            "EV-BENIGN-FPR": 0.5,
+            "EV-F1": 0.857143,
+            "EV-SEV": 0.91
+          },
+          "rule_only": {
+            "EV-BENIGN-FPR": 0.25,
+            "EV-F1": 0.833333,
+            "EV-SEV": 0.87
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "description": "Report rule_only/model_only/hybrid ablation arms without claiming any arm is optimal beyond measured fixture results.",
+      "expected": {
+        "arm_count": 3,
+        "arms": [
+          "rule_only",
+          "model_only",
+          "hybrid"
+        ],
+        "optimality_claims_allowed": false,
+        "result_scope": "measured synthetic/sanitized fixture only"
+      },
+      "id": "ablation_three_arms",
+      "metrics": [
+        "EV-F1",
+        "EV-BENIGN-FPR",
+        "EV-SEV"
+      ],
+      "observed": {
+        "arm_count": 3,
+        "arms": [
+          "hybrid",
+          "model_only",
+          "rule_only"
+        ],
+        "claim_boundary": "Measured on synthetic/sanitized fixtures only; no arm is claimed optimal beyond the measured result.",
+        "issue_count": 0,
+        "issues": [],
+        "per_arm_optimality_claim": {
+          "hybrid": "none",
+          "model_only": "none",
+          "rule_only": "none"
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "claim_boundary": {
+    "no_arm_claimed_optimal_beyond_measured_result": true,
+    "scope": "synthetic/sanitized fixture",
+    "statement": "Measured on synthetic/sanitized fixtures only; no arm is claimed optimal beyond the measured result."
+  },
+  "measured_extrema": {
+    "EV-BENIGN-FPR": {
+      "arms": [
+        "hybrid",
+        "rule_only"
+      ],
+      "direction": "lower_is_better",
+      "scope": "measured fixture only",
+      "value": 0.25
+    },
+    "EV-F1": {
+      "arms": [
+        "hybrid"
+      ],
+      "direction": "higher_is_better",
+      "scope": "measured fixture only",
+      "value": 0.923077
+    },
+    "EV-SEV": {
+      "arms": [
+        "hybrid"
+      ],
+      "direction": "higher_is_better",
+      "scope": "measured fixture only",
+      "value": 0.988333
+    }
+  },
+  "metric_definitions": {
+    "EV-BENIGN-FPR": "False-positive rate on benign synthetic clauses; lower is better.",
+    "EV-F1": "Binary F1 for financially consequential review-priority signal detection.",
+    "EV-SEV": "One minus mean absolute severity error on gold-risk cases, with missed risks scored as predicted severity 0."
+  },
+  "metric_values": {
+    "hybrid": {
+      "EV-BENIGN-FPR": 0.25,
+      "EV-F1": 0.923077,
+      "EV-SEV": 0.988333
+    },
+    "model_only": {
+      "EV-BENIGN-FPR": 0.5,
+      "EV-F1": 0.857143,
+      "EV-SEV": 0.91
+    },
+    "rule_only": {
+      "EV-BENIGN-FPR": 0.25,
+      "EV-F1": 0.833333,
+      "EV-SEV": 0.87
+    }
+  },
+  "metrics": {
+    "EV-BENIGN-FPR": {
+      "failed": 0,
+      "ok": true,
+      "passed": 2,
+      "total": 2
+    },
+    "EV-F1": {
+      "failed": 0,
+      "ok": true,
+      "passed": 2,
+      "total": 2
+    },
+    "EV-SEV": {
+      "failed": 0,
+      "ok": true,
+      "passed": 2,
+      "total": 2
+    }
+  },
+  "paper_sections": [
+    "05_experiments.md",
+    "06_results.md"
+  ],
+  "registered_gates": [
+    "risk_metric_run",
+    "ablation_three_arms"
+  ],
+  "result_ledger": {
+    "columns": [
+      "result_id",
+      "experiment_id",
+      "metric",
+      "value",
+      "artifact_path",
+      "status",
+      "reviewer",
+      "notes"
+    ],
+    "name": "RESULT_LEDGER",
+    "rows": [
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:rule_only",
+        "metric": "EV-F1",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-rule_only-EV-F1",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.833333"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:rule_only",
+        "metric": "EV-BENIGN-FPR",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-rule_only-EV-BENIGN-FPR",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.250000"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:rule_only",
+        "metric": "EV-SEV",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-rule_only-EV-SEV",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.870000"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:model_only",
+        "metric": "EV-F1",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-model_only-EV-F1",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.857143"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:model_only",
+        "metric": "EV-BENIGN-FPR",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-model_only-EV-BENIGN-FPR",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.500000"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:model_only",
+        "metric": "EV-SEV",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-model_only-EV-SEV",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.910000"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:hybrid",
+        "metric": "EV-F1",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-hybrid-EV-F1",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.923077"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:hybrid",
+        "metric": "EV-BENIGN-FPR",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-hybrid-EV-BENIGN-FPR",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.250000"
+      },
+      {
+        "artifact_path": "scripts/eval/risk_metric_suite_results.json",
+        "experiment_id": "risk_metric_run:hybrid",
+        "metric": "EV-SEV",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance or optimality claim",
+        "result_id": "FINK-S5-04-hybrid-EV-SEV",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.988333"
+      }
+    ]
+  },
+  "suite": "risk_metric_suite",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 2,
+    "total": 2
+  },
+  "task_id": "FINK-S5-04"
+}

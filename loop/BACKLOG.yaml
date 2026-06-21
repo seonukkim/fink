@@ -826,8 +826,9 @@ tasks:
   - 05_experiments.md
   - 06_results.md
   human_gate: null
-  status: READY
+  status: DONE
   source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+  completed_at: '2026-06-21T12:02:58+00:00'
 - id: FINK-S5-05
   phase: S5
   priority: P0
