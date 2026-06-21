@@ -1213,7 +1213,8 @@ tasks:
   paper_sections:
   - 05_experiments.md
   human_gate: null
-  status: READY
+  status: DONE
+  completed_at: '2026-06-21T13:22:13+00:00'
 - id: FINK-MR-08
   phase: MR
   priority: P1

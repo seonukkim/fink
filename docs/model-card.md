@@ -290,3 +290,69 @@ offline local-load smoke gate for the selected core local profile
 open-allowlisted pinned revisions, forces offline runtime flags, blocks outbound
 network hooks during load, records zero outbound attempts in the self-test, and
 keeps private model paths and weights out of public Git.
+
+## OCR Extraction Benchmark Summary
+
+Gate command: `python3 -m unittest tests.model_research.test_ocr_benchmark_summary`.
+
+Captured for task `FINK-MR-07` at `2026-06-21T22:14:00+09:00` from
+`BASE_COMMIT=b139cfe6ecb12d49d6fb6ef367d3fe349a7e9662`.
+
+Benchmark data boundary:
+
+- Fixture id: `ocr_financial_terms_synthetic_v1`.
+- Inputs are synthetic/sanitized only: 14 short Korean/English contract-style
+  snippets generated for money, percentages, dates, durations, and article
+  numbers. They contain no real contract text, raw filenames, private corpus
+  passages, PDFs, ZIPs, model weights, Hugging Face token values, or `.fink`
+  artifacts.
+- The benchmark measures exact normalized extraction from sanitized OCR
+  transcripts. It is a model-research gate for OCR-to-financial-term extraction
+  readiness, not a claim about real-contract OCR accuracy.
+- Results are measured on synthetic/sanitized fixtures and must not be
+  generalized. They do not support a legal, fraud, validity, unfairness, or
+  guaranteed-loss verdict; FInk remains a Contractual Financial Review Priority
+  aid.
+
+Exact OCR model revisions recorded for reproducibility:
+
+| Role | Candidate | HF repo | License | Exact revision | Weight status |
+|------|-----------|---------|---------|----------------|---------------|
+| OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | not loaded in public repo |
+| OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | not loaded in public repo |
+
+Synthetic benchmark summary:
+
+| Field family | Gold items | Exact normalized matches | Exact-match |
+|--------------|------------|--------------------------|-------------|
+| Money | 12 | 12 | 100.0% |
+| Percentages | 8 | 8 | 100.0% |
+| Dates | 8 | 8 | 100.0% |
+| Durations | 7 | 7 | 100.0% |
+| Article numbers | 6 | 6 | 100.0% |
+| Total | 41 | 41 | 100.0% |
+
+Coverage notes:
+
+- Money cases include KRW won amounts, comma-separated Arabic numerals, Hangul
+  unit amounts, and an open-ended amount whose normalized value is intentionally
+  null.
+- Percentage cases include integer rates, decimal rates, revenue shares, and
+  deduction caps.
+- Date cases include ISO dates, Korean year-month-day forms, month-only payment
+  deadlines, and relative statement dates with explicit synthetic anchors.
+- Duration cases include months, years, notice periods, renewal periods, and
+  exclusivity windows.
+- Article-number cases include Korean `제N조`, sub-article, and English
+  `Article N` references used only as structural provenance, not legal evidence.
+
+Paper note for `05_experiments.md`: report that FINK-MR-07 benchmarked
+OCR-to-financial-term extraction on `ocr_financial_terms_synthetic_v1`, a
+synthetic/sanitized fixture set with 41 gold items across money, percentages,
+dates, durations, and article numbers. The public summary records the exact OCR
+candidate revisions (`PaddlePaddle/PaddleOCR-VL` at
+`baee27eebcbf26cdeab160116679d765f13a3f27` and
+`Qwen/Qwen3-VL-4B-Instruct` at
+`ebb281ec70b05090aa6165b016eac8ec08e71b17`) while keeping weights and private
+inputs out of Git. State that the measured result is synthetic-only and is not a
+real-contract OCR accuracy claim.
