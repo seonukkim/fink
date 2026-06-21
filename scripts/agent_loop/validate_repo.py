@@ -33,6 +33,7 @@ from scripts.agent_loop._common import (
     tracked_files,
     untracked_files,
 )
+from scripts.copyright_audit import format_summary, run_audit
 
 SELF_PATH = Path(__file__).resolve()
 
@@ -362,13 +363,27 @@ def model_license_floor() -> str:
     allowlist = {str(item).lower() for item in policy.get("public_open_allowlist", [])}
     require(bool(allowlist), "candidates.yaml missing public_open_allowlist")
     widened = sorted(allowlist - OPEN_LICENSE_FLOOR)
-    require(not widened, "license allowlist widened beyond open-source floor: " + ", ".join(widened))
+    require(
+        not widened,
+        "license allowlist widened beyond open-source floor: " + ", ".join(widened),
+    )
 
     declared: list[tuple[str, str]] = []
     _walk_licenses(cfg.get("candidates", {}), "candidates", declared)
     bad = sorted({f"{p}={lic}" for p, lic in declared if lic.lower() not in OPEN_LICENSE_FLOOR})
     require(not bad, "non-open model license(s) declared: " + ", ".join(bad))
     return f"open-license floor ok ({len(allowlist)} allowed); no tracked weights"
+
+
+def copyright_audit() -> str:
+    report = run_audit(REPO_ROOT)
+    if report.violations:
+        details = "; ".join(
+            f"{item.code} at {item.location}: {item.detail}" for item in report.violations[:10]
+        )
+        extra = "" if len(report.violations) <= 10 else f"; +{len(report.violations) - 10} more"
+        raise GateFailure(details + extra)
+    return format_summary(report)
 
 
 def money(value: Decimal) -> int:
@@ -594,6 +609,7 @@ def run_all(args: argparse.Namespace) -> None:
     gate("forbidden legal-verdict scan", legal_verdict_scan)
     gate("authority-tier scoring invariant", authority_invariant)
     gate("open-license floor + no tracked weights", model_license_floor)
+    gate("copyright/license audit", copyright_audit)
     gate("financial-formula tests", financial_formula_tests)
     gate("FINK-S0-01 corpus count/schema gate", fink_stage_corpus_gate)
     gate("upload-deletion tests when relevant", lambda: "not relevant to bootstrap scaffold")
