@@ -1078,8 +1078,9 @@ tasks:
   - 07_discussion_and_limitations.md
   - 08_responsible_ai.md
   human_gate: HR-01;HR-02;HR-03;HR-05;HR-08
-  status: READY
+  status: DONE
   source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+  completed_at: '2026-06-21T16:13:41+00:00'
 - id: FINK-MR-01
   phase: MR
   priority: P1

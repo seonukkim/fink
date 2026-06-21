@@ -195,6 +195,46 @@ evaluation metrics → §K; release gates → §L.
 
 ---
 
+## FINK-S8-03 pre-submission checklist run
+
+**Run date:** 2026-06-22 KST. **Base commit:** `f99379feeb108b47235d2672aa0d3ad0a779900e`.
+**Scope:** this run records the final acceptance/human-gate disposition for
+`FINK-S8-03`; non-S8 implementation rows remain delegated to their listed
+verifiers and prior dependency tasks. **Result:** `acceptance_checklist_run`
+passes with no unresolved P0/P1 HR deferral under the current loop gate
+snapshot.
+
+| Checklist item | Result | Rationale |
+|----------------|--------|-----------|
+| AC-REL-PREFLIGHT / AC-REL-SECRET / AC-REL-GITIGNORE | GREEN from dependency | `FINK-S8-01` is a declared dependency. This task changes only paper/checklist notes and adds no `.fink/`, PDF, ZIP, upload, contract, model, index, private/raw/unsanitized data, or secret-bearing artifact. |
+| AC-REL-COPYRIGHT | GREEN from dependency | `FINK-S8-02` is a declared dependency. This task adds no source excerpts, private-book text, contract text, or license-gated material. |
+| AC-PA-SYNC / AC-PA-TEMPLATE | GREEN from dependency plus recheck | `FINK-S7-02` is a declared dependency; this run keeps the paper notes claim-ledgered and does not touch the ICML template. |
+| AC-PA-COMPLY | GREEN | Course report mapping, AI disclosure requirement, citation/claim/result ledgers, submission deadline, and HR dispositions are recorded. The governing offering is **2026 Spring IE412 AI for Finance** and the deadline is **2026-06-24 23:59 KST** (HD-3 / HR-07). |
+| AC-REL-HR | GREEN | HR-01/02/03/05/06/08 status is recorded below; HR-07 is confirmed resolved. No current-law claim is published. |
+| AC-INV-9 | GREEN | Paper notes retain DFL-inspired wording, heuristic-weight limits, synthetic-result limits, and no current-law claim. |
+
+### HR disposition
+
+| HR ID | Priority | Status for FINK-S8-03 | Disposition |
+|-------|----------|-----------------------|-------------|
+| HR-01 | P0 | RESOLVED (auto, `conservative_mode`) | No current-law claim is made. Evidence remains `UNVERIFIED` and date-stamped; A0-A2-only scoring remains enforced by the invariant/authority gates. |
+| HR-02 | P0 | RESOLVED (auto, `conservative_mode`) | Webtoon-specific material is treated as practice/context unless independently A0-A2 grounded; no authoritative webtoon-law claim is published. |
+| HR-03 | P1 | RESOLVED (auto, `conservative_mode`) | Korean remains canonical; English aliases are retrieval/UX aids with caveats and are never labeled original evidence or legal equivalence. |
+| HR-05 | P1 | RESOLVED (auto, `conservative_mode`) | Dated 2018-2021 figures stay date-stamped and are never presented as current. |
+| HR-06 | P2 | RESOLVED (auto) | Glossary/category routing is covered by glossary/eligibility invariants; cross-cutting X categories remain non-scoring. Recorded here because the task requires HR-06 status. |
+| HR-07 | P1 | RESOLVED (human, HD-3) | Governing offering: 2026 Spring IE412 AI for Finance. Binding deadline: 2026-06-24 23:59 KST. |
+| HR-08 | P1 | RESOLVED (human) | The academic-integrity attestation remains a human act. This run records the resolved loop gate and does not auto-attest on the author's behalf. |
+
+### Deferrals
+
+No P0/P1 HR item is deferred for this checklist run. The conservative-mode
+resolutions above are not permission to publish current-law, legal-equivalence,
+authoritative webtoon-law, unfairness, validity, fraud, or guaranteed-loss
+claims; they are release constraints that keep FInk framed only as Contractual
+Financial Review Priority.
+
+---
+
 ## Definition completeness
 
 Every `AC-*` token cited in specs 01, 03, 04, 06, 07, and 08 is defined exactly
