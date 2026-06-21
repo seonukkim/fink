@@ -92,8 +92,10 @@ def run() -> None:
             "exec",
             "--model",
             "gpt-5.5",
-            "--reasoning-effort",
-            "xhigh",
+            # codex-cli has no --reasoning-effort flag; reasoning effort is a
+            # config override. Value parsed as TOML ("xhigh" -> string).
+            "-c",
+            'model_reasoning_effort="xhigh"',
             "--json",
             prompt,
         ],

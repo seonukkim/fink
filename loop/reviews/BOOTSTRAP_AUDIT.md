@@ -104,7 +104,7 @@ CONCERN = non-blocking item recorded in the RA list.
 8. Safe allowed-path rollback on failure — PASS (Claude-verdict paths, unit-tested)
    with CONCERN `RA-1`/`RA-2` for the gate-failure / sub-tool-failure path
    (fail-stop; no bad commit; graceful rollback + status persistence deferred).
-9. Codex GPT-5.5 xhigh — PASS. `codex exec --model gpt-5.5 --reasoning-effort xhigh --json`.
+9. Codex GPT-5.5 xhigh — PASS. `codex exec --model gpt-5.5 -c model_reasoning_effort="xhigh" --json` (codex-cli 0.128.0 has no `--reasoning-effort` flag; effort is a `-c` config override).
 10. Claude Opus 4.8 max — PASS. `claude -p --model claude-opus-4-8 --effort max
     --permission-mode acceptEdits --output-format json` (exact id pinned).
 11. JSON-Schema validation — PASS. `task`/`state`/`codex_result`/`claude_review`
