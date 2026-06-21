@@ -17,6 +17,7 @@ def _load_module(name: str) -> Any:
 
 
 FINANCE = _load_module("fink.finance")
+SCORING = _load_module("fink.scoring")
 SCHEMAS = _load_module("fink.schemas")
 
 
@@ -189,6 +190,96 @@ class FinanceImpactTests(unittest.TestCase):
         self.assertIsNone(result.liability_exposure.base)
         self.assertIsNone(result.liability_exposure.high)
         self.assertIn("uncapped", result.liability_exposure.uncertainty_flags)
+
+    def test_fim_8_t1_evidence_opacity_widens_band_around_unchanged_base(self) -> None:
+        config = SCORING.load_scoring_config()
+        base_exposure = SCHEMAS.MonetaryExposureEstimate(
+            module=SCHEMAS.FimModule.FIM_1,
+            exposure_type=SCHEMAS.ExposureType.NOMINAL_LEAKAGE,
+            is_user_input_required=False,
+            assumptions=(),
+            low=Decimal("4550000"),
+            base=Decimal("5250000"),
+            high=Decimal("5950000"),
+        )
+
+        result = FINANCE.fim8_evidence_opacity_uncertainty(
+            base_exposure,
+            opacity_flags=("missing_settlement_records", "no_audit_access"),
+            opacity_weights=config.fim8_opacity_weights,
+        )
+        adjusted = result.adjusted_exposure
+
+        self.assertEqual(result.band_widen_factor, Decimal("1.2"))
+        self.assertEqual(adjusted.base, Decimal("5250000"))
+        if (
+            adjusted.low is None
+            or adjusted.high is None
+            or base_exposure.low is None
+            or base_exposure.high is None
+        ):
+            self.fail("FIM-8 adjusted exposure should keep numeric low/high values")
+        self.assertEqual(_krw(adjusted.low), 3791667)
+        self.assertEqual(_krw(adjusted.high), 7140000)
+        self.assertLess(adjusted.low, base_exposure.low)
+        self.assertGreater(adjusted.high, base_exposure.high)
+        self.assertEqual(adjusted.module, base_exposure.module)
+        self.assertEqual(adjusted.exposure_type, base_exposure.exposure_type)
+        self.assertIn("opacity:missing_settlement_records", adjusted.uncertainty_flags)
+        self.assertIn("opacity:no_audit_access", adjusted.uncertainty_flags)
+
+    def test_fim8_uncertainty_gate_report_passes(self) -> None:
+        report = FINANCE.fim8_uncertainty_test()
+
+        self.assertTrue(report.ok, report.as_dict())
+        self.assertTrue(report.fim_8_t1_base_unchanged)
+        self.assertTrue(report.fim_8_t1_high_up)
+        self.assertTrue(report.fim_8_t1_low_down)
+        self.assertTrue(report.fim_8_t1_score_unchanged)
+        self.assertTrue(report.fim_8_t1_data_completeness_down)
+
+    def test_fim8_opacity_flags_lower_confidence_not_score(self) -> None:
+        config = SCORING.load_scoring_config()
+        signal = SCHEMAS.RiskSignal(
+            signal_id="RS-FIM8-CONF",
+            clause_id="clause-fim8",
+            risk_category=SCHEMAS.RiskCategory.F1,
+            detector=SCHEMAS.DetectorType.RULE,
+            fired=True,
+            score_eligible=True,
+            practice_reference=False,
+            signal_confidence=1.0,
+            is_missing_protection=False,
+            grounding_evidence_ids=("EV-A1-FIM8-CONF",),
+            severity_raw=0.7,
+        )
+
+        baseline = SCORING.aggregate_document_signals(
+            (signal,),
+            config=config,
+            evidence_authority_tiers={"EV-A1-FIM8-CONF": "A1"},
+        )
+        opaque = SCORING.aggregate_document_signals(
+            (signal,),
+            config=config,
+            evidence_authority_tiers={"EV-A1-FIM8-CONF": "A1"},
+            opacity_flags=("missing_settlement_records", "no_audit_access"),
+        )
+
+        self.assertEqual(opaque.review_priority_score, baseline.review_priority_score)
+        self.assertEqual(opaque.category_scores, baseline.category_scores)
+        self.assertLess(
+            opaque.confidence.data_completeness,
+            baseline.confidence.data_completeness,
+        )
+        self.assertLess(
+            opaque.confidence.overall_confidence,
+            baseline.confidence.overall_confidence,
+        )
+        self.assertIn(
+            "opacity_flags=missing_settlement_records,no_audit_access",
+            opaque.confidence.drivers,
+        )
 
     def test_fim_core_unit_tests_gate_report_passes(self) -> None:
         report = FINANCE.fim_core_unit_tests()

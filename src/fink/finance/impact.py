@@ -4,6 +4,7 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation, ROUND_CEILING
+from pathlib import Path
 from typing import Any
 
 from fink.schemas import ExposureType, FimModule, MonetaryExposureEstimate
@@ -115,6 +116,13 @@ class Fim7Result:
     @property
     def uncapped(self) -> bool:
         return self.uncapped_signal
+
+
+@dataclass(frozen=True)
+class Fim8Result:
+    adjusted_exposure: MonetaryExposureEstimate
+    band_widen_factor: Decimal
+    opacity_flags: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -642,6 +650,69 @@ def fim7_penalty_liability_exposure(
     )
 
 
+def fim8_evidence_opacity_uncertainty(
+    exposure: MonetaryExposureEstimate,
+    opacity_flags: Sequence[str],
+    opacity_weights: Mapping[str, DecimalLike],
+) -> Fim8Result:
+    """FIM-8: widen uncertainty bands for opaque evidence without changing base."""
+
+    _require_exposure(exposure, "exposure")
+    flags = _unique_text_flags(opacity_flags, "opacity_flags")
+    weights = _opacity_weight_map(opacity_weights)
+    unknown_flags = tuple(flag for flag in flags if flag not in weights)
+    if unknown_flags:
+        raise FinanceImpactError(f"unknown FIM-8 opacity flag(s): {', '.join(unknown_flags)}")
+
+    band_widen_factor = Decimal("1") + sum((weights[flag] for flag in flags), Decimal("0"))
+    if band_widen_factor < Decimal("1"):
+        raise FinanceImpactError("band_widen_factor must be >= 1")
+
+    if exposure.low is None and exposure.base is None and exposure.high is None:
+        values = None
+    else:
+        if exposure.low is None or exposure.base is None or exposure.high is None:
+            raise FinanceImpactError("FIM-8 exposure range must be all set or all null")
+        values = DecimalRange(
+            low=exposure.low / band_widen_factor,
+            base=exposure.base,
+            high=exposure.high * band_widen_factor,
+        )
+
+    adjusted = _exposure(
+        module=exposure.module,
+        exposure_type=exposure.exposure_type,
+        values=values,
+        assumptions=(
+            *exposure.assumptions,
+            "heuristic: FIM-8 opacity flags widen low/high only; base is unchanged",
+        ),
+        nominal_amount=exposure.nominal_amount,
+        is_user_input_required=exposure.is_user_input_required,
+        uncertainty_flags=_merge_uncertainty_flags(
+            exposure.uncertainty_flags,
+            tuple(f"opacity:{flag}" for flag in flags),
+            (f"band_widen_factor:{band_widen_factor}",),
+        ),
+    )
+    return Fim8Result(
+        adjusted_exposure=adjusted,
+        band_widen_factor=band_widen_factor,
+        opacity_flags=flags,
+    )
+
+
+def fim8_uncertainty_test(config_path: Path | str | None = None) -> object:
+    """Run the cross-module FIM-8 machine gate from the finance namespace."""
+
+    from fink.scoring import DEFAULT_SCORING_CONFIG_PATH
+    from fink.scoring import fim8_uncertainty_test as scoring_fim8_uncertainty_test
+
+    return scoring_fim8_uncertainty_test(
+        DEFAULT_SCORING_CONFIG_PATH if config_path is None else config_path
+    )
+
+
 def partition_exposures_by_type(
     exposures: Sequence[MonetaryExposureEstimate],
 ) -> dict[ExposureType, tuple[MonetaryExposureEstimate, ...]]:
@@ -679,6 +750,52 @@ def _blank_user_required_exposure(
         is_user_input_required=True,
         uncertainty_flags=tuple(f"missing_user_input:{item}" for item in missing_inputs),
     )
+
+
+def _require_exposure(value: object, field_name: str) -> None:
+    if not isinstance(value, MonetaryExposureEstimate):
+        raise FinanceImpactError(f"{field_name} must be MonetaryExposureEstimate")
+
+
+def _unique_text_flags(values: Sequence[str], field_name: str) -> tuple[str, ...]:
+    if isinstance(values, str):
+        raise FinanceImpactError(f"{field_name} must be a sequence, not a string")
+    seen: set[str] = set()
+    flags: list[str] = []
+    for idx, raw_value in enumerate(values, start=1):
+        value = str(raw_value).strip()
+        if not value:
+            raise FinanceImpactError(f"{field_name}[{idx}] must be non-empty")
+        if value not in seen:
+            seen.add(value)
+            flags.append(value)
+    return tuple(flags)
+
+
+def _opacity_weight_map(values: Mapping[str, DecimalLike]) -> dict[str, Decimal]:
+    if not isinstance(values, Mapping):
+        raise FinanceImpactError("opacity_weights must be a mapping")
+    weights: dict[str, Decimal] = {}
+    for raw_key, raw_value in values.items():
+        key = str(raw_key).strip()
+        if not key:
+            raise FinanceImpactError("opacity_weights keys must be non-empty")
+        weight = _nonnegative(_decimal(raw_value, f"opacity_weights.{key}"))
+        weights[key] = weight
+    return weights
+
+
+def _merge_uncertainty_flags(*groups: tuple[str, ...] | None) -> tuple[str, ...] | None:
+    seen: set[str] = set()
+    merged: list[str] = []
+    for group in groups:
+        if group is None:
+            continue
+        for value in group:
+            if value not in seen:
+                seen.add(value)
+                merged.append(value)
+    return tuple(merged) or None
 
 
 def fim_core_unit_tests() -> FimCoreTestReport:

@@ -566,8 +566,9 @@ tasks:
   - 03_method.md
   - 07_discussion_and_limitations.md
   human_gate: null
-  status: READY
+  status: DONE
   source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+  completed_at: '2026-06-21T09:04:32+00:00'
 - id: FINK-S3-06
   phase: S3
   priority: P0

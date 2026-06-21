@@ -4,6 +4,7 @@ import math
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +16,10 @@ except Exception as exc:  # pragma: no cover - dependency is declared in pyproje
 from fink.schemas import (
     ClauseAssessment,
     ConfidenceBreakdown,
+    ExposureType,
     FINANCIAL_RISK_CATEGORIES,
+    FimModule,
+    MonetaryExposureEstimate,
     RiskCategory,
     RiskSignal,
 )
@@ -74,6 +78,7 @@ class ScoringConfig:
     confidence_weights: ConfidenceWeights
     unverified_factor: float
     base_evidence_confidence: float
+    fim8_opacity_weights: Mapping[str, float]
     missing_input_weights: Mapping[str, float]
 
 
@@ -168,6 +173,41 @@ class AggregationTestReport:
         }
 
 
+@dataclass(frozen=True)
+class Fim8UncertaintyTestReport:
+    """Machine-gate report for FIM-8 uncertainty widening and confidence behavior."""
+
+    scoring_config_version: str
+    band_widen_factor: Decimal
+    fim_8_t1_base_unchanged: bool
+    fim_8_t1_high_up: bool
+    fim_8_t1_low_down: bool
+    fim_8_t1_score_unchanged: bool
+    fim_8_t1_data_completeness_down: bool
+
+    @property
+    def ok(self) -> bool:
+        return (
+            self.fim_8_t1_base_unchanged
+            and self.fim_8_t1_high_up
+            and self.fim_8_t1_low_down
+            and self.fim_8_t1_score_unchanged
+            and self.fim_8_t1_data_completeness_down
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "scoring_config_version": self.scoring_config_version,
+            "band_widen_factor": str(self.band_widen_factor),
+            "fim_8_t1_base_unchanged": self.fim_8_t1_base_unchanged,
+            "fim_8_t1_high_up": self.fim_8_t1_high_up,
+            "fim_8_t1_low_down": self.fim_8_t1_low_down,
+            "fim_8_t1_score_unchanged": self.fim_8_t1_score_unchanged,
+            "fim_8_t1_data_completeness_down": self.fim_8_t1_data_completeness_down,
+            "ok": self.ok,
+        }
+
+
 def load_scoring_config(
     config_path: Path | str = DEFAULT_SCORING_CONFIG_PATH,
 ) -> ScoringConfig:
@@ -234,6 +274,7 @@ def load_scoring_config(
             minimum=0.0,
             maximum=1.0,
         ),
+        fim8_opacity_weights=_fim8_opacity_weights(payload),
         missing_input_weights=_missing_input_weights(payload),
     )
     return config
@@ -246,6 +287,7 @@ def aggregate_document_signals(
     config_path: Path | str = DEFAULT_SCORING_CONFIG_PATH,
     evidence_authority_tiers: Mapping[str, str] | None = None,
     missing_input_flags: Sequence[str] = (),
+    opacity_flags: Sequence[str] = (),
     ocr_confidence: float | None = None,
 ) -> DocumentScoringResult:
     """Aggregate clause signals into F1-F9 scores and a 0-100 review priority.
@@ -274,6 +316,7 @@ def aggregate_document_signals(
             signal_tuple,
             scoring_config,
             missing_input_flags=missing_input_flags,
+            opacity_flags=opacity_flags,
             ocr_confidence=ocr_confidence,
         ),
         scoring_config_version=scoring_config.scoring_config_version,
@@ -425,6 +468,78 @@ def aggregation_tests(
     return report
 
 
+def fim8_uncertainty_test(
+    config_path: Path | str = DEFAULT_SCORING_CONFIG_PATH,
+) -> Fim8UncertaintyTestReport:
+    """Run FIM-8-T1: opacity widens bands and lowers D4 without changing score."""
+
+    from fink.finance import fim8_evidence_opacity_uncertainty
+
+    config = load_scoring_config(config_path)
+    opacity_flags = ("missing_settlement_records", "no_audit_access")
+    baseline_exposure = MonetaryExposureEstimate(
+        module=FimModule.FIM_1,
+        exposure_type=ExposureType.NOMINAL_LEAKAGE,
+        is_user_input_required=False,
+        assumptions=(),
+        low=Decimal("4550000"),
+        base=Decimal("5250000"),
+        high=Decimal("5950000"),
+    )
+    fim8 = fim8_evidence_opacity_uncertainty(
+        baseline_exposure,
+        opacity_flags=opacity_flags,
+        opacity_weights=config.fim8_opacity_weights,
+    )
+    adjusted = fim8.adjusted_exposure
+
+    signal = _synthetic_signal(
+        "RS-FIM8-T1",
+        RiskCategory.F1,
+        evidence_ids=("EV-A1-FIM8-T1",),
+        confidence=1.0,
+        severity=0.7,
+    )
+    baseline_score = aggregate_document_signals(
+        (signal,),
+        config=config,
+        evidence_authority_tiers={"EV-A1-FIM8-T1": "A1"},
+    )
+    opaque_score = aggregate_document_signals(
+        (signal,),
+        config=config,
+        evidence_authority_tiers={"EV-A1-FIM8-T1": "A1"},
+        opacity_flags=opacity_flags,
+    )
+
+    report = Fim8UncertaintyTestReport(
+        scoring_config_version=config.scoring_config_version,
+        band_widen_factor=fim8.band_widen_factor,
+        fim_8_t1_base_unchanged=adjusted.base == baseline_exposure.base,
+        fim_8_t1_high_up=adjusted.high is not None
+        and baseline_exposure.high is not None
+        and _within_abs(adjusted.high, Decimal("7140000"), Decimal("1"))
+        and adjusted.high > baseline_exposure.high,
+        fim_8_t1_low_down=adjusted.low is not None
+        and baseline_exposure.low is not None
+        and _within_abs(adjusted.low, Decimal("3791667"), Decimal("1"))
+        and adjusted.low < baseline_exposure.low,
+        fim_8_t1_score_unchanged=(
+            opaque_score.review_priority_score == baseline_score.review_priority_score
+            and opaque_score.category_scores == baseline_score.category_scores
+        ),
+        fim_8_t1_data_completeness_down=(
+            opaque_score.confidence.data_completeness
+            < baseline_score.confidence.data_completeness
+            and opaque_score.confidence.overall_confidence
+            < baseline_score.confidence.overall_confidence
+        ),
+    )
+    if not report.ok:
+        raise ScoringAggregationError(f"fim8_uncertainty_test failed: {report.as_dict()}")
+    return report
+
+
 def _category_scores_from_contributions(
     contributions: Sequence[SignalContribution],
     config: ScoringConfig,
@@ -454,6 +569,10 @@ def _weighted_priority(
     )
     weight_total = sum(config.w_by_category[category] for category in SORTED_FINANCIAL_CATEGORIES)
     return int(_clamp(round(weighted_sum / weight_total), 0, 100))
+
+
+def _within_abs(observed: Decimal | None, expected: Decimal, tolerance: Decimal) -> bool:
+    return observed is not None and abs(observed - expected) <= tolerance
 
 
 def _clause_assessments(
@@ -492,6 +611,7 @@ def _confidence_breakdown(
     config: ScoringConfig,
     *,
     missing_input_flags: Sequence[str],
+    opacity_flags: Sequence[str],
     ocr_confidence: float | None,
 ) -> ConfidenceBreakdown:
     fired_financial_signals = tuple(
@@ -515,11 +635,8 @@ def _confidence_breakdown(
         0.0,
         1.0,
     )
-    data_completeness = 1.0 - _clamp(
-        _missing_input_penalty(missing_input_flags, config),
-        0.0,
-        1.0,
-    )
+    confidence_flags = (*missing_input_flags, *opacity_flags)
+    data_completeness = 1.0 - _clamp(_missing_input_penalty(confidence_flags, config), 0.0, 1.0)
     weights = config.confidence_weights
     overall = (
         raw_ocr_confidence ** weights.ocr_confidence
@@ -535,6 +652,8 @@ def _confidence_breakdown(
         drivers.append("low_signal_confidence_floored_for_priority_only")
     if missing_input_flags:
         drivers.append("missing_input_flags=" + ",".join(sorted(missing_input_flags)))
+    if opacity_flags:
+        drivers.append("opacity_flags=" + ",".join(sorted(opacity_flags)))
     return ConfidenceBreakdown(
         ocr_confidence=raw_ocr_confidence,
         evidence_confidence=evidence_confidence,
@@ -547,9 +666,12 @@ def _confidence_breakdown(
 def _missing_input_penalty(flags: Sequence[str], config: ScoringConfig) -> float:
     total = 0.0
     for flag in flags:
-        if flag not in config.missing_input_weights:
+        if flag in config.missing_input_weights:
+            total += config.missing_input_weights[flag]
+        elif flag in config.fim8_opacity_weights:
+            total += config.fim8_opacity_weights[flag]
+        else:
             raise ScoringAggregationError(f"unknown missing input flag: {flag}")
-        total += config.missing_input_weights[flag]
     return total
 
 
@@ -736,6 +858,24 @@ def _missing_input_weights(payload: Mapping[str, Any]) -> dict[str, float]:
             maximum=1.0,
         )
         for flag, item in missing_weights.items()
+    }
+
+
+def _fim8_opacity_weights(payload: Mapping[str, Any]) -> dict[str, float]:
+    fim_defaults = _require_mapping(payload.get("fim_defaults"), "fim_defaults")
+    fim_8 = _require_mapping(fim_defaults.get("FIM_8"), "fim_defaults.FIM_8")
+    opacity_weights = _require_mapping(
+        fim_8.get("opacity_weights"),
+        "fim_defaults.FIM_8.opacity_weights",
+    )
+    return {
+        str(flag): _heuristic_number(
+            item,
+            f"fim_defaults.FIM_8.opacity_weights.{flag}",
+            minimum=0.0,
+            maximum=1.0,
+        )
+        for flag, item in opacity_weights.items()
     }
 
 
