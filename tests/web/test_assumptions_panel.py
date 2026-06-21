@@ -104,7 +104,8 @@ class AssumptionsPanelTests(unittest.TestCase):
         result = WEB.recompute_assumptions()
         rows = _rows_by_module(result)
 
-        self.assertTrue(result.live_recompute_ready)
+        self.assertFalse(result.live_recompute_ready)
+        self.assertTrue(result.explicit_recompute_required)
         self.assertEqual(set(rows), {f"FIM-{idx}" for idx in range(1, 8)})
         for row in rows.values():
             self.assertTrue(row.exposure.is_user_input_required)
@@ -115,16 +116,25 @@ class AssumptionsPanelTests(unittest.TestCase):
 
         markup = WEB.render_assumptions_panel_html()
         self.assertIn('data-assumptions-panel="true"', markup)
-        self.assertIn('data-live-recompute="true"', markup)
+        self.assertIn('data-live-recompute="false"', markup)
+        self.assertIn('data-recompute-trigger="explicit"', markup)
+        self.assertIn('data-combines-exposure-types="false"', markup)
         self.assertIn('data-fim-modules="FIM-1 FIM-2 FIM-3 FIM-4 FIM-5 FIM-6 FIM-7"', markup)
-        self.assertIn("blank until inputs supplied", markup)
+        self.assertIn("input-required: blank until inputs supplied", markup)
         self.assertIn('data-output-state="blank"', markup)
+        self.assertIn('data-input-state="input-required"', markup)
+        self.assertIn('data-range-bar="none"', markup)
+        self.assertIn("시나리오 다시 계산", markup)
+        self.assertIn('data-scenario-status-region="true"', markup)
         self.assertNotIn('data-output-state="computed"', markup)
         self.assertNotIn("KRW 0", markup)
         self.assertNotIn('value="0"', markup)
+        self.assertNotIn('placeholder="0"', markup)
         for spec in WEB.assumption_field_specs():
             self.assertIn(f'data-assumption-field="{spec.name}"', markup)
             self.assertIn('data-synthetic-assumption="true"', markup)
+        self.assertIn("입력되지 않음", markup)
+        self.assertIn("통화 입력 필요", markup)
 
     def test_assumptions_recompute_test_computes_fim_1_through_7_from_inputs(self) -> None:
         result = WEB.recompute_assumptions(_editable())
@@ -151,9 +161,38 @@ class AssumptionsPanelTests(unittest.TestCase):
 
         markup = WEB.render_assumptions_panel_html(_editable())
         self.assertIn('data-output-state="computed"', markup)
+        self.assertIn('data-range-bar="finite"', markup)
+        self.assertIn('data-value-origin="user"', markup)
+        self.assertIn("사용자가 입력", markup)
         self.assertIn('<span class="badge synthetic-assumption">', markup)
         self.assertIn('data-assumption-detail="months_to_recoup_base_sales">9</span>', markup)
         self.assertIn("Nominal amount kept separate: KRW 10,000,000", markup)
+
+    def test_primary_scenario_inputs_are_contextual_capped_and_origin_labeled(self) -> None:
+        payload = WEB.primary_scenario_input_payload(
+            active_fim_modules=("FIM-1", "FIM-7"),
+        )
+        fields = payload["primary_fields"]
+
+        self.assertLessEqual(len(fields), 6)
+        self.assertGreaterEqual(len(fields), 1)
+        self.assertEqual(payload["max_primary_fields"], 6)
+        self.assertEqual(
+            WEB.primary_scenario_input_payload()["primary_fields"],
+            [],
+        )
+        field_names = {field["name"] for field in fields}
+        self.assertIn("gross_sales", field_names)
+        self.assertIn("explicit_penalty_cap", field_names)
+        for field in fields:
+            self.assertEqual(field["value_origin"], "missing")
+            self.assertEqual(field["value_origin_label"], "입력되지 않음")
+            self.assertEqual(field["selection_origin"], "model_suggestion")
+            self.assertEqual(field["selection_origin_label"], "모델 제안 — 확인 필요")
+            self.assertEqual(field["input_state"], "input-required")
+            self.assertNotRegex(field["placeholder"], r"\d")
+            self.assertNotIn("fim_modules", field)
+            self.assertNotIn("active_fim_module", field)
 
     def test_assumptions_recompute_test_financial_scenario_edits_refresh_outputs(self) -> None:
         baseline = _rows_by_module(WEB.recompute_assumptions(_editable()))

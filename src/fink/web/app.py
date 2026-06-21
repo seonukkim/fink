@@ -321,8 +321,8 @@ def _render_assumptions_details() -> str:
 
     return f"""<details class="tool-details" data-optional-tool="assumptions">
       <summary>
-        <span lang="ko" data-locale-text="ko">금액 가정 입력 (선택)</span>
-        <span lang="en" data-locale-text="en">Add monetary assumptions (optional)</span>
+        <span lang="ko" data-locale-text="ko">고급 시나리오 입력</span>
+        <span lang="en" data-locale-text="en">Advanced scenario inputs</span>
       </summary>
       <section class="report-pane" aria-labelledby="report-heading">
         <div class="section-heading">
@@ -466,13 +466,31 @@ def _analysis_payload_from_request(body: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(paste_text, str):
         raise _ingest_validation_error("paste_text must be a string")
     locale = _resolve_api_locale(body)
-    scenario_inputs = _assumptions_from_payload(body.get("assumptions"))
+    current_assumptions = body.get("assumptions")
+    previous_assumptions = body.get("previous_assumptions")
+    changed_input = body.get("changed_input")
+    scenario_inputs = _assumptions_from_payload(current_assumptions)
     result = run_local_analysis(
         pasted_text=paste_text,
         scenario_inputs=scenario_inputs,
         ui_locale=locale,
     )
-    return analysis_result_to_payload(result, locale)
+    payload = analysis_result_to_payload(result, locale)
+    if isinstance(previous_assumptions, dict) or isinstance(changed_input, str):
+        previous_inputs = _assumptions_from_payload(previous_assumptions)
+        previous_result = run_local_analysis(
+            pasted_text=paste_text,
+            scenario_inputs=previous_inputs,
+            ui_locale=locale,
+        )
+        _attach_scenario_recompute_audit(
+            payload,
+            previous_payload=analysis_result_to_payload(previous_result, locale),
+            current_assumptions=_assumption_value_dict(current_assumptions),
+            previous_assumptions=_assumption_value_dict(previous_assumptions),
+            changed_input=changed_input if isinstance(changed_input, str) else "",
+        )
+    return payload
 
 
 def _analysis_payload_from_raw_request(
@@ -484,11 +502,24 @@ def _analysis_payload_from_raw_request(
         scenario_inputs = _assumptions_from_payload(
             assumptions_from_multipart_fields(request.fields)
         )
-        return analyze_multipart_request(
+        payload = analyze_multipart_request(
             request,
             scenario_inputs=scenario_inputs,
             ui_locale=locale,
         )
+        previous_assumptions = _json_field(request.fields.get("previous_assumptions"))
+        changed_input = request.fields.get("changed_input", "")
+        if isinstance(previous_assumptions, dict) or changed_input:
+            _attach_scenario_recompute_audit(
+                payload,
+                previous_payload=None,
+                current_assumptions=_assumption_value_dict(
+                    assumptions_from_multipart_fields(request.fields)
+                ),
+                previous_assumptions=_assumption_value_dict(previous_assumptions),
+                changed_input=changed_input,
+            )
+        return payload
 
     try:
         body = json.loads(raw.decode("utf-8")) if raw else {}
@@ -566,6 +597,187 @@ def _assumptions_from_payload(value: Any) -> EditableAssumptions | None:
     if not kwargs:
         return None
     return EditableAssumptions(**kwargs)
+
+
+def _assumption_value_dict(value: Any) -> dict[str, str]:
+    assumptions = _assumptions_from_payload(value)
+    if assumptions is None:
+        return {}
+    from dataclasses import fields as dataclass_fields
+
+    values: dict[str, str] = {}
+    for field in dataclass_fields(EditableAssumptions):
+        raw = getattr(assumptions, field.name)
+        if raw is None or raw is False or isinstance(raw, tuple):
+            continue
+        values[field.name] = str(raw)
+    return values
+
+
+def _json_field(value: str | None) -> Any:
+    if not value:
+        return None
+    try:
+        decoded = json.loads(value)
+    except json.JSONDecodeError:
+        return None
+    return decoded if isinstance(decoded, dict) else None
+
+
+def _attach_scenario_recompute_audit(
+    payload: dict[str, Any],
+    *,
+    previous_payload: dict[str, Any] | None,
+    current_assumptions: dict[str, str],
+    previous_assumptions: dict[str, str],
+    changed_input: str,
+) -> None:
+    changed_keys = _changed_exposure_keys(previous_payload, payload)
+    changed_modules = sorted({key[0] for key in changed_keys})
+    changed_findings = _changed_findings(payload, changed_modules)
+    payload.setdefault("audit_detail", {})["scenario_recompute"] = {
+        "trigger": "explicit_button",
+        "changed_input": {
+            "name": changed_input,
+            "previous_value": previous_assumptions.get(changed_input),
+            "current_value": current_assumptions.get(changed_input),
+        },
+        "previous_assumptions": previous_assumptions,
+        "current_assumptions": current_assumptions,
+        "changed_exposures": [
+            {"fim_module": module, "exposure_type": exposure_type}
+            for module, exposure_type in changed_keys
+        ],
+        "changed_findings": changed_findings,
+        "source_text_unchanged": _source_text_unchanged(previous_payload, payload),
+        "evidence_eligibility_unchanged": _evidence_eligibility_unchanged(
+            previous_payload, payload
+        ),
+        "status_region_message": {
+            "ko": _scenario_status_message(changed_input, changed_findings, "ko"),
+            "en": _scenario_status_message(changed_input, changed_findings, "en"),
+        },
+    }
+
+
+def _changed_exposure_keys(
+    previous_payload: dict[str, Any] | None,
+    current_payload: dict[str, Any],
+) -> list[tuple[str, str]]:
+    current = _exposure_state(current_payload)
+    previous = _exposure_state(previous_payload) if previous_payload is not None else {}
+    keys = sorted(set(current) | set(previous))
+    changed: list[tuple[str, str]] = []
+    for key in keys:
+        current_state = current.get(key)
+        previous_state = previous.get(key)
+        if current_state == previous_state:
+            continue
+        if previous_state is None and _blank_exposure_state(current_state):
+            continue
+        changed.append(key)
+    return changed
+
+
+def _exposure_state(payload: dict[str, Any] | None) -> dict[tuple[str, str], tuple[Any, ...]]:
+    if payload is None:
+        return {}
+    exposures = payload.get("audit_detail", {}).get("monetary_exposures", ())
+    state: dict[tuple[str, str], tuple[Any, ...]] = {}
+    for exposure in exposures:
+        key = (str(exposure.get("fim_module")), str(exposure.get("exposure_type")))
+        state[key] = (
+            exposure.get("is_user_input_required"),
+            exposure.get("low"),
+            exposure.get("base"),
+            exposure.get("high"),
+            exposure.get("nominal_amount"),
+        )
+    return state
+
+
+def _blank_exposure_state(state: tuple[Any, ...] | None) -> bool:
+    return state == (True, None, None, None, None)
+
+
+def _changed_findings(payload: dict[str, Any], changed_modules: list[str]) -> list[dict[str, str]]:
+    if not changed_modules:
+        return []
+    module_set = set(changed_modules)
+    findings_by_id = {
+        finding.get("finding_id"): finding for finding in payload.get("findings", ())
+    }
+    changed: list[dict[str, str]] = []
+    for item in payload.get("audit_detail", {}).get("technical_findings", ()):
+        if item.get("fim_module") not in module_set:
+            continue
+        finding = findings_by_id.get(item.get("finding_id"), {})
+        title = finding.get("title", {}) if isinstance(finding, dict) else {}
+        changed.append(
+            {
+                "finding_id": str(item.get("finding_id", "")),
+                "fim_module": str(item.get("fim_module", "")),
+                "title_ko": str(title.get("ko", "")),
+                "title_en": str(title.get("en", "")),
+            }
+        )
+    return changed
+
+
+def _source_text_unchanged(
+    previous_payload: dict[str, Any] | None,
+    current_payload: dict[str, Any],
+) -> bool:
+    if previous_payload is None:
+        return True
+    return _finding_sources(previous_payload) == _finding_sources(current_payload)
+
+
+def _finding_sources(payload: dict[str, Any]) -> list[dict[str, str]]:
+    return [
+        {
+            "finding_id": str(finding.get("finding_id", "")),
+            "clause_id": str(finding.get("source", {}).get("clause_id", "")),
+            "exact_excerpt": str(finding.get("source", {}).get("exact_excerpt", "")),
+        }
+        for finding in payload.get("findings", ())
+    ]
+
+
+def _evidence_eligibility_unchanged(
+    previous_payload: dict[str, Any] | None,
+    current_payload: dict[str, Any],
+) -> bool:
+    if previous_payload is None:
+        return True
+    return _finding_scored_state(previous_payload) == _finding_scored_state(current_payload)
+
+
+def _finding_scored_state(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "finding_id": item.get("finding_id"),
+            "scored": item.get("scored"),
+            "fim_module": item.get("fim_module"),
+        }
+        for item in payload.get("audit_detail", {}).get("technical_findings", ())
+    ]
+
+
+def _scenario_status_message(
+    changed_input: str,
+    changed_findings: list[dict[str, str]],
+    locale: str,
+) -> str:
+    if locale == "en":
+        if not changed_findings:
+            return f"Scenario recalculated for {changed_input}; no findings changed."
+        names = ", ".join(item["finding_id"] for item in changed_findings)
+        return f"Scenario recalculated for {changed_input}; changed findings: {names}."
+    if not changed_findings:
+        return f"{changed_input} 입력으로 시나리오를 다시 계산했습니다. 변경된 발견사항은 없습니다."
+    names = ", ".join(item["finding_id"] for item in changed_findings)
+    return f"{changed_input} 입력으로 시나리오를 다시 계산했습니다. 변경된 발견사항: {names}."
 
 
 def _ingest_validation_error(message: str) -> Exception:
@@ -1419,6 +1631,39 @@ footer {
 }
 .dimension-card h4 { margin: 0; }
 .exposure-line { margin: 0; font-weight: 700; }
+.scenario-inputs {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfcfe;
+}
+.scenario-field-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: .65rem;
+}
+.scenario-field {
+  display: grid;
+  gap: .35rem;
+}
+.scenario-field input {
+  width: 100%;
+  min-width: 0;
+}
+.origin-row {
+  display: flex;
+  gap: .35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.model-suggestion-origin {
+  color: var(--warn-ink);
+  background: var(--warn-bg);
+  border-color: #b7791f;
+}
 .ranked-findings, .guidance-card ul {
   display: grid;
   gap: .6rem;
@@ -1480,6 +1725,8 @@ _APP_JS = r"""(function () {
 
   var LOCALE_STORAGE_KEY = "fink.ui_locale";
   var analyzeInFlight = false;
+  var lastResultPayload = null;
+  var lastSubmittedAssumptions = {};
 
   function normalizeLocale(locale) {
     var normalized = String(locale || "").trim().toLowerCase();
@@ -1561,6 +1808,15 @@ _APP_JS = r"""(function () {
     }
     status.innerHTML = "";
     status.appendChild(bilingual("span", null, pair));
+  }
+
+  function scenarioStatusMessage(pair) {
+    var regions = document.querySelectorAll("[data-scenario-status-region]");
+    regions.forEach(function (region) {
+      region.innerHTML = "";
+      region.appendChild(bilingual("span", null, pair));
+    });
+    statusMessage(pair);
   }
 
   function renderFindings(container, findings) {
@@ -1669,6 +1925,77 @@ _APP_JS = r"""(function () {
     container.appendChild(grid);
   }
 
+  function renderScenarioInputs(container, payload) {
+    var scenario = payload.scenario_inputs;
+    if (!scenario) {
+      return;
+    }
+    var fields = scenario.primary_fields || [];
+    var section = el("section", "scenario-inputs", null);
+    section.setAttribute("data-primary-scenario-inputs", "true");
+    section.setAttribute("data-primary-field-count", String(fields.length));
+    section.setAttribute("data-max-primary-fields", String(scenario.max_primary_fields || 6));
+    section.setAttribute("data-recompute-trigger", "explicit");
+    section.setAttribute("data-combines-exposure-types", "false");
+    section.appendChild(bilingual("h3", null, scenario.primary_heading));
+
+    if (fields.length === 0) {
+      section.appendChild(
+        bilingual("p", "hint", {
+          ko: "활성 발견사항과 연결된 필수 시나리오 입력이 없습니다.",
+          en: "No required scenario inputs are linked to the active findings."
+        })
+      );
+    } else {
+      var list = el("div", "scenario-field-list", null);
+      fields.forEach(function (field) {
+        var label = el("label", "scenario-field", null);
+        label.setAttribute("data-scenario-primary-field", field.name);
+        label.setAttribute("data-value-origin", field.value_origin);
+        label.setAttribute("data-selection-origin", field.selection_origin);
+        label.setAttribute("data-input-state", field.input_state);
+        label.setAttribute("data-currency-state", field.currency_state);
+        label.setAttribute("data-exposure-type", field.exposure_type);
+        label.appendChild(el("span", null, field.label));
+
+        var origins = el("span", "origin-row", null);
+        origins.appendChild(el("span", "badge", field.value_origin_label));
+        origins.appendChild(
+          el("span", "badge model-suggestion-origin", field.selection_origin_label)
+        );
+        origins.appendChild(el("small", null, field.unit_label));
+        label.appendChild(origins);
+
+        var input = document.createElement("input");
+        input.type = "number";
+        input.inputMode = "decimal";
+        input.name = field.name;
+        input.autocomplete = "off";
+        input.placeholder = field.placeholder;
+        if (field.current_value != null) {
+          input.value = field.current_value;
+        }
+        label.appendChild(input);
+        list.appendChild(label);
+      });
+      section.appendChild(list);
+    }
+
+    var actionRow = el("div", "action-row", null);
+    var button = el("button", "secondary", null);
+    button.type = "button";
+    button.setAttribute("data-scenario-recalculate-button", "true");
+    button.appendChild(bilingual("span", null, scenario.recompute.button_label));
+    actionRow.appendChild(button);
+    section.appendChild(actionRow);
+    var status = bilingual("p", "hint", scenario.recompute.status_idle);
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("data-scenario-status-region", "true");
+    section.appendChild(status);
+    container.appendChild(section);
+  }
+
   function renderResult(payload) {
     var container = document.getElementById("result");
     if (!container) {
@@ -1692,6 +2019,7 @@ _APP_JS = r"""(function () {
     container.appendChild(actionBox);
 
     renderDimensions(container, payload);
+    renderScenarioInputs(container, payload);
 
     var findingsHeading = bilingual("h3", null, copyPair(payload, "app.findings_heading"));
     container.appendChild(findingsHeading);
@@ -1703,7 +2031,9 @@ _APP_JS = r"""(function () {
 
   function collectAssumptions() {
     var assumptions = {};
-    var inputs = document.querySelectorAll("[data-assumption-field] input");
+    var inputs = document.querySelectorAll(
+      "[data-assumption-field] input, [data-scenario-primary-field] input"
+    );
     inputs.forEach(function (input) {
       var value = input.value.trim();
       if (value !== "") {
@@ -1711,6 +2041,24 @@ _APP_JS = r"""(function () {
       }
     });
     return assumptions;
+  }
+
+  function firstChangedAssumption(previous, current) {
+    previous = previous || {};
+    current = current || {};
+    var names = Object.keys(previous)
+      .concat(Object.keys(current))
+      .filter(function (name, index, items) {
+        return items.indexOf(name) === index;
+      })
+      .sort();
+    for (var index = 0; index < names.length; index += 1) {
+      var name = names[index];
+      if (String(previous[name] || "") !== String(current[name] || "")) {
+        return name;
+      }
+    }
+    return "scenario_inputs";
   }
 
   function selectedFile() {
@@ -1725,38 +2073,67 @@ _APP_JS = r"""(function () {
     analyzeInFlight = isBusy;
     var button = document.getElementById("analyze-btn");
     var pane = document.querySelector(".input-pane");
+    var scenarioButtons = document.querySelectorAll("[data-scenario-recalculate-button]");
     if (button) {
       button.disabled = isBusy;
       button.setAttribute("aria-busy", isBusy ? "true" : "false");
     }
+    scenarioButtons.forEach(function (scenarioButton) {
+      scenarioButton.disabled = isBusy;
+      scenarioButton.setAttribute("aria-busy", isBusy ? "true" : "false");
+    });
     if (pane) {
       pane.setAttribute("aria-busy", isBusy ? "true" : "false");
     }
   }
 
-  function buildAnalyzeRequest(pasteText, file) {
+  function buildAnalyzeRequest(pasteText, file, options) {
+    options = options || {};
     var assumptions = collectAssumptions();
+    var changedInput = options.scenarioRecompute
+      ? firstChangedAssumption(lastSubmittedAssumptions, assumptions)
+      : "";
     if (file) {
       var form = new FormData();
       form.append("contract_file", file);
       form.append("locale", activeLocale());
       form.append("assumptions", JSON.stringify(assumptions));
+      if (options.scenarioRecompute) {
+        form.append("previous_assumptions", JSON.stringify(lastSubmittedAssumptions));
+        form.append("changed_input", changedInput);
+      }
       if (pasteText && pasteText.trim() !== "") {
         form.append("paste_text", pasteText);
       }
-      return { body: form, headers: {} };
+      return { body: form, headers: {}, assumptions: assumptions, changedInput: changedInput };
     }
     return {
       body: JSON.stringify({
         paste_text: pasteText,
         locale: activeLocale(),
-        assumptions: assumptions
+        assumptions: assumptions,
+        previous_assumptions: options.scenarioRecompute ? lastSubmittedAssumptions : undefined,
+        changed_input: options.scenarioRecompute ? changedInput : undefined
       }),
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
+      assumptions: assumptions,
+      changedInput: changedInput
     };
   }
 
-  function analyze() {
+  function recomputeMessage(data, changedInput) {
+    var audit = data && data.audit_detail && data.audit_detail.scenario_recompute;
+    if (audit && audit.status_region_message) {
+      return audit.status_region_message;
+    }
+    return {
+      ko: changedInput + " 입력으로 시나리오를 다시 계산했습니다.",
+      en: "Scenario recalculated for " + changedInput + "."
+    };
+  }
+
+  function analyze(options) {
+    options = options || {};
     if (analyzeInFlight) {
       return;
     }
@@ -1780,9 +2157,16 @@ _APP_JS = r"""(function () {
       });
       return;
     }
-    statusMessage({ ko: "로컬에서 분석 중입니다.", en: "Analyzing locally." });
+    if (options.scenarioRecompute) {
+      scenarioStatusMessage({
+        ko: "시나리오를 다시 계산 중입니다.",
+        en: "Recalculating the scenario."
+      });
+    } else {
+      statusMessage({ ko: "로컬에서 분석 중입니다.", en: "Analyzing locally." });
+    }
     setAnalyzeBusy(true);
-    var request = buildAnalyzeRequest(pasteText, file);
+    var request = buildAnalyzeRequest(pasteText, file, options);
     fetch("/api/analyze", {
       method: "POST",
       headers: request.headers,
@@ -1805,8 +2189,17 @@ _APP_JS = r"""(function () {
           statusMessage({ ko: "오류: " + message, en: "Error: " + message });
           return;
         }
-        statusMessage({ ko: "분석을 완료했습니다.", en: "Analysis complete." });
+        if (options.scenarioRecompute) {
+          scenarioStatusMessage(recomputeMessage(result.data, request.changedInput));
+        } else {
+          statusMessage({ ko: "분석을 완료했습니다.", en: "Analysis complete." });
+        }
         renderResult(result.data);
+        if (options.scenarioRecompute) {
+          scenarioStatusMessage(recomputeMessage(result.data, request.changedInput));
+        }
+        lastResultPayload = result.data;
+        lastSubmittedAssumptions = request.assumptions;
       })
       .catch(function () {
         statusMessage({
@@ -1833,6 +2226,8 @@ _APP_JS = r"""(function () {
       container.hidden = true;
       container.innerHTML = "";
     }
+    lastResultPayload = null;
+    lastSubmittedAssumptions = {};
     statusMessage({
       ko: "입력을 지웠습니다.",
       en: "Input cleared."
@@ -1851,8 +2246,20 @@ _APP_JS = r"""(function () {
     }
     var analyzeButton = document.getElementById("analyze-btn");
     if (analyzeButton) {
-      analyzeButton.addEventListener("click", analyze);
+      analyzeButton.addEventListener("click", function () {
+        analyze();
+      });
     }
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+      var scenarioButton = target.closest("[data-scenario-recalculate-button]");
+      if (scenarioButton) {
+        analyze({ scenarioRecompute: true });
+      }
+    });
     setLocale(readStoredLocale() || activeLocale());
   }
 

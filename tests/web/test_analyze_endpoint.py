@@ -116,6 +116,35 @@ class AnalyzeEndpointTests(unittest.TestCase):
         data = json.loads(payload)
         self.assertEqual(data["ui_locale"], "ko")
 
+    def test_scenario_recompute_audit_names_changed_input_and_finding(self) -> None:
+        body = json.dumps(
+            {
+                "paste_text": SAMPLE_KO,
+                "locale": "ko",
+                "assumptions": {
+                    "explicit_penalty_cap": "500000",
+                },
+                "previous_assumptions": {},
+                "changed_input": "explicit_penalty_cap",
+            }
+        ).encode("utf-8")
+        status, _, payload = asyncio.run(
+            _asgi_request(self.app, "POST", "/api/analyze", body)
+        )
+        self.assertEqual(status, 200)
+        data = json.loads(payload)
+        audit = data["audit_detail"]["scenario_recompute"]
+
+        self.assertEqual(audit["trigger"], "explicit_button")
+        self.assertEqual(audit["changed_input"]["name"], "explicit_penalty_cap")
+        self.assertIsNone(audit["changed_input"]["previous_value"])
+        self.assertEqual(audit["changed_input"]["current_value"], "500000")
+        self.assertTrue(audit["source_text_unchanged"])
+        self.assertTrue(audit["evidence_eligibility_unchanged"])
+        self.assertIn("explicit_penalty_cap", audit["status_region_message"]["ko"])
+        self.assertTrue(audit["changed_exposures"])
+        self.assertTrue(audit["changed_findings"])
+
     def test_valid_locale_strings_and_enums_are_equivalent(self) -> None:
         import fink.web.app as appmod
         from fink.schemas import UILocale

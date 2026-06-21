@@ -34,8 +34,10 @@ from fink.web.assumptions import (
     AssumptionRecomputeResult,
     EditableAssumptions,
     assumption_field_specs,
+    primary_scenario_input_payload,
     recompute_assumptions,
     render_assumptions_panel_html,
+    scenario_value_origin_labels,
 )
 from fink.web.ingest_ui import (
     PAGE_OPERATIONS,
@@ -134,6 +136,7 @@ __all__ = [
     "WebIngestSummary",
     "active_financial_category_codes",
     "assumption_field_specs",
+    "primary_scenario_input_payload",
     "apply_inline_ocr_correction",
     "build_ocr_preview",
     "category_label",
@@ -159,5 +162,6 @@ __all__ = [
     "resolve_bind_settings",
     "rotate_preview_page",
     "run",
+    "scenario_value_origin_labels",
     "summarize_ingest_result",
 ]

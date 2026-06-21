@@ -33,6 +33,14 @@ class AssumptionFieldSpec:
     required_for_output: bool = True
 
 
+VALUE_ORIGIN_LABELS = {
+    "contract": "계약서에서 읽음",
+    "user": "사용자가 입력",
+    "model_suggestion": "모델 제안 — 확인 필요",
+    "missing": "입력되지 않음",
+}
+
+
 @dataclass(frozen=True)
 class EditableAssumptions:
     annual_discount_rate: Decimal | None = None
@@ -123,6 +131,10 @@ class AssumptionRecomputeResult:
 
     @property
     def live_recompute_ready(self) -> bool:
+        return False
+
+    @property
+    def explicit_recompute_required(self) -> bool:
         return True
 
 
@@ -305,9 +317,120 @@ FIM_MODULE_ORDER = (
     FimModule.FIM_7,
 )
 
+_FIELD_BY_NAME = {spec.name: spec for spec in ASSUMPTION_FIELD_SPECS}
+_PRIMARY_FIELD_LIMIT = 6
+_PRIMARY_FIELDS_BY_MODULE: dict[FimModule, tuple[str, ...]] = {
+    FimModule.FIM_1: (
+        "gross_sales",
+        "refunds",
+        "explicitly_allowed_deductions",
+        "revenue_share_rate",
+        "open_ended_deductions_base",
+        "fixed_fee",
+    ),
+    FimModule.FIM_2: (
+        "delayed_amount",
+        "delay_days_base",
+        "annual_discount_rate",
+    ),
+    FimModule.FIM_3: (
+        "recoupable_advance",
+        "cumulative_recouped",
+        "sales_base",
+        "revenue_share_rate",
+    ),
+    FimModule.FIM_4: (
+        "unpaid_revision_units",
+        "hours_per_unit",
+        "creator_hourly_value",
+    ),
+    FimModule.FIM_5: (
+        "exclusivity_duration_months",
+        "alternative_monthly_revenue",
+        "scenario_probability_base",
+        "annual_discount_rate",
+    ),
+    FimModule.FIM_6: ("secondary_rights",),
+    FimModule.FIM_7: (
+        "explicit_penalty_cap",
+        "penalty_probability",
+        "penalty_scenario_amount",
+    ),
+}
+_EXPOSURE_TYPE_BY_MODULE = {
+    FimModule.FIM_1: ExposureType.NOMINAL_LEAKAGE,
+    FimModule.FIM_2: ExposureType.PRESENT_VALUE_LOSS,
+    FimModule.FIM_3: ExposureType.DEFERRAL,
+    FimModule.FIM_4: ExposureType.NOMINAL_LEAKAGE,
+    FimModule.FIM_5: ExposureType.OPPORTUNITY_COST,
+    FimModule.FIM_6: ExposureType.OPPORTUNITY_COST,
+    FimModule.FIM_7: ExposureType.LIABILITY_EXPOSURE,
+}
+
 
 def assumption_field_specs() -> tuple[AssumptionFieldSpec, ...]:
     return ASSUMPTION_FIELD_SPECS
+
+
+def scenario_value_origin_labels() -> dict[str, str]:
+    return dict(VALUE_ORIGIN_LABELS)
+
+
+def primary_scenario_input_payload(
+    *,
+    active_fim_modules: tuple[FimModule | str, ...] = (),
+    assumptions: EditableAssumptions | None = None,
+    max_fields: int = _PRIMARY_FIELD_LIMIT,
+) -> dict[str, Any]:
+    """Return at most six context-relevant primary scenario inputs.
+
+    Selection is driven only by active finding modules and their currently
+    missing FIM inputs. When no active finding module is known, the primary flow
+    returns no fields instead of showing generic filler.
+    """
+
+    normalized_modules = tuple(_coerce_fim_module(module) for module in active_fim_modules)
+    active = tuple(module for module in FIM_MODULE_ORDER if module in normalized_modules)
+    if not active or max_fields <= 0:
+        return _scenario_payload(())
+
+    rows = {row.module: row for row in recompute_assumptions(assumptions).rows}
+    candidates_by_module: dict[FimModule, list[str]] = {}
+    for module in active:
+        row = rows[module]
+        relevant_missing = set(row.missing_inputs)
+        candidates: list[str] = []
+        for name in _PRIMARY_FIELDS_BY_MODULE.get(module, ()):
+            if relevant_missing and name not in relevant_missing:
+                continue
+            if not relevant_missing and _assumption_value(assumptions, name) is None:
+                continue
+            candidates.append(name)
+        candidates_by_module[module] = candidates
+
+    selected: list[tuple[str, FimModule]] = []
+    selected_names: set[str] = set()
+    while len(selected) < max_fields and any(candidates_by_module.values()):
+        for module in active:
+            candidates = candidates_by_module[module]
+            while candidates:
+                name = candidates.pop(0)
+                if name in selected_names:
+                    continue
+                selected.append((name, module))
+                selected_names.add(name)
+                break
+            if len(selected) >= max_fields:
+                break
+        else:
+            if not any(candidates_by_module.values()):
+                continue
+    return _scenario_payload(
+        tuple(
+            _field_payload(name, selected_module, assumptions)
+            for name, selected_module in selected
+        )
+    )
 
 
 def recompute_assumptions(
@@ -334,14 +457,24 @@ def render_assumptions_panel_html(
     fields = "\n".join(_render_field(spec, assumptions) for spec in ASSUMPTION_FIELD_SPECS)
     outputs = "\n".join(_render_row(row) for row in result.rows)
     return f"""<section class="assumptions-panel" aria-labelledby="assumptions-heading"
-      data-assumptions-panel="true" data-live-recompute="true"
+      data-assumptions-panel="true" data-live-recompute="false"
+      data-recompute-trigger="explicit"
+      data-combines-exposure-types="false"
       data-fim-modules="{_escape(' '.join(module.value for module in FIM_MODULE_ORDER))}">
       <div class="section-heading">
-        <p class="eyebrow">Editable assumptions</p>
-        <h3 id="assumptions-heading">FIM assumptions</h3>
+        <p class="eyebrow">Editable scenario assumptions</p>
+        <h3 id="assumptions-heading">고급 시나리오 입력</h3>
       </div>
-      <p class="hint">Outputs stay blank until required inputs are supplied.</p>
+      <p class="hint">Outputs stay input-required until required inputs are supplied.</p>
       <div class="assumption-fields">{fields}</div>
+      <div class="action-row">
+        <button type="button" class="secondary" data-scenario-recalculate-button="true">
+          시나리오 다시 계산
+        </button>
+      </div>
+      <p class="hint" role="status" aria-live="polite" data-scenario-status-region="true">
+        시나리오 입력을 바꾼 뒤 버튼을 눌러 다시 계산하세요.
+      </p>
       <ul class="assumption-results" data-assumption-results="true">{outputs}</ul>
     </section>"""
 
@@ -583,25 +716,39 @@ def _render_field(spec: AssumptionFieldSpec, assumptions: EditableAssumptions | 
     value = getattr(assumptions, spec.name, None) if assumptions is not None else None
     value_attr = "" if value is None or isinstance(value, tuple) else f' value="{_escape(value)}"'
     modules = " ".join(module.value for module in spec.fim_modules)
+    origin_key = "user" if value is not None else "missing"
+    input_state = "user-entered" if value is not None else "input-required"
+    currency_state = _currency_state(spec, value)
     return f"""<label class="assumption-field" data-assumption-field="{_escape(spec.name)}"
-      data-fim-modules="{_escape(modules)}" data-synthetic-assumption="true">
+      data-fim-modules="{_escape(modules)}" data-synthetic-assumption="true"
+      data-value-origin="{origin_key}" data-input-state="{input_state}"
+      data-currency-state="{currency_state}">
       <span>{_escape(spec.label)}</span>
-      <small>{_escape(spec.unit)} · synthetic assumption when supplied</small>
+      <small>{_escape(VALUE_ORIGIN_LABELS[origin_key])} · {_escape(_unit_label(spec, value))}</small>
       <input type="number" inputmode="decimal" name="{_escape(spec.name)}"
-        autocomplete="off" placeholder="blank until supplied"{value_attr}>
+        autocomplete="off" placeholder="{_escape(_placeholder_for_unit(spec.unit))}"{value_attr}>
     </label>"""
 
 
 def _render_row(row: AssumptionModuleRow) -> str:
     if row.is_blank:
         status = "blank"
-        range_text = "blank until inputs supplied"
-    else:
+        input_state = "input-required"
+        range_text = "input-required: blank until inputs supplied"
+        range_bar = "none"
+    elif _has_finite_range(row.exposure):
         status = "computed"
+        input_state = "complete"
         range_text = (
             f"low {_money(row.exposure.low)} / base {_money(row.exposure.base)} / "
             f"high {_money(row.exposure.high)}"
         )
+        range_bar = "finite"
+    else:
+        status = "computed"
+        input_state = "unbounded"
+        range_text = "unbounded: no finite range bar"
+        range_bar = "none"
     missing = ", ".join(row.missing_inputs)
     missing_html = (
         f'<p class="hint" data-missing-inputs="{_escape(missing)}">Missing: {_escape(missing)}</p>'
@@ -622,7 +769,8 @@ def _render_row(row: AssumptionModuleRow) -> str:
         for name, value in row.details
     )
     return f"""<li data-fim-module="{_escape(row.module.value)}"
-      data-exposure-type="{_escape(row.exposure_type.value)}" data-output-state="{status}">
+      data-exposure-type="{_escape(row.exposure_type.value)}" data-output-state="{status}"
+      data-input-state="{input_state}" data-range-bar="{range_bar}">
       <strong>{_escape(row.module.value)} {_escape(row.exposure_type.value)}</strong>
       <output>{range_text}</output>
       {missing_html}
@@ -630,6 +778,97 @@ def _render_row(row: AssumptionModuleRow) -> str:
       {nominal}
       {details}
     </li>"""
+
+
+def _scenario_payload(fields: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+    return {
+        "primary_heading": {
+            "ko": "시나리오 입력",
+            "en": "Scenario inputs",
+        },
+        "advanced_heading": {
+            "ko": "고급 시나리오 입력",
+            "en": "Advanced scenario inputs",
+        },
+        "max_primary_fields": _PRIMARY_FIELD_LIMIT,
+        "primary_fields": list(fields),
+        "value_origin_labels": scenario_value_origin_labels(),
+        "recompute": {
+            "mode": "explicit",
+            "button_label": {
+                "ko": "시나리오 다시 계산",
+                "en": "Recalculate scenario",
+            },
+            "status_idle": {
+                "ko": "시나리오 입력을 바꾼 뒤 버튼을 눌러 다시 계산하세요.",
+                "en": "Edit scenario inputs, then press the button to recalculate.",
+            },
+        },
+    }
+
+
+def _field_payload(
+    name: str,
+    active_module: FimModule,
+    assumptions: EditableAssumptions | None,
+) -> dict[str, Any]:
+    spec = _FIELD_BY_NAME[name]
+    value = _assumption_value(assumptions, name)
+    origin_key = "user" if value is not None else "missing"
+    return {
+        "name": name,
+        "label": spec.label,
+        "exposure_type": _EXPOSURE_TYPE_BY_MODULE[active_module].value,
+        "required_for_output": spec.required_for_output,
+        "value_origin": origin_key,
+        "value_origin_label": VALUE_ORIGIN_LABELS[origin_key],
+        "selection_origin": "model_suggestion",
+        "selection_origin_label": VALUE_ORIGIN_LABELS["model_suggestion"],
+        "current_value": None if value is None or isinstance(value, tuple) else str(value),
+        "input_state": "user-entered" if value is not None else "input-required",
+        "unit_label": _unit_label(spec, value),
+        "currency_state": _currency_state(spec, value),
+        "placeholder": _placeholder_for_unit(spec.unit),
+    }
+
+
+def _assumption_value(assumptions: EditableAssumptions | None, name: str) -> Any:
+    return getattr(assumptions, name, None) if assumptions is not None else None
+
+
+def _coerce_fim_module(module: FimModule | str) -> FimModule:
+    if isinstance(module, FimModule):
+        return module
+    raw = str(module)
+    if raw in FimModule.__members__:
+        return FimModule[raw]
+    return FimModule(raw)
+
+
+def _unit_label(spec: AssumptionFieldSpec, value: object | None) -> str:
+    if value is None and "KRW" in spec.unit:
+        return "통화 입력 필요"
+    return spec.unit
+
+
+def _currency_state(spec: AssumptionFieldSpec, value: object | None) -> str:
+    if "KRW" not in spec.unit:
+        return "not-currency"
+    return "declared-by-input" if value is not None else "input-required"
+
+
+def _placeholder_for_unit(unit: str) -> str:
+    if unit == "fraction":
+        return "비율을 직접 입력"
+    if unit in {"days", "months", "hours", "count"}:
+        return "기간 또는 수량을 직접 입력"
+    if unit == "type/value/probability":
+        return "권리 유형과 가정값을 직접 입력"
+    return "금액을 직접 입력"
+
+
+def _has_finite_range(exposure: MonetaryExposureEstimate) -> bool:
+    return exposure.low is not None and exposure.base is not None and exposure.high is not None
 
 
 def _synthetic_labels(exposure: MonetaryExposureEstimate) -> tuple[str, ...]:

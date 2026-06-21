@@ -166,6 +166,7 @@ def render_creator_review_html(
       data-creator-review-view-model="true"
       data-view-model="{_escape(view_model.view_model)}">
       {_render_creator_dimensions(view_model)}
+      {_render_creator_scenario_inputs(view_model)}
       {_render_creator_findings(view_model)}
       {_render_creator_audit_detail(view_model)}
       {render_export_controls_html(contains_raw_image=contains_raw_image)}
@@ -253,6 +254,54 @@ def _render_creator_money_ranges(ranges: tuple[dict[str, Any], ...] | list[dict[
             </li>"""
         )
     return '<ul class="exposure-list">' + "\n".join(items) + "</ul>"
+
+
+def _render_creator_scenario_inputs(view_model: CreatorReviewViewModel) -> str:
+    scenario = view_model.scenario_inputs or {}
+    fields = scenario.get("primary_fields") or []
+    rows = []
+    for field in fields:
+        value = field.get("current_value")
+        value_attr = "" if value is None else f' value="{_escape(value)}"'
+        rows.append(
+            f"""<label class="scenario-field" data-scenario-primary-field="{_escape(field['name'])}"
+              data-value-origin="{_escape(field['value_origin'])}"
+              data-selection-origin="{_escape(field['selection_origin'])}"
+              data-input-state="{_escape(field['input_state'])}"
+              data-currency-state="{_escape(field['currency_state'])}"
+              data-exposure-type="{_escape(field['exposure_type'])}">
+              <span>{_escape(field['label'])}</span>
+              <span class="origin-row">
+                <span class="badge">{_escape(field['value_origin_label'])}</span>
+                <span class="badge model-suggestion-origin">
+                  {_escape(field['selection_origin_label'])}
+                </span>
+                <small>{_escape(field['unit_label'])}</small>
+              </span>
+              <input type="number" inputmode="decimal" name="{_escape(field['name'])}"
+                autocomplete="off" placeholder="{_escape(field['placeholder'])}"{value_attr}>
+            </label>"""
+        )
+    body = (
+        '<div class="scenario-field-list">' + "\n".join(rows) + "</div>"
+        if rows
+        else '<p class="hint">활성 발견사항과 연결된 필수 시나리오 입력이 없습니다.</p>'
+    )
+    return f"""<section class="scenario-inputs" data-primary-scenario-inputs="true"
+      data-primary-field-count="{len(rows)}"
+      data-max-primary-fields="{_escape(scenario.get('max_primary_fields', 6))}"
+      data-recompute-trigger="explicit" data-combines-exposure-types="false">
+      <h3>{_escape((scenario.get('primary_heading') or {}).get('ko', '시나리오 입력'))}</h3>
+      {body}
+      <div class="action-row">
+        <button type="button" class="secondary" data-scenario-recalculate-button="true">
+          {_escape((scenario.get('recompute') or {}).get('button_label', {}).get('ko', '시나리오 다시 계산'))}
+        </button>
+      </div>
+      <p class="hint" role="status" aria-live="polite" data-scenario-status-region="true">
+        {_escape((scenario.get('recompute') or {}).get('status_idle', {}).get('ko', '시나리오 입력을 바꾼 뒤 버튼을 눌러 다시 계산하세요.'))}
+      </p>
+    </section>"""
 
 
 def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:

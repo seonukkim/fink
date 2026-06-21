@@ -103,6 +103,10 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("사용 방법 1-2-3", markup)
         self.assertIn("How to use 1-2-3", markup)
         self.assertIn('id="result"', markup)
+        self.assertIn("고급 시나리오 입력", markup)
+        self.assertIn('data-live-recompute="false"', markup)
+        self.assertIn('data-recompute-trigger="explicit"', markup)
+        self.assertIn("시나리오 다시 계산", markup)
 
     def test_app_js_route_and_analyze_endpoint_are_local_only(self) -> None:
         import json
@@ -155,6 +159,9 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("function normalizeLocale(locale)", script)
         self.assertIn("var analyzeInFlight = false;", script)
         self.assertIn("function setAnalyzeBusy(isBusy)", script)
+        self.assertIn("function firstChangedAssumption(previous, current)", script)
+        self.assertIn("previous_assumptions", script)
+        self.assertIn("scenarioRecompute", script)
         self.assertIn('button.setAttribute("aria-busy"', script)
         self.assertIn("new FormData()", script)
         self.assertIn(

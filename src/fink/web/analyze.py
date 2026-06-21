@@ -137,6 +137,7 @@ class LocalAnalysisResult:
     monetary_present: bool
     monetary_note_ko: str
     monetary_note_en: str
+    scenario_input_values: dict[str, str]
     scoring: DocumentScoringResult
     time_result: TimeExposureResult
     measured_runtime_seconds: float
@@ -165,7 +166,8 @@ def run_local_analysis(
         clauses = segment_pages(pages)
         signals = detect_signals_from_clauses(clauses)
         scoring = aggregate_document_signals(signals, ocr_confidence=ocr_confidence)
-        exposures = _resolve_exposures(scenario_inputs)
+        editable_inputs = _resolve_editable_assumptions(scenario_inputs)
+        exposures = _resolve_exposures(editable_inputs)
     measured_runtime_seconds = timer.elapsed_seconds
 
     rule_set = load_signal_rules()
@@ -215,6 +217,7 @@ def run_local_analysis(
         monetary_present=monetary_present,
         monetary_note_ko=MONETARY_BLANK_KO,
         monetary_note_en=MONETARY_BLANK_EN,
+        scenario_input_values=_scenario_input_values(editable_inputs),
         scoring=scoring,
         time_result=time_result,
         measured_runtime_seconds=measured_runtime_seconds,
@@ -357,6 +360,16 @@ def _has_category(
     return any(signal.risk_category is category for signal in signals)
 
 
+def _resolve_editable_assumptions(scenario_inputs: Any | None) -> Any | None:
+    if scenario_inputs is None:
+        return None
+    from fink.web.assumptions import EditableAssumptions
+
+    if isinstance(scenario_inputs, EditableAssumptions):
+        return scenario_inputs
+    return EditableAssumptions.from_financial_scenario_inputs(scenario_inputs)
+
+
 def _resolve_exposures(scenario_inputs: Any | None) -> tuple["MonetaryExposureEstimate", ...]:
     """Recompute monetary exposures only when assumptions are supplied.
 
@@ -366,13 +379,26 @@ def _resolve_exposures(scenario_inputs: Any | None) -> tuple["MonetaryExposureEs
 
     if scenario_inputs is None:
         return ()
-    from fink.web.assumptions import EditableAssumptions, recompute_assumptions
+    from fink.web.assumptions import recompute_assumptions
 
-    if isinstance(scenario_inputs, EditableAssumptions):
-        assumptions = scenario_inputs
-    else:
-        assumptions = EditableAssumptions.from_financial_scenario_inputs(scenario_inputs)
-    return recompute_assumptions(assumptions).exposures
+    return recompute_assumptions(scenario_inputs).exposures
+
+
+def _scenario_input_values(scenario_inputs: Any | None) -> dict[str, str]:
+    if scenario_inputs is None:
+        return {}
+    from dataclasses import fields as dataclass_fields
+
+    values: dict[str, str] = {}
+    for field in dataclass_fields(scenario_inputs):
+        value = getattr(scenario_inputs, field.name)
+        if value is None or value is False:
+            continue
+        if isinstance(value, tuple):
+            values[field.name] = "provided"
+        else:
+            values[field.name] = str(value)
+    return values
 
 
 def _ingest_validation_error(message: str) -> Exception:

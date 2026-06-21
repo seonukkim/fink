@@ -4,7 +4,7 @@
   "active_task": null,
   "path_locks": {},
   "last_run_id": null,
-  "last_run_dir": ".fink/runs/20260621T213222Z-ccf2b76b/FINK-VM-01/round-01",
+  "last_run_dir": ".fink/runs/20260621T215314Z-d2ba58d5/FINK-SCEN-01/round-01",
   "last_verdict": "APPROVE",
   "latest_successful_commit": "b3803bfa4df0e72a1b8623e271d8f202eba3dbd1",
   "base_commit": "b3803bfa4df0e72a1b8623e271d8f202eba3dbd1",

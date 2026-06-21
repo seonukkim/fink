@@ -226,6 +226,7 @@ class CreatorReviewViewModel:
     dimensions: dict[str, Any]
     findings: tuple[dict[str, Any], ...]
     audit_detail: dict[str, Any]
+    scenario_inputs: dict[str, Any] | None = None
     local_only: bool = True
     schema_version: int = VIEW_MODEL_SCHEMA_VERSION
     view_model: str = VIEW_MODEL_NAME
@@ -242,6 +243,7 @@ class CreatorReviewViewModel:
             "statuses": self.statuses,
             "dimensions": self.dimensions,
             "findings": list(self.findings),
+            "scenario_inputs": self.scenario_inputs or _scenario_inputs_from_audit({}),
             "audit_detail": self.audit_detail,
         }
 
@@ -271,6 +273,10 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
     findings = tuple(_finding_from_ranked(item, result, statuses) for item in result.ranked_findings)
     dimensions = _dimensions_from_result(result, statuses)
     audit_detail = _audit_detail_from_result(result)
+    scenario_inputs = _scenario_inputs_from_audit(
+        audit_detail,
+        getattr(result, "scenario_input_values", {}),
+    )
     return CreatorReviewViewModel(
         ui_locale=ui_locale,
         summary=_summary_from_result(result),
@@ -288,6 +294,7 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         dimensions=dimensions,
         findings=findings,
         audit_detail=audit_detail,
+        scenario_inputs=scenario_inputs,
     )
 
 
@@ -364,6 +371,7 @@ def build_creator_review_view_model_from_report(
         dimensions=_dimensions_from_report(report, statuses),
         findings=findings,
         audit_detail=audit_detail,
+        scenario_inputs=_scenario_inputs_from_audit(audit_detail),
     )
 
 
@@ -452,6 +460,7 @@ def build_project_page_synthetic_view_model(
         },
         findings=(finding,),
         audit_detail=audit_detail,
+        scenario_inputs=_scenario_inputs_from_audit(audit_detail),
     )
 
 
@@ -722,6 +731,51 @@ def _audit_detail_from_result(result: Any) -> dict[str, Any]:
         ],
         "monetary_exposures": [_exposure_to_audit(exposure) for exposure in result.exposures],
     }
+
+
+def _scenario_inputs_from_audit(
+    audit_detail: dict[str, Any],
+    scenario_input_values: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    from fink.web.assumptions import primary_scenario_input_payload
+
+    active_modules = tuple(
+        item.get("fim_module")
+        for item in audit_detail.get("technical_findings", ())
+        if item.get("fim_module")
+    )
+    return primary_scenario_input_payload(
+        active_fim_modules=active_modules,
+        assumptions=_editable_assumptions_from_values(scenario_input_values or {}),
+    )
+
+
+def _editable_assumptions_from_values(values: dict[str, str]) -> Any:
+    if not values:
+        return None
+    from dataclasses import fields as dataclass_fields
+    from decimal import InvalidOperation
+
+    from fink.web.assumptions import EditableAssumptions
+
+    allowed = {field.name for field in dataclass_fields(EditableAssumptions)}
+    int_fields = {
+        "unpaid_revision_units",
+        "exclusivity_duration_months",
+        "renewal_duration_months",
+    }
+    kwargs: dict[str, Any] = {}
+    for key, raw in values.items():
+        if key not in allowed or raw in {"", "provided"}:
+            continue
+        try:
+            if key in int_fields:
+                kwargs[key] = int(raw)
+            else:
+                kwargs[key] = Decimal(str(raw))
+        except (InvalidOperation, ValueError, TypeError):
+            continue
+    return EditableAssumptions(**kwargs) if kwargs else None
 
 
 def _technical_finding_from_ranked(finding: Any) -> dict[str, Any]:
