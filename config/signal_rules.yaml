@@ -1,0 +1,302 @@
+schema_version: "1.0"
+config_id: signal_rules
+signal_rule_config_version: "0.1.0"
+status: design_heuristic
+source:
+  primary_spec: docs/specs/03_SCORING_AND_FINANCIAL_IMPACT.md
+  acceptance_refs:
+    - AC-INV-1
+    - AC-AUTH-2
+  backlog_task: FINK-S3-01
+scoring_frame: Contractual Financial Review Priority
+rule_policy:
+  detector: rule
+  deterministic: true
+  heuristic: true
+  authority_supported_tiers: [A0, A1, A2]
+  missing_protection_score_rule: >-
+    Missing-protection signals may fire from deterministic clause text rules,
+    but they are score-eligible only when grounded by at least one A0, A1, or A2
+    record for the same F1-F9 category.
+  non_scoring_tiers: [B, C, D0, M1, M2, M3, R0]
+  no_legal_verdict: true
+rules:
+  - signal_id: RS-F1-PRESENCE-AUDIT-BLOCK
+    category: F1_SETTLEMENT_AND_AUDIT
+    kind: presence
+    label_ko: 정산자료 또는 감사권 제한
+    label_en: Settlement records or audit access restriction
+    severity_raw:
+      value: 0.70
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.92
+      heuristic: true
+    match_any:
+      - '감사권|열람권|정산[^.\n]{0,30}(?:거부|제공하지|불가)'
+      - 'no\s+audit\s+right|settlement[^.\n]{0,30}(?:not\s+provided|withheld)'
+  - signal_id: RS-F1-MISSING-SETTLEMENT-RECORDS
+    category: F1_SETTLEMENT_AND_AUDIT
+    kind: missing_protection
+    label_ko: 정산명세 보호장치 부재
+    label_en: Missing settlement statement protection
+    severity_raw:
+      value: 0.65
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.88
+      heuristic: true
+    topic_any:
+      - '정산|settlement|audit'
+    protection_any:
+      - '감사권|열람|명세|내역|settlement\s+statement|records?|audit\s+right'
+  - signal_id: RS-F2-PRESENCE-OPEN-ENDED-DEDUCTIONS
+    category: F2_REVENUE_AND_DEDUCTIONS
+    kind: presence
+    label_ko: 포괄적 공제 조항
+    label_en: Open-ended deductions
+    severity_raw:
+      value: 0.75
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.91
+      heuristic: true
+    match_any:
+      - '기타[^.\n]{0,20}(?:비용|공제)|회사.{0,12}정하는[^.\n]{0,20}(?:비용|공제)'
+      - 'other[^.\n]{0,20}(?:deductions|fees|costs)|deductions?[^.\n]{0,30}as\s+determined'
+  - signal_id: RS-F2-MISSING-REVENUE-BASE
+    category: F2_REVENUE_AND_DEDUCTIONS
+    kind: missing_protection
+    label_ko: 매출 기준 또는 공제항목 정의 부재
+    label_en: Missing revenue-base or deduction definition
+    severity_raw:
+      value: 0.70
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.88
+      heuristic: true
+    topic_any:
+      - '수익\s*배분|공제|매출|revenue\s+share|deduction|net\s+revenue'
+    protection_any:
+      - '총매출|순매출|공제\s*항목|공제\s*대상|gross\s+sales|net\s+revenue|itemi[sz]ed|specified\s+deductions'
+  - signal_id: RS-F3-PRESENCE-PAYMENT-TIMING-OPAQUE
+    category: F3_PAYMENT_AND_CASHFLOW
+    kind: presence
+    label_ko: 지급 시기 불명확
+    label_en: Opaque payment timing
+    severity_raw:
+      value: 0.60
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.90
+      heuristic: true
+    match_any:
+      - '지급(?:일|기일|시기)[^.\n]{0,20}(?:회사|별도|추후)[^.\n]{0,20}정'
+      - 'payment[^.\n]{0,40}(?:sole\s+discretion|to\s+be\s+determined|later)'
+  - signal_id: RS-F3-MISSING-PAYMENT-DEADLINE
+    category: F3_PAYMENT_AND_CASHFLOW
+    kind: missing_protection
+    label_ko: 지급기한 보호장치 부재
+    label_en: Missing payment deadline
+    severity_raw:
+      value: 0.62
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.86
+      heuristic: true
+    topic_any:
+      - '지급|정산금|payment|payable'
+    protection_any:
+      - '\d+\s*(?:일|영업일|days?)|매월|월\s*\d+\s*일|within\s+\d+\s+days|by\s+\d{4}'
+  - signal_id: RS-F4-PRESENCE-RECOUPMENT-OPAQUE
+    category: F4_MG_AND_RECOUPMENT
+    kind: presence
+    label_ko: 선급금 또는 MG 회수 불명확
+    label_en: Opaque advance or MG recoupment
+    severity_raw:
+      value: 0.70
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.90
+      heuristic: true
+    match_any:
+      - '(?:선급금|미니멈\s*개런티|MG).{0,40}(?:전액\s*회수|우선\s*회수|상계)'
+      - '(?:advance|minimum\s+guarantee|MG).{0,50}(?:recouped|set[- ]?off)'
+  - signal_id: RS-F4-MISSING-RECOUPMENT-LIMITS
+    category: F4_MG_AND_RECOUPMENT
+    kind: missing_protection
+    label_ko: 회수율·상한·기간 부재
+    label_en: Missing recoupment rate, cap, or period
+    severity_raw:
+      value: 0.68
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.86
+      heuristic: true
+    topic_any:
+      - '선급금|미니멈\s*개런티|MG|회수|advance|minimum\s+guarantee|recoup'
+    protection_any:
+      - '회수율|회수\s*기간|상한|정산\s*내역|recoupment\s+rate|cap|period|balance\s+statement'
+  - signal_id: RS-F5-PRESENCE-BROAD-IP-TRANSFER
+    category: F5_IP_MONETIZATION
+    kind: presence
+    label_ko: 포괄적 저작권 또는 2차권리 이전
+    label_en: Broad IP or secondary-rights transfer
+    severity_raw:
+      value: 0.80
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.91
+      heuristic: true
+    match_any:
+      - '저작권.{0,30}(?:양도|귀속)|2차적저작물.{0,30}(?:포괄|일체|독점)'
+      - 'all\s+(?:copyright|IP|secondary\s+rights)|perpetual\s+transfer'
+  - signal_id: RS-F5-MISSING-SECONDARY-RIGHTS-SHARE
+    category: F5_IP_MONETIZATION
+    kind: missing_protection
+    label_ko: 2차권리 범위·기간·수익배분 부재
+    label_en: Missing secondary-rights scope, term, or share
+    severity_raw:
+      value: 0.72
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.86
+      heuristic: true
+    topic_any:
+      - '저작권|2차적저작물|부가\s*권리|copyright|IP|secondary\s+rights|derivative\s+works'
+    protection_any:
+      - '범위|기간|수익\s*배분|사전\s*동의|scope|term|revenue\s+share|approval'
+  - signal_id: RS-F6-PRESENCE-LONG-EXCLUSIVITY-AUTO-RENEWAL
+    category: F6_TERM_EXCLUSIVITY_AND_OPPORTUNITY_COST
+    kind: presence
+    label_ko: 장기 독점 또는 자동갱신
+    label_en: Long exclusivity or auto-renewal
+    severity_raw:
+      value: 0.65
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.90
+      heuristic: true
+    match_any:
+      - '독점.{0,30}(?:자동\s*갱신|연장|3\s*년|36\s*개월)'
+      - 'auto(?:matic)?\s+renewal|exclusive[^.\n]{0,30}(?:3\s+years|36\s+months)'
+  - signal_id: RS-F6-MISSING-EXIT-RIGHT
+    category: F6_TERM_EXCLUSIVITY_AND_OPPORTUNITY_COST
+    kind: missing_protection
+    label_ko: 기간·독점 종료 보호장치 부재
+    label_en: Missing term or exclusivity exit protection
+    severity_raw:
+      value: 0.63
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.85
+      heuristic: true
+    topic_any:
+      - '독점|계약\s*기간|갱신|연장|exclusive|term|renewal'
+    protection_any:
+      - '해지|통지|비독점|종료일|notice|termination|non[- ]exclusive|end\s+date'
+  - signal_id: RS-F7-PRESENCE-UNCAPPED-LIABILITY
+    category: F7_TERMINATION_LIABILITY_AND_PENALTIES
+    kind: presence
+    label_ko: 무제한 또는 불명확한 손해배상
+    label_en: Uncapped or ambiguous liability
+    severity_raw:
+      value: 0.85
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.92
+      heuristic: true
+    match_any:
+      - '손해배상.{0,30}(?:전액|일체|무제한)|위약금.{0,30}(?:전액|일체)'
+      - 'unlimited\s+liability|all\s+damages|liquidated\s+damages'
+  - signal_id: RS-F7-MISSING-LIABILITY-CAP
+    category: F7_TERMINATION_LIABILITY_AND_PENALTIES
+    kind: missing_protection
+    label_ko: 손해배상 상한 또는 시정기간 부재
+    label_en: Missing liability cap or cure period
+    severity_raw:
+      value: 0.76
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.86
+      heuristic: true
+    topic_any:
+      - '손해배상|위약금|해지|liability|penalty|termination'
+    protection_any:
+      - '책임\s*상한|한도|시정\s*기간|cap|limit|cure\s+period'
+  - signal_id: RS-F8-PRESENCE-UNPAID-SCOPE-CREEP
+    category: F8_SCOPE_CREEP_AND_PRODUCTION_COST
+    kind: presence
+    label_ko: 무상 수정 또는 추가작업
+    label_en: Unpaid revision or scope creep
+    severity_raw:
+      value: 0.65
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.90
+      heuristic: true
+    match_any:
+      - '수정.{0,30}(?:무상|추가\s*비용\s*없이|무제한)|추가\s*작업.{0,30}(?:무상|작가\s*부담)'
+      - 'unlimited\s+revisions|additional\s+work[^.\n]{0,30}without\s+additional\s+pay'
+  - signal_id: RS-F8-MISSING-REVISION-LIMITS
+    category: F8_SCOPE_CREEP_AND_PRODUCTION_COST
+    kind: missing_protection
+    label_ko: 수정횟수·추가비용 보호장치 부재
+    label_en: Missing revision limits or extra-fee protection
+    severity_raw:
+      value: 0.60
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.85
+      heuristic: true
+    topic_any:
+      - '수정|검수|추가\s*작업|제작비|revision|additional\s+work|production\s+cost'
+    protection_any:
+      - '수정\s*\d+\s*회|추가\s*비용|제작비\s*부담|승인|revision\s+limit|additional\s+fee|production\s+costs?'
+  - signal_id: RS-F9-PRESENCE-EVIDENCE-PRIVACY-GAP
+    category: F9_E_CONTRACT_PRIVACY_AND_EVIDENCE
+    kind: presence
+    label_ko: 전자계약 증거 또는 개인정보 보호 위험
+    label_en: E-contract evidence or privacy gap
+    severity_raw:
+      value: 0.55
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.89
+      heuristic: true
+    match_any:
+      - '전자계약.{0,30}(?:원본|증거).{0,20}(?:보관하지|삭제)|개인정보.{0,30}(?:제3자|목적\s*외)'
+      - 'electronic\s+signature[^.\n]{0,40}(?:no\s+copy|deleted)|personal\s+data[^.\n]{0,30}third\s+part'
+  - signal_id: RS-F9-MISSING-EVIDENCE-RETENTION
+    category: F9_E_CONTRACT_PRIVACY_AND_EVIDENCE
+    kind: missing_protection
+    label_ko: 전자증거 보존 또는 개인정보 동의 부재
+    label_en: Missing evidence retention or privacy consent
+    severity_raw:
+      value: 0.54
+      heuristic: true
+      sensitivity_analysis: vary_or_ablate
+    signal_confidence:
+      value: 0.84
+      heuristic: true
+    topic_any:
+      - '전자계약|전자서명|증거|개인정보|electronic\s+contract|electronic\s+signature|evidence|personal\s+data|privacy'
+    protection_any:
+      - '원본|사본|보존|열람|동의|audit\s+trail|copy|retention|consent|privacy\s+safeguard'
