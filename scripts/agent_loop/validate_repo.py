@@ -253,6 +253,22 @@ def secret_scan() -> str:
     return "no secret patterns"
 
 
+def public_repo_preflight() -> str:
+    proc = subprocess.run(
+        ["bash", "scripts/public_repo_preflight.sh"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    output = "\n".join(part for part in (proc.stdout, proc.stderr) if part)
+    require(proc.returncode == 0, "public_repo_preflight.sh failed")
+    require("PREFLIGHT_OK" in proc.stdout, "public_repo_preflight.sh did not emit PREFLIGHT_OK")
+    for gate_name in ("preflight_ok", "secret_scan", "gitignore_enforced"):
+        require(f"{gate_name}:" in proc.stdout, f"public_repo_preflight.sh skipped {gate_name}")
+    return output.strip()
+
+
 def private_quote_scan() -> str:
     findings: list[str] = []
     for path in text_files_for_scan():
@@ -620,6 +636,7 @@ def run_all(args: argparse.Namespace) -> None:
     gate("queue/backlog task-id consistency", queue_consistency)
     gate("secret scan", secret_scan)
     gate(".fink/private/PDF/ZIP tracking scan", tracking_scan)
+    gate("privacy public-repo preflight", public_repo_preflight)
     gate("long private-quotation heuristic", private_quote_scan)
     gate("forbidden legal-verdict scan", legal_verdict_scan)
     gate("authority-tier scoring invariant", authority_invariant)
