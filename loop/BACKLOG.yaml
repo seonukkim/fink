@@ -589,8 +589,9 @@ tasks:
   paper_sections:
   - 03_method.md
   human_gate: null
-  status: READY
+  status: DONE
   source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+  completed_at: '2026-06-21T09:16:46+00:00'
 - id: FINK-S3-07
   phase: S3
   priority: P2
