@@ -1,0 +1,199 @@
+{
+  "cases": [
+    {
+      "description": "Compute OCR CER/WER, exact financial-term extraction metrics, and clause-boundary segmentation quality on synthetic/sanitized fixtures.",
+      "expected": {
+        "no_legal_verdict": true,
+        "required_metrics": [
+          "EV-OCR-CER",
+          "EV-OCR-WER",
+          "EV-EXACT-MONEY",
+          "EV-EXACT-PCT",
+          "EV-EXACT-DATE",
+          "EV-EXACT-DUR",
+          "EV-SEG"
+        ],
+        "result_ledger_status": "measured",
+        "synthetic_only": true
+      },
+      "id": "ocr_extract_metric_run",
+      "metrics": [
+        "EV-OCR-CER",
+        "EV-OCR-WER",
+        "EV-EXACT-MONEY",
+        "EV-EXACT-PCT",
+        "EV-EXACT-DATE",
+        "EV-EXACT-DUR",
+        "EV-SEG"
+      ],
+      "observed": {
+        "clause_count": 2,
+        "extracted_term_count": 4,
+        "fixture_sha256": "6bfe5b4b6ff617b7216190f56996c5f42b6de23f81d926ea049cc53d9dc18325",
+        "metric_values": {
+          "EV-EXACT-DATE": 1.0,
+          "EV-EXACT-DUR": 1.0,
+          "EV-EXACT-MONEY": 1.0,
+          "EV-EXACT-PCT": 1.0,
+          "EV-OCR-CER": 0.052632,
+          "EV-OCR-WER": 0.125,
+          "EV-SEG": 1.0
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "metric_values": {
+    "EV-EXACT-DATE": 1.0,
+    "EV-EXACT-DUR": 1.0,
+    "EV-EXACT-MONEY": 1.0,
+    "EV-EXACT-PCT": 1.0,
+    "EV-OCR-CER": 0.052632,
+    "EV-OCR-WER": 0.125,
+    "EV-SEG": 1.0
+  },
+  "metrics": {
+    "EV-EXACT-DATE": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-EXACT-DUR": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-EXACT-MONEY": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-EXACT-PCT": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-OCR-CER": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-OCR-WER": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    },
+    "EV-SEG": {
+      "failed": 0,
+      "ok": true,
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "paper_sections": [
+    "05_experiments.md",
+    "06_results.md"
+  ],
+  "registered_gates": [
+    "ocr_extract_metric_run"
+  ],
+  "result_ledger": {
+    "columns": [
+      "result_id",
+      "experiment_id",
+      "metric",
+      "value",
+      "artifact_path",
+      "status",
+      "reviewer",
+      "notes"
+    ],
+    "name": "RESULT_LEDGER",
+    "rows": [
+      {
+        "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+        "experiment_id": "ocr_extract_metric_run",
+        "metric": "EV-OCR-CER",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-02-EV-OCR-CER",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.052632"
+      },
+      {
+        "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+        "experiment_id": "ocr_extract_metric_run",
+        "metric": "EV-OCR-WER",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-02-EV-OCR-WER",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.125000"
+      },
+      {
+        "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+        "experiment_id": "ocr_extract_metric_run",
+        "metric": "EV-EXACT-MONEY",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-02-EV-EXACT-MONEY",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+        "experiment_id": "ocr_extract_metric_run",
+        "metric": "EV-EXACT-PCT",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-02-EV-EXACT-PCT",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+        "experiment_id": "ocr_extract_metric_run",
+        "metric": "EV-EXACT-DATE",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-02-EV-EXACT-DATE",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+        "experiment_id": "ocr_extract_metric_run",
+        "metric": "EV-EXACT-DUR",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-02-EV-EXACT-DUR",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/ocr_extract_metric_suite_results.json",
+        "experiment_id": "ocr_extract_metric_run",
+        "metric": "EV-SEG",
+        "notes": "synthetic/sanitized local fixture; measured value is not a generalized performance claim",
+        "result_id": "FINK-S5-02-EV-SEG",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "1.000000"
+      }
+    ]
+  },
+  "suite": "ocr_extract_metric_suite",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 1,
+    "total": 1
+  },
+  "task_id": "FINK-S5-02"
+}
