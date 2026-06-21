@@ -91,6 +91,24 @@ class AnalyzeRobustnessTests(unittest.TestCase):
         self.assertIn("next_action", payload)
         self.assertTrue(payload.get("local_only"))
 
+    def test_unexpected_type_error_returns_controlled_500(self) -> None:
+        import fink.web.app as appmod
+
+        private_text = "SECRET CONTRACT TEXT /tmp/fink-private/contract.pdf"
+
+        def boom(_payload: dict) -> dict:
+            raise TypeError(private_text)
+
+        with patch.object(appmod, "_analysis_payload_from_request", boom):
+            status, payload = asyncio.run(
+                _post(_app(), "/api/analyze", {"paste_text": private_text, "locale": "ko"})
+            )
+        self.assertEqual(status, 500)
+        self.assertEqual(payload.get("error_code"), "internal_local_error")
+        self.assertNotIn("SECRET CONTRACT TEXT", repr(payload))
+        self.assertNotIn("/tmp/fink-private", repr(payload))
+        self.assertNotIn("traceback", repr(payload).lower())
+
     def test_string_locale_payload_does_not_crash(self) -> None:
         from fink.schemas import UILocale
         from fink.web.analyze import analysis_result_to_payload, run_local_analysis

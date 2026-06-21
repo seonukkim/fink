@@ -93,6 +93,10 @@ class WebSmokeTests(unittest.TestCase):
         # external /app.js script must be present, the locale toggle must expose
         # an active-locale attribute, and the 1-2-3 how-to strip must render.
         self.assertIn('id="analyze-btn"', markup)
+        self.assertEqual(markup.count('id="analyze-btn"'), 1)
+        self.assertIn('id="contract-file"', markup)
+        self.assertNotIn('class="upload-tile"', markup)
+        self.assertNotIn('data-ui-ingest-modes="camera image pdf paste"', markup)
         self.assertIn('<script src="/app.js">', markup)
         self.assertIn('data-active-locale', markup)
         self.assertIn('data-how-to-steps="true"', markup)
@@ -149,6 +153,10 @@ class WebSmokeTests(unittest.TestCase):
         script = WEB.app_js()
         self.assertIn("fink.ui_locale", script)
         self.assertIn("function normalizeLocale(locale)", script)
+        self.assertIn("var analyzeInFlight = false;", script)
+        self.assertIn("function setAnalyzeBusy(isBusy)", script)
+        self.assertIn('button.setAttribute("aria-busy"', script)
+        self.assertIn("new FormData()", script)
         self.assertIn(
             'return normalized === "en" || normalized === "ko" ? normalized : "ko";',
             script,

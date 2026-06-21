@@ -13,10 +13,15 @@ from fink.web.assumptions import EditableAssumptions, render_assumptions_panel_h
 from fink.web.ingest_ui import (
     PAGE_OPERATIONS,
     PDF_LOCAL_NOTICE,
-    input_mode_controls,
-    responsive_ingest_layouts,
 )
 from fink.web.report_ui import render_empty_report_shell_html
+from fink.web.upload import (
+    AnalyzeRequestError,
+    analyze_multipart_request,
+    assumptions_from_multipart_fields,
+    is_multipart_content_type,
+    parse_multipart_analyze_request,
+)
 
 DEFAULT_LOOPBACK_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -224,21 +229,8 @@ def _render_how_to_section() -> str:
 
 
 def _render_input_card() -> str:
-    """Render the single hero input card: paste box, one upload affordance, actions.
+    """Render one input area: paste text or choose one local file."""
 
-    The paste textarea is the primary input. The four upload modes (camera /
-    image / pdf / paste) are collapsed into one ``<details>`` so they stay in the
-    DOM (and keep their pinned data attributes) without crowding the page. The
-    PDF local notice, the local-error region, and the screen-reader layout-support
-    span live inside that same collapsed disclosure.
-    """
-
-    mode_tiles = "\n".join(
-        _render_ingest_mode_control(control) for control in input_mode_controls()
-    )
-    layout_support = "\n".join(
-        _render_layout_support(layout) for layout in responsive_ingest_layouts()
-    )
     return f"""<section class="input-pane card" aria-labelledby="input-heading">
       <div class="section-heading">
         <p class="eyebrow">Local input</p>
@@ -254,42 +246,30 @@ def _render_input_card() -> str:
       <textarea id="paste-box" name="paste_text" rows="8" spellcheck="false"
         data-ingest-mode="paste"
         placeholder="제3조(정산) ..."></textarea>
+      <div class="file-input-row" data-upload-area="true">
+        <label class="upload-label" for="contract-file">
+          <span lang="ko" data-locale-text="ko">파일 업로드 (선택)</span>
+          <span lang="en" data-locale-text="en">Upload one file (optional)</span>
+        </label>
+        <input id="contract-file" name="contract_file" type="file" data-file-input="true"
+          accept="text/plain,.txt,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.heic,.heif">
+        <p class="pdf-local-notice" data-pdf-local-notice="true">
+          {html.escape(PDF_LOCAL_NOTICE)}
+        </p>
+        <div class="local-error" data-pdf-error-region="true" role="alert">
+          unsupported, empty, corrupted, encrypted, oversized, and OCR-missing files
+          return a local structured error. Nothing is transmitted.
+        </div>
+      </div>
       <div class="action-row">
         <button type="button" id="analyze-btn" data-analyze-button="true">
           분석하기 / Analyze
-        </button>
-        <button type="button" class="secondary" id="clear-btn" data-clear-button="true">
-          <span lang="ko" data-locale-text="ko">지우기</span>
-          <span lang="en" data-locale-text="en">Clear now</span>
         </button>
       </div>
       <p class="hint" id="analyze-status" data-analyze-status="true" role="status" aria-live="polite">
         <span lang="ko" data-locale-text="ko">계약 텍스트는 이 기기에만 머무는 임시 데이터입니다.</span>
         <span lang="en" data-locale-text="en">Contract text stays on this device as ephemeral data.</span>
       </p>
-      <details class="upload-details">
-        <summary>
-          <span lang="ko" data-locale-text="ko">파일 업로드 (선택)</span>
-          <span lang="en" data-locale-text="en">Upload a file instead (optional)</span>
-        </summary>
-        <form class="ingest-form" action="/local/ingest" method="post"
-          enctype="multipart/form-data" data-local-only="true">
-          <div class="upload-grid" aria-label="Input modes"
-            data-ui-ingest-modes="camera image pdf paste">
-            {mode_tiles}
-          </div>
-          <p class="pdf-local-notice" data-pdf-local-notice="true">
-            {html.escape(PDF_LOCAL_NOTICE)}
-          </p>
-          <div class="local-error" data-pdf-error-region="true" role="alert">
-            Rejected PDFs show a local error here for unsupported, corrupted,
-            encrypted, or oversized files. Nothing is transmitted.
-          </div>
-          <p class="sr-only" data-layout-support="true">
-            {layout_support}
-          </p>
-        </form>
-      </details>
     </section>"""
 
 
@@ -495,6 +475,46 @@ def _analysis_payload_from_request(body: dict[str, Any]) -> dict[str, Any]:
     return analysis_result_to_payload(result, locale)
 
 
+def _analysis_payload_from_raw_request(
+    raw: bytes, content_type: str | None
+) -> dict[str, Any]:
+    if is_multipart_content_type(content_type):
+        request = parse_multipart_analyze_request(raw, content_type)
+        locale = _resolve_api_locale(request.fields)
+        scenario_inputs = _assumptions_from_payload(
+            assumptions_from_multipart_fields(request.fields)
+        )
+        return analyze_multipart_request(
+            request,
+            scenario_inputs=scenario_inputs,
+            ui_locale=locale,
+        )
+
+    try:
+        body = json.loads(raw.decode("utf-8")) if raw else {}
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise AnalyzeRequestError(
+            error_code="REQUEST_INVALID",
+            status_code=400,
+            validation_status="rejected_corrupt",
+            message_ko="요청 본문은 올바른 JSON이어야 합니다.",
+            message_en="Request body must be valid JSON.",
+            action_ko="JSON 또는 multipart/form-data 형식으로 다시 보내세요.",
+            action_en="Send JSON or multipart/form-data and try again.",
+        ) from exc
+    if not isinstance(body, dict):
+        raise AnalyzeRequestError(
+            error_code="REQUEST_INVALID",
+            status_code=400,
+            validation_status="rejected_corrupt",
+            message_ko="요청 본문은 JSON 객체여야 합니다.",
+            message_en="Request body must be a JSON object.",
+            action_ko="paste_text 필드가 있는 JSON 객체를 보내세요.",
+            action_en="Send a JSON object with a paste_text field.",
+        )
+    return _analysis_payload_from_request(body)
+
+
 def _resolve_api_locale(body: dict[str, Any]) -> UILocale:
     if "locale" not in body or body.get("locale") is None:
         return UILocale.KO
@@ -665,14 +685,12 @@ def _create_fastapi_app(settings: WebBindSettings) -> Any:
     async def analyze_route(request: Request) -> JSONResponse:
         try:
             raw = await request.body()
-            body = json.loads(raw.decode("utf-8")) if raw else {}
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            return JSONResponse(
-                {"error": "request body must be valid JSON", "local_only": True},
-                status_code=400,
+            payload = _analysis_payload_from_raw_request(
+                raw,
+                request.headers.get("content-type"),
             )
-        try:
-            payload = _analysis_payload_from_request(body if isinstance(body, dict) else {})
+        except AnalyzeRequestError as exc:
+            return JSONResponse(exc.to_payload(), status_code=exc.status_code)
         except LocaleValidationError:
             return JSONResponse(_structured_locale_error(), status_code=422)
         except _local_analysis_client_errors() as exc:
@@ -742,7 +760,7 @@ class LocalASGIApp:
         path = scope.get("path", "/")
 
         if method == "POST" and path == "/api/analyze":
-            await self._handle_analyze(receive, send)
+            await self._handle_analyze(scope, receive, send)
             return
         if method != "GET":
             await _send_response(send, 405, b"Method not allowed", "text/plain; charset=utf-8")
@@ -781,18 +799,16 @@ class LocalASGIApp:
             return
         await _send_response(send, 404, b"Not found", "text/plain; charset=utf-8")
 
-    async def _handle_analyze(self, receive: Any, send: Any) -> None:
+    async def _handle_analyze(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
         body = await _read_request_body(receive)
         try:
-            parsed = json.loads(body.decode("utf-8")) if body else {}
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            await _send_json(send, 400, {"error": "request body must be valid JSON", "local_only": True})
+            payload = _analysis_payload_from_raw_request(
+                body,
+                _header_value(scope, "content-type"),
+            )
+        except AnalyzeRequestError as exc:
+            await _send_json(send, exc.status_code, exc.to_payload())
             return
-        if not isinstance(parsed, dict):
-            await _send_json(send, 400, {"error": "request body must be a JSON object", "local_only": True})
-            return
-        try:
-            payload = _analysis_payload_from_request(parsed)
         except LocaleValidationError:
             await _send_json(send, 422, _structured_locale_error())
             return
@@ -838,6 +854,14 @@ async def _read_request_body(receive: Any) -> bytes:
         if not message.get("more_body", False):
             break
     return b"".join(chunks)
+
+
+def _header_value(scope: dict[str, Any], name: str) -> str | None:
+    target = name.lower().encode("ascii")
+    for raw_key, raw_value in scope.get("headers", []):
+        if raw_key.lower() == target:
+            return raw_value.decode("latin-1")
+    return None
 
 
 def run(argv: list[str] | None = None) -> int:
@@ -1083,6 +1107,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   display: block;
   margin-bottom: .35rem;
   font-weight: 700;
+}
+.file-input-row {
+  display: grid;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+.upload-label {
+  font-weight: 700;
+}
+#contract-file {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .55rem .65rem;
+  background: #fff;
 }
 textarea {
   width: 100%;
@@ -1439,6 +1479,7 @@ _APP_JS = r"""(function () {
   "use strict";
 
   var LOCALE_STORAGE_KEY = "fink.ui_locale";
+  var analyzeInFlight = false;
 
   function normalizeLocale(locale) {
     var normalized = String(locale || "").trim().toLowerCase();
@@ -1706,29 +1747,80 @@ _APP_JS = r"""(function () {
     return assumptions;
   }
 
+  function selectedFile() {
+    var input = document.getElementById("contract-file");
+    if (!input || !input.files || input.files.length === 0) {
+      return null;
+    }
+    return input.files[0];
+  }
+
+  function setAnalyzeBusy(isBusy) {
+    analyzeInFlight = isBusy;
+    var button = document.getElementById("analyze-btn");
+    var pane = document.querySelector(".input-pane");
+    if (button) {
+      button.disabled = isBusy;
+      button.setAttribute("aria-busy", isBusy ? "true" : "false");
+    }
+    if (pane) {
+      pane.setAttribute("aria-busy", isBusy ? "true" : "false");
+    }
+  }
+
+  function buildAnalyzeRequest(pasteText, file) {
+    var assumptions = collectAssumptions();
+    if (file) {
+      var form = new FormData();
+      form.append("contract_file", file);
+      form.append("locale", activeLocale());
+      form.append("assumptions", JSON.stringify(assumptions));
+      if (pasteText && pasteText.trim() !== "") {
+        form.append("paste_text", pasteText);
+      }
+      return { body: form, headers: {} };
+    }
+    return {
+      body: JSON.stringify({
+        paste_text: pasteText,
+        locale: activeLocale(),
+        assumptions: assumptions
+      }),
+      headers: { "Content-Type": "application/json" }
+    };
+  }
+
   function analyze() {
+    if (analyzeInFlight) {
+      return;
+    }
     var box = document.getElementById("paste-box");
     if (!box) {
       return;
     }
     var pasteText = box.value;
-    if (!pasteText || pasteText.trim() === "") {
+    var file = selectedFile();
+    if ((!pasteText || pasteText.trim() === "") && !file) {
       statusMessage({
-        ko: "먼저 계약 텍스트를 입력하세요.",
-        en: "Enter contract text first."
+        ko: "먼저 계약 텍스트를 입력하거나 파일 하나를 선택하세요.",
+        en: "Enter contract text or choose one file first."
+      });
+      return;
+    }
+    if (pasteText && pasteText.trim() !== "" && file) {
+      statusMessage({
+        ko: "붙여넣기와 파일 중 하나만 선택하세요.",
+        en: "Use either paste text or one file, not both."
       });
       return;
     }
     statusMessage({ ko: "로컬에서 분석 중입니다.", en: "Analyzing locally." });
-    var body = {
-      paste_text: pasteText,
-      locale: activeLocale(),
-      assumptions: collectAssumptions()
-    };
+    setAnalyzeBusy(true);
+    var request = buildAnalyzeRequest(pasteText, file);
     fetch("/api/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      headers: request.headers,
+      body: request.body
     })
       .then(function (response) {
         return response.json().then(function (data) {
@@ -1737,7 +1829,13 @@ _APP_JS = r"""(function () {
       })
       .then(function (result) {
         if (!result.ok) {
-          var message = result.data && result.data.error ? result.data.error : "analysis failed";
+          var message =
+            result.data && result.data.error
+              ? result.data.error
+              : "analysis failed";
+          if (activeLocale() === "en" && result.data && result.data.error_en) {
+            message = result.data.error_en;
+          }
           statusMessage({ ko: "오류: " + message, en: "Error: " + message });
           return;
         }
@@ -1749,6 +1847,9 @@ _APP_JS = r"""(function () {
           ko: "로컬 분석 요청에 실패했습니다.",
           en: "The local analysis request failed."
         });
+      })
+      .finally(function () {
+        setAnalyzeBusy(false);
       });
   }
 
@@ -1756,6 +1857,10 @@ _APP_JS = r"""(function () {
     var box = document.getElementById("paste-box");
     if (box) {
       box.value = "";
+    }
+    var input = document.getElementById("contract-file");
+    if (input) {
+      input.value = "";
     }
     var container = document.getElementById("result");
     if (container) {
@@ -1781,10 +1886,6 @@ _APP_JS = r"""(function () {
     var analyzeButton = document.getElementById("analyze-btn");
     if (analyzeButton) {
       analyzeButton.addEventListener("click", analyze);
-    }
-    var clearButton = document.getElementById("clear-btn");
-    if (clearButton) {
-      clearButton.addEventListener("click", clearAll);
     }
     setLocale(readStoredLocale() || activeLocale());
   }
