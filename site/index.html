@@ -96,9 +96,9 @@
       <div class="run">
         <p class="run-title" data-en="Run it locally" data-ko="로컬에서 실행">Run it locally</p>
         <pre><code>git clone https://github.com/seonukkim/fink
-cd fink &amp;&amp; uv sync
-PYTHONPATH=src python3 -m fink.web.app
-# open http://127.0.0.1:8000  (loopback only)</code></pre>
+cd fink
+PYTHONPATH=src uv run --with fastapi --with uvicorn python -m fink.web.app
+# open http://127.0.0.1:8000  (loopback only, KO/EN, responsive)</code></pre>
         <p class="run-note" data-en="Responsive: the layout reflows for phone and desktop widths; the page sets a mobile viewport and uses width breakpoints. Language can be switched in-app (KO / EN)." data-ko="반응형: 레이아웃이 휴대폰과 데스크톱 너비에 맞게 재배치됩니다. 모바일 뷰포트와 너비 분기점을 사용합니다. 앱 내에서 언어 전환(한국어 / 영어) 가능.">Responsive across phone and desktop; language switch in-app (KO / EN).</p>
       </div>
     </section>
