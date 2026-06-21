@@ -7,6 +7,13 @@ import json
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
+from fink.web.ingest_ui import (
+    PAGE_OPERATIONS,
+    PDF_LOCAL_NOTICE,
+    input_mode_controls,
+    responsive_ingest_layouts,
+)
+
 DEFAULT_LOOPBACK_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
 
@@ -99,7 +106,8 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
 
     bind = settings or resolve_bind_settings()
     lan_warning = (
-        f'<p class="banner banner-warning" role="status">{html.escape(bind.trusted_lan_warning)}</p>'
+        '<p class="banner banner-warning" role="status">'
+        f"{html.escape(bind.trusted_lan_warning)}</p>"
         if bind.lan_enabled
         else ""
     )
@@ -107,6 +115,13 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
         f"<li>{html.escape(item)}</li>"
         for item in (PRIVACY_BANNER, NOT_LEGAL_ADVICE_BANNER, *DISCLOSURE_ITEMS)
     )
+    mode_tiles = "\n".join(
+        _render_ingest_mode_control(control) for control in input_mode_controls()
+    )
+    layout_support = "\n".join(
+        _render_layout_support(layout) for layout in responsive_ingest_layouts()
+    )
+    page_ops = " ".join(PAGE_OPERATIONS)
     return f"""<!doctype html>
 <html lang="ko" data-default-locale="ko" data-local-only="true">
 <head>
@@ -142,27 +157,74 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
         <p class="eyebrow">Local input</p>
         <h2 id="input-heading">검토할 계약 자료</h2>
       </div>
-      <div class="upload-grid" aria-label="Input modes">
-        <label class="upload-tile">
-          <span>Camera</span>
-          <input type="file" accept="image/*" capture="environment" aria-label="Capture pages">
-        </label>
-        <label class="upload-tile">
-          <span>Image</span>
-          <input type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" aria-label="Choose image">
-        </label>
-        <label class="upload-tile">
-          <span>PDF</span>
-          <input type="file" accept="application/pdf" aria-label="Choose PDF">
-        </label>
-      </div>
+      <form class="ingest-form" action="/local/ingest" method="post"
+        enctype="multipart/form-data" data-local-only="true">
+        <div class="upload-grid" aria-label="Input modes"
+          data-ui-ingest-modes="camera image pdf paste">
+          {mode_tiles}
+        </div>
+        <p class="pdf-local-notice" data-pdf-local-notice="true">
+          {html.escape(PDF_LOCAL_NOTICE)}
+        </p>
+        <div class="local-error" data-pdf-error-region="true" role="alert">
+          Rejected PDFs show a local error here for unsupported, corrupted,
+          encrypted, or oversized files. Nothing is transmitted.
+        </div>
+        <p class="sr-only" data-layout-support="true">
+          {layout_support}
+        </p>
+      </form>
       <label class="paste-label" for="paste-box">Paste clause text</label>
-      <textarea id="paste-box" rows="8" spellcheck="false"></textarea>
+      <textarea id="paste-box" name="paste_text" rows="8" spellcheck="false"
+        data-ingest-mode="paste"></textarea>
       <div class="action-row">
         <button type="button">Analyze locally</button>
         <button type="button" class="secondary">Clear now</button>
       </div>
-      <p class="hint">PDFs, images, OCR text, and paste text remain ephemeral local session data.</p>
+      <p class="hint">
+        PDFs, images, OCR text, and paste text remain ephemeral local session data.
+      </p>
+      <section
+        class="page-editor"
+        aria-labelledby="page-editor-heading"
+        data-page-ops="{html.escape(page_ops)}"
+        data-mobile-page-ops="enabled"
+        data-desktop-page-ops="enabled"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">OCR preview</p>
+          <h2 id="page-editor-heading">Pages before analysis</h2>
+        </div>
+        <div class="thumbnail-strip"
+          aria-label="Page preview reorder rotate delete controls">
+          <article class="page-card" data-page-index="0" data-text-source="text_layer">
+            <header>
+              <span>Page 1</span>
+              <span class="source-badge">text layer</span>
+            </header>
+            <div class="page-thumb" aria-label="Page preview thumbnail">OCR preview</div>
+            <div class="page-actions" role="group" aria-label="Page operations">
+              <button type="button" data-page-action="move-up"
+                aria-label="Move page earlier">Up</button>
+              <button type="button" data-page-action="move-down"
+                aria-label="Move page later">Down</button>
+              <button type="button" data-page-action="rotate"
+                aria-label="Rotate page">Rotate</button>
+              <button type="button" class="secondary danger"
+                data-page-action="delete" aria-label="Delete page">Delete</button>
+            </div>
+            <label class="ocr-label" for="ocr-correction-0">Correct OCR text</label>
+            <textarea id="ocr-correction-0" rows="3" spellcheck="false"
+              data-ocr-correction="true"></textarea>
+          </article>
+        </div>
+        <div class="action-row page-toolbar">
+          <button type="button" class="secondary"
+            data-page-action="low-confidence-filter">Low confidence</button>
+          <button type="button" class="secondary"
+            data-page-action="apply-corrections">Apply corrections</button>
+        </div>
+      </section>
     </section>
 
     <section class="report-pane" aria-labelledby="report-heading">
@@ -204,6 +266,58 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
 </body>
 </html>
 """
+
+
+def _render_ingest_mode_control(control: Any) -> str:
+    attrs = {
+        "id": f"ingest-{control.mode}",
+        "name": f"ingest_{control.mode}",
+        "data-ingest-mode": control.mode,
+        "data-mobile-enabled": str(control.mobile_enabled).lower(),
+        "data-desktop-enabled": str(control.desktop_enabled).lower(),
+        "data-reaches-report": str(control.reaches_report).lower(),
+        "aria-label": control.aria_label,
+    }
+    if control.input_kind == "file":
+        attrs.update(
+            {
+                "type": "file",
+                "accept": control.accept,
+            }
+        )
+        if control.capture:
+            attrs["capture"] = control.capture
+        control_html = f"<input {_html_attrs(attrs)}>"
+    else:
+        control_html = (
+            f'<a class="tile-link" href="#paste-box" '
+            f'data-ingest-mode="{html.escape(control.mode)}">Open paste field</a>'
+        )
+    return (
+        f'<label class="upload-tile" data-ingest-mode="{html.escape(control.mode)}" '
+        f'data-input-kind="{html.escape(control.input_kind)}">'
+        f"<span>{html.escape(control.label)}</span>"
+        f"<small>{html.escape(control.aria_label)}</small>"
+        f"{control_html}"
+        "</label>"
+    )
+
+
+def _render_layout_support(layout: Any) -> str:
+    return (
+        f'<span data-layout="{html.escape(layout.layout_id)}" '
+        f'data-runtime-profile="{html.escape(layout.runtime_profile)}" '
+        f'data-input-modes="{html.escape(" ".join(layout.input_modes))}" '
+        f'data-page-ops="{html.escape(" ".join(layout.page_operations))}" '
+        f'data-pdf-upload-enabled="{str(layout.pdf_upload_enabled).lower()}" '
+        f'data-min-touch-target-px="{layout.min_touch_target_px}"></span>'
+    )
+
+
+def _html_attrs(attrs: dict[str, str]) -> str:
+    return " ".join(
+        f'{key}="{html.escape(value, quote=True)}"' for key, value in attrs.items()
+    )
 
 
 def create_app(settings: WebBindSettings | None = None) -> Any:
@@ -369,6 +483,17 @@ body {
   z-index: 3;
 }
 .skip-link:focus { top: 1rem; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .topbar, footer {
   display: flex;
   gap: 1rem;
@@ -452,6 +577,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
   margin-bottom: 1rem;
 }
+.ingest-form { margin-bottom: 1rem; }
 .upload-tile {
   display: grid;
   gap: .5rem;
@@ -461,6 +587,32 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   border: 1px dashed var(--accent);
   border-radius: 8px;
   background: #f9fcfd;
+}
+.upload-tile span { font-weight: 800; }
+.upload-tile small {
+  color: var(--muted);
+  line-height: 1.3;
+}
+.upload-tile input {
+  width: 100%;
+  min-width: 0;
+}
+.tile-link {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+.pdf-local-notice, .local-error {
+  margin: 0 0 .75rem;
+  padding: .7rem .85rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+.pdf-local-notice { border-left: 4px solid var(--accent); }
+.local-error {
+  color: var(--warn-ink);
+  border-left: 4px solid #b7791f;
+  background: var(--warn-bg);
 }
 .paste-label {
   display: block;
@@ -476,6 +628,61 @@ textarea {
   padding: .75rem;
 }
 .action-row { margin-top: 1rem; }
+.page-editor {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.thumbnail-strip {
+  display: grid;
+  gap: .75rem;
+}
+.page-card {
+  display: grid;
+  gap: .75rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .85rem;
+  background: #fbfcfe;
+}
+.page-card header, .page-actions {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.page-card header { justify-content: space-between; }
+.source-badge {
+  padding: .2rem .45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  background: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+}
+.page-thumb {
+  display: grid;
+  place-items: center;
+  min-height: 8rem;
+  aspect-ratio: 3 / 4;
+  border: 1px dashed var(--line);
+  background: #fff;
+  color: var(--muted);
+}
+.page-actions button { flex: 1 1 6rem; }
+.danger {
+  border-color: #8a2c0d;
+  color: #8a2c0d;
+}
+.ocr-label {
+  font-weight: 700;
+}
+.page-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
 .dimension-grid {
   display: grid;
   gap: .75rem;
@@ -486,6 +693,9 @@ article {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 1rem;
+}
+.dimension-grid article {
+  background: var(--panel);
 }
 output {
   display: block;
@@ -511,14 +721,20 @@ footer {
   .disclosure-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .thumbnail-strip {
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
 }
 @media (max-width: 640px) {
   .topbar, footer {
     align-items: stretch;
     flex-direction: column;
   }
-  .locale-toggle button, .action-row button {
+  .locale-toggle button, .action-row button, .page-actions button {
     flex: 1 1 10rem;
+  }
+  .page-thumb {
+    min-height: 10rem;
   }
 }
 """
