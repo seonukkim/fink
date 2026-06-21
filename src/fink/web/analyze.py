@@ -633,6 +633,12 @@ def analysis_result_to_payload(result: LocalAnalysisResult, locale: UILocale) ->
     the KO/EN toggle without another request.
     """
 
+    if isinstance(locale, str):
+        try:
+            locale = UILocale(locale.strip().lower())
+        except ValueError:
+            locale = UILocale.KO
+
     exposures = [_exposure_to_payload(exposure) for exposure in result.exposures]
     time_exposure = result.time_result.time_exposure
     confidence = result.scoring.confidence

@@ -516,9 +516,12 @@ def _assumptions_from_payload(value: Any) -> EditableAssumptions | None:
 
     allowed = {item.name for item in dataclass_fields(EditableAssumptions)}
     int_fields = {"unpaid_revision_units", "exclusivity_duration_months", "renewal_duration_months"}
+    # Non-scalar assumption fields (e.g. secondary_rights is a tuple of rows)
+    # cannot be built from a flat numeric input and would crash the FIM modules.
+    skip_fields = {"secondary_rights"}
     kwargs: dict[str, Any] = {}
     for key, raw in value.items():
-        if key not in allowed or raw is None or raw == "":
+        if key not in allowed or key in skip_fields or raw is None or raw == "":
             continue
         try:
             if key in int_fields:
@@ -551,6 +554,35 @@ def _local_analysis_client_errors() -> tuple[type[BaseException], ...]:
     from fink.schemas import SchemaValidationError
 
     return (IngestValidationError, SchemaValidationError, FinanceImpactError)
+
+
+def _local_analysis_setup_errors() -> tuple[type[BaseException], ...]:
+    """Engine setup/index failures (missing or corrupt local config/corpus).
+
+    These are not user-input faults; the demo returns a friendly 503 with install
+    guidance rather than leaking a 500 traceback.
+    """
+
+    from fink.retrieval.engine import RetrievalCorpusError
+    from fink.scoring.engine import ScoringAggregationError
+    from fink.signals.engine import SignalDetectionError
+
+    return (SignalDetectionError, ScoringAggregationError, RetrievalCorpusError)
+
+
+def _structured_local_error(
+    *, code: str, message_ko: str, message_en: str, action_ko: str, action_en: str
+) -> dict[str, Any]:
+    """A stable, structured, bilingual error body (no traceback, no leaked input)."""
+
+    return {
+        "local_only": True,
+        "error_code": code,
+        "error": message_ko,
+        "error_en": message_en,
+        "next_action": action_ko,
+        "next_action_en": action_en,
+    }
 
 
 def app_js() -> str:
@@ -620,8 +652,36 @@ def _create_fastapi_app(settings: WebBindSettings) -> Any:
             payload = _analysis_payload_from_request(body if isinstance(body, dict) else {})
         except _local_analysis_client_errors() as exc:
             return JSONResponse(
-                {"error": str(exc), "local_only": True},
+                _structured_local_error(
+                    code="input_invalid",
+                    message_ko="입력을 분석할 수 없습니다.",
+                    message_en=f"Could not analyze the input: {exc}",
+                    action_ko="붙여넣은 계약 내용을 확인하고 다시 시도하세요.",
+                    action_en="Check the pasted contract text and try again.",
+                ),
                 status_code=400,
+            )
+        except _local_analysis_setup_errors() as exc:
+            return JSONResponse(
+                _structured_local_error(
+                    code="setup_incomplete",
+                    message_ko="로컬 설정 또는 공식 출처 색인을 불러오지 못했습니다.",
+                    message_en=f"A local config or official-source index could not be loaded: {exc}",
+                    action_ko="설치를 확인하거나 저장소를 다시 클론한 뒤 다시 시도하세요.",
+                    action_en="Check your install or re-clone the repository, then retry.",
+                ),
+                status_code=503,
+            )
+        except Exception:  # never leak a traceback or contract text to the client
+            return JSONResponse(
+                _structured_local_error(
+                    code="internal_local_error",
+                    message_ko="기기 내 분석 중 예기치 않은 오류가 발생했습니다.",
+                    message_en="An unexpected error occurred during local analysis.",
+                    action_ko="입력을 줄여 다시 시도하거나 설치 상태를 확인하세요.",
+                    action_en="Try a smaller input or check your install.",
+                ),
+                status_code=500,
             )
         return JSONResponse(payload)
 
@@ -709,7 +769,31 @@ class LocalASGIApp:
         try:
             payload = _analysis_payload_from_request(parsed)
         except _local_analysis_client_errors() as exc:
-            await _send_json(send, 400, {"error": str(exc), "local_only": True})
+            await _send_json(send, 400, _structured_local_error(
+                code="input_invalid",
+                message_ko="입력을 분석할 수 없습니다.",
+                message_en=f"Could not analyze the input: {exc}",
+                action_ko="붙여넣은 계약 내용을 확인하고 다시 시도하세요.",
+                action_en="Check the pasted contract text and try again.",
+            ))
+            return
+        except _local_analysis_setup_errors() as exc:
+            await _send_json(send, 503, _structured_local_error(
+                code="setup_incomplete",
+                message_ko="로컬 설정 또는 공식 출처 색인을 불러오지 못했습니다.",
+                message_en=f"A local config or official-source index could not be loaded: {exc}",
+                action_ko="설치를 확인하거나 저장소를 다시 클론한 뒤 다시 시도하세요.",
+                action_en="Check your install or re-clone the repository, then retry.",
+            ))
+            return
+        except Exception:  # never leak a traceback or contract text to the client
+            await _send_json(send, 500, _structured_local_error(
+                code="internal_local_error",
+                message_ko="기기 내 분석 중 예기치 않은 오류가 발생했습니다.",
+                message_en="An unexpected error occurred during local analysis.",
+                action_ko="입력을 줄여 다시 시도하거나 설치 상태를 확인하세요.",
+                action_en="Try a smaller input or check your install.",
+            ))
             return
         await _send_json(send, 200, payload)
 

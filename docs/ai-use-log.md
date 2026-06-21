@@ -41,3 +41,18 @@
 - Privacy: no `.env`, Hugging Face token value, private books, contracts, model
   weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
   committed.
+
+## 2026-06-22 — P0 web robustness (structured errors, secondary_rights, locale)
+
+- Tooling: Claude Code (Opus 4.8), implementing directly under the loop's
+  allowed-path / test / no-push discipline (recursive loop invocation deferred).
+- Scope: `src/fink/web/app.py`, `src/fink/web/analyze.py`, and a new
+  `tests/web/test_analyze_robustness.py`. Known engine/setup failures
+  (`SignalDetectionError`, `ScoringAggregationError`, `RetrievalCorpusError`) and
+  malformed `secondary_rights` input now return a friendly, structured, bilingual
+  `{error_code, error(ko), error_en, next_action}` body (400 input, 503 setup)
+  instead of a leaked 500 traceback; the payload serializer tolerates a string
+  locale.
+- Verification: 4 new regressions + 29 web tests pass; `run_gates.sh` → GATES_OK.
+- Privacy: no `.env`, token, weights, private corpora, PDFs/ZIPs, `.fink`
+  artifacts, or raw user content were read or committed.
