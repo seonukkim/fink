@@ -1,0 +1,118 @@
+schema_version: "1.0"
+config_id: risk_taxonomy
+source:
+  path: data/corpus/stage-1/10_MASTER_RISK_TAXONOMY.yaml
+  source_schema_version: "1.0"
+  upstream_record: 10_MASTER_RISK_TAXONOMY
+primary_language: ko
+english_layer: alias
+scoring_frame: Contractual Financial Review Priority
+score_eligibility_policy:
+  authority_supported_tiers:
+    - A0
+    - A1
+    - A2
+  zero_score_tiers:
+    - B
+    - C
+    - D0
+    - M1
+    - M2
+    - M3
+    - R0
+  financial_category_rule: >-
+    F1-F9 categories are eligible to contribute to the review-priority score only
+    when the specific signal is grounded by at least one A0, A1, or A2 evidence
+    record. B/C practice references and method/course sources contribute 0.
+  crosscutting_category_rule: >-
+    X1-X5 categories are never score-eligible, regardless of source authority.
+financial_categories:
+  - id: F1_SETTLEMENT_AND_AUDIT
+    name_ko: 정산 투명성과 감사권
+    name_en: Settlement transparency and audit
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F2_REVENUE_AND_DEDUCTIONS
+    name_ko: 매출 기준과 공제비용
+    name_en: Revenue base and deductions
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F3_PAYMENT_AND_CASHFLOW
+    name_ko: 지급 시기와 현금흐름
+    name_en: Payment timing and cash flow
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F4_MG_AND_RECOUPMENT
+    name_ko: 미니멈 개런티와 선급금 회수
+    name_en: Minimum guarantee and recoupment
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F5_IP_MONETIZATION
+    name_ko: 저작권과 2차적저작물 수익화
+    name_en: IP and secondary-rights monetization
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F6_TERM_EXCLUSIVITY_AND_OPPORTUNITY_COST
+    name_ko: 기간·독점·기회비용
+    name_en: Term, exclusivity, and opportunity cost
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F7_TERMINATION_LIABILITY_AND_PENALTIES
+    name_ko: 해지·손해배상·위약금
+    name_en: Termination, liability, and penalties
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F8_SCOPE_CREEP_AND_PRODUCTION_COST
+    name_ko: 업무범위 확대와 제작비
+    name_en: Scope creep and production cost
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+  - id: F9_E_CONTRACT_PRIVACY_AND_EVIDENCE
+    name_ko: 전자계약·개인정보·증거보존
+    name_en: E-contract, privacy, and evidentiary integrity
+    score_eligible: true
+    eligibility_rule: A0_A2_GROUNDED_ONLY
+    never_score_eligible: false
+crosscutting_categories:
+  - id: X1_EVIDENCE_AND_CURRENCY_GOVERNANCE
+    name_ko: 근거·현재성 거버넌스
+    name_en: Evidence and currency governance
+    score_eligible: false
+    eligibility_rule: NEVER_SCORE_ELIGIBLE
+    never_score_eligible: true
+  - id: X2_DISPUTE_RESOLUTION_AND_CASH_RECOVERY
+    name_ko: 분쟁해결과 현금 회수
+    name_en: Dispute resolution and cash recovery
+    score_eligible: false
+    eligibility_rule: NEVER_SCORE_ELIGIBLE
+    never_score_eligible: true
+  - id: X3_RESPONSIBLE_AI_AND_EXPLAINABILITY
+    name_ko: 책임 있는 AI와 설명가능성
+    name_en: Responsible AI and explainability
+    score_eligible: false
+    eligibility_rule: NEVER_SCORE_ELIGIBLE
+    never_score_eligible: true
+  - id: X4_LABOR_STATUS_AND_CREATOR_SAFETY
+    name_ko: 근로자성과 창작자 안전
+    name_en: Labor status and creator safety
+    score_eligible: false
+    eligibility_rule: NEVER_SCORE_ELIGIBLE
+    never_score_eligible: true
+  - id: X5_MORAL_AND_NON_CONTRACT_HARMS
+    name_ko: 비계약적 권리침해
+    name_en: Non-contract rights harms
+    score_eligible: false
+    eligibility_rule: NEVER_SCORE_ELIGIBLE
+    never_score_eligible: true
+counts:
+  financial_categories: 9
+  crosscutting_categories: 5
+  total: 14
