@@ -6,6 +6,7 @@ from fink.ingest.session import (
     IngestValidationError,
     IngestedDocument,
     build_ingest_report,
+    correction_review_minutes,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "IngestValidationError",
     "IngestedDocument",
     "build_ingest_report",
+    "correction_review_minutes",
 ]

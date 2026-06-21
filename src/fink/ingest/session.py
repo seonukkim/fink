@@ -7,6 +7,7 @@ import re
 import shutil
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Sequence
 from uuid import uuid4
@@ -18,6 +19,8 @@ from fink.schemas import (
     ConfidenceBreakdown,
     DocumentAssessment,
     ExportFormat,
+    ExtractedFinancialTerms,
+    HumanCorrection,
     InputMode,
     Lang,
     MimeType,
@@ -25,9 +28,11 @@ from fink.schemas import (
     OCRSpan,
     PathwayLabel,
     RuntimeProfile,
+    TargetType,
     TextSource,
     TimeExposure,
     UILocale,
+    Unit,
     UploadedDocument,
     ValidationStatus,
 )
@@ -37,8 +42,13 @@ PDF_TEXT_TJ_RE = re.compile(rb"(\((?:\\.|[^\\)])*\))\s*Tj")
 PDF_TEXT_TJ_ARRAY_RE = re.compile(rb"\[(.*?)\]\s*TJ", re.DOTALL)
 PDF_PAGE_RE = re.compile(rb"/Type\s*/Page\b")
 PDF_COUNT_RE = re.compile(rb"/Count\s+(\d+)")
+PERCENT_RE = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*%")
+MONEY_RE = re.compile(r"(?P<value>\d{1,3}(?:,\d{3})+|\d+)\s*(?:원|KRW|krw)")
+DAY_RE = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*(?:days?|일)(?=\s|$|[.,;:)\\]])")
+MONTH_RE = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*(?:months?|개월)(?=\s|$|[.,;:)\\]])")
 SUPPORTED_IMAGE_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".heic", ".heif", ".webp"})
 SUPPORTED_HEIF_BRANDS = (b"heic", b"heix", b"hevc", b"hevx", b"mif1", b"msf1")
+CORRECTION_REVIEW_MINUTES = 1.5
 
 
 class IngestValidationError(ValueError):
@@ -68,9 +78,16 @@ class IngestedDocument:
     document: UploadedDocument | None = None
     stored_path: Path | None = None
     derived_paths: tuple[Path, ...] = ()
+    corrections: tuple[HumanCorrection, ...] = ()
+    extracted_terms: tuple[ExtractedFinancialTerms, ...] = ()
+    extraction_revision: int = 0
 
     def build_report(self) -> AnalysisReport:
-        return build_ingest_report(self.request)
+        return build_ingest_report(
+            self.request,
+            corrections=self.corrections,
+            extracted_terms=self.extracted_terms,
+        )
 
     def to_log_record(self) -> dict[str, Any]:
         document = self.document
@@ -82,6 +99,9 @@ class IngestedDocument:
                 document.validation_status.value if document is not None else "accepted"
             ),
             "derived_file_count": len(self.derived_paths),
+            "correction_count": len(self.corrections),
+            "extracted_term_count": len(self.extracted_terms),
+            "extraction_revision": self.extraction_revision,
         }
 
 
@@ -306,6 +326,65 @@ class EphemeralIngestSession:
             derived_paths=derived_paths,
         )
 
+    def correct_ocr_span(
+        self,
+        ingested: IngestedDocument,
+        span_id: str,
+        corrected_text: str,
+        *,
+        counts_for_review_estimate: bool = True,
+    ) -> IngestedDocument:
+        """Apply an inline OCR correction and refresh extraction over edited text."""
+
+        self._ensure_open()
+        if not isinstance(corrected_text, str):
+            raise IngestValidationError("corrected_text must be str")
+        if not span_id:
+            raise IngestValidationError("span_id must be nonblank")
+        document, pages = _require_pages(ingested)
+
+        found = False
+        before = ""
+        updated_pages: list[OCRPage] = []
+        for page in pages:
+            page_touched = False
+            updated_spans: list[OCRSpan] = []
+            for span in page.spans:
+                if span.span_id == span_id:
+                    found = True
+                    page_touched = True
+                    before = _span_text(span)
+                    updated_spans.append(replace(span, corrected_text=corrected_text))
+                else:
+                    updated_spans.append(span)
+            updated_pages.append(
+                replace(page, spans=tuple(updated_spans), is_user_corrected=True)
+                if page_touched
+                else page
+            )
+
+        if not found:
+            raise IngestValidationError("span_id not found")
+
+        correction = HumanCorrection(
+            correction_id=f"correction-{uuid4().hex}",
+            target_type=TargetType.OCR_SPAN,
+            target_id=span_id,
+            before=before,
+            after=corrected_text,
+            created_at=self._now(),
+            counts_for_review_estimate=counts_for_review_estimate,
+        )
+        refreshed = self._replace_document(
+            ingested,
+            replace(document, pages=tuple(updated_pages)),
+        )
+        return replace(
+            refreshed,
+            corrections=(*ingested.corrections, correction),
+            extraction_revision=ingested.extraction_revision + 1,
+        )
+
     def clear(self) -> None:
         if self._closed:
             return
@@ -453,6 +532,7 @@ class EphemeralIngestSession:
             document=document,
             stored_path=stored_path,
             derived_paths=derived_paths,
+            extracted_terms=_extract_financial_terms_from_pages(document.pages or ()),
         )
 
     def _replace_document(
@@ -468,6 +548,7 @@ class EphemeralIngestSession:
             request=request,
             document=document,
             derived_paths=ingested.derived_paths if derived_paths is None else derived_paths,
+            extracted_terms=_extract_financial_terms_from_pages(document.pages or ()),
         )
 
     def _ensure_open(self) -> None:
@@ -475,9 +556,24 @@ class EphemeralIngestSession:
             raise IngestValidationError("ingest session is closed")
 
 
-def build_ingest_report(request: AnalysisRequest) -> AnalysisReport:
+def build_ingest_report(
+    request: AnalysisRequest,
+    *,
+    corrections: Sequence[HumanCorrection] = (),
+    extracted_terms: Sequence[ExtractedFinancialTerms] = (),
+) -> AnalysisReport:
     document_id = request.documents[0].document_id if request.documents else request.request_id
     ocr_confidence = _average_ocr_confidence(request)
+    review_minutes = correction_review_minutes(corrections)
+    drivers = ["ingestion-only report; downstream review not run"]
+    if corrections:
+        drivers.append(
+            f"{len(corrections)} OCR correction(s) included in the review-time heuristic"
+        )
+    if corrections and extracted_terms:
+        drivers.append("corrected OCR text refreshed preview financial-term extraction")
+    elif extracted_terms:
+        drivers.append("OCR text populated preview financial-term extraction")
     assessment = DocumentAssessment(
         document_id=document_id,
         review_priority_score=0,
@@ -486,7 +582,7 @@ def build_ingest_report(request: AnalysisRequest) -> AnalysisReport:
         monetary_exposures=(),
         time_exposure=TimeExposure(
             measured_analysis_runtime_seconds=0.0,
-            estimated_human_review_minutes=0.0,
+            estimated_human_review_minutes=review_minutes,
             pathway_label=PathwayLabel.CLARIFICATION_LIKELY_SUFFICIENT,
         ),
         confidence=ConfidenceBreakdown(
@@ -494,7 +590,7 @@ def build_ingest_report(request: AnalysisRequest) -> AnalysisReport:
             evidence_confidence=0.0,
             data_completeness=0.0,
             overall_confidence=0.0,
-            drivers=("ingestion-only report; downstream review not run",),
+            drivers=tuple(drivers),
         ),
         scoring_config_version="ingest-only-v1",
     )
@@ -511,11 +607,88 @@ def build_ingest_report(request: AnalysisRequest) -> AnalysisReport:
     )
 
 
+def correction_review_minutes(corrections: Sequence[HumanCorrection]) -> float:
+    correction_count = sum(1 for correction in corrections if correction.counts_for_review_estimate)
+    return correction_count * CORRECTION_REVIEW_MINUTES
+
+
 def _require_pages(ingested: IngestedDocument) -> tuple[UploadedDocument, tuple[OCRPage, ...]]:
     document = ingested.document
     if document is None or document.pages is None:
         raise IngestValidationError("ingested item has no editable pages")
     return document, tuple(document.pages)
+
+
+def _extract_financial_terms_from_pages(
+    pages: Sequence[OCRPage],
+) -> tuple[ExtractedFinancialTerms, ...]:
+    terms: list[ExtractedFinancialTerms] = []
+    for page in pages:
+        for span in page.spans:
+            terms.extend(_extract_financial_terms_from_span(span))
+    return tuple(terms)
+
+
+def _extract_financial_terms_from_span(span: OCRSpan) -> tuple[ExtractedFinancialTerms, ...]:
+    text = _span_text(span)
+    terms: list[ExtractedFinancialTerms] = []
+    specs: tuple[
+        tuple[re.Pattern[str], str, Unit, Callable[[str], Decimal | float]],
+        ...,
+    ] = (
+        (PERCENT_RE, "REVENUE_SHARE_RATE", Unit.FRAC, _percent_value),
+        (MONEY_RE, "GROSS_SALES", Unit.KRW, _money_value),
+        (DAY_RE, "PAYMENT_DUE_DAYS", Unit.DAYS, _number_value),
+        (MONTH_RE, "CONTRACT_DURATION_MONTHS", Unit.MONTHS, _number_value),
+    )
+    for pattern, feature_id, unit, normalizer in specs:
+        for match_index, match in enumerate(pattern.finditer(text)):
+            raw_value = normalizer(match.group("value"))
+            # A preview heuristic must never assert an out-of-domain normalized
+            # value: a percentage above 100% is not a [0,1] fraction. Keep the
+            # raw text but flag the term opaque so a >100% figure (e.g. a penalty
+            # multiplier) cannot raise SchemaValidationError and crash ingest.
+            is_open_ended = unit is Unit.FRAC and not (Decimal("0") <= raw_value <= Decimal("1"))
+            value_norm: Decimal | float | None = None if is_open_ended else raw_value
+            terms.append(
+                ExtractedFinancialTerms(
+                    term_id=_term_id(span.span_id, feature_id, match_index),
+                    clause_id=f"clause-preview-{_slug_id(span.span_id)}",
+                    feature_id=feature_id,
+                    value_raw=match.group(0),
+                    unit=unit,
+                    is_open_ended=is_open_ended,
+                    extraction_confidence=span.confidence,
+                    source_span_ids=(span.span_id,),
+                    value_norm=value_norm,
+                )
+            )
+    return tuple(terms)
+
+
+def _span_text(span: OCRSpan) -> str:
+    return span.corrected_text if span.corrected_text is not None else span.text
+
+
+def _term_id(span_id: str, feature_id: str, match_index: int) -> str:
+    return f"term-{_slug_id(span_id)}-{feature_id.lower()}-{match_index}"
+
+
+def _slug_id(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", value).strip("-").lower()
+    return slug or "span"
+
+
+def _percent_value(value: str) -> Decimal:
+    return Decimal(value) / Decimal("100")
+
+
+def _money_value(value: str) -> Decimal:
+    return Decimal(value.replace(",", ""))
+
+
+def _number_value(value: str) -> float:
+    return float(value)
 
 
 def _average_ocr_confidence(request: AnalysisRequest) -> float:
