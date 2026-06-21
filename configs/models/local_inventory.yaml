@@ -1,0 +1,64 @@
+schema_version: 1
+task_id: FINK-MR-01
+captured_at: "2026-06-21T21:05:00+09:00"
+base_commit: "5acba4e5d12e34a147de80267e47b2d6eff0d4af"
+
+hardware:
+  cpu:
+    architecture: x86_64
+    vendor_id: AuthenticAMD
+    model_name: AMD Ryzen 9 9950X 16-Core Processor
+    logical_cpus: 32
+    physical_cores: 16
+    sockets: 1
+    threads_per_core: 2
+    virtualization: AMD-V
+    hypervisor_vendor: Microsoft
+    acceleration_features:
+      - avx2
+      - avx512f
+      - avx512_vnni
+      - avx512_bf16
+  memory:
+    total: 61Gi
+    available_at_capture: 59Gi
+    swap_total: 16Gi
+  disk:
+    repo_and_tmp_available_at_capture: 299Gi
+  gpu:
+    access_status: blocked
+    usable_for_current_runs: false
+    nvidia_smi_probe: "present; NVML failed with GPU access blocked by the operating system"
+    cuda_toolkit: "nvcc release 12.0, V12.0.140"
+    pci_probe: "lspci unavailable"
+    device_nodes_probe: "no /dev/dxg or /dev/nvidia* nodes visible"
+    runtime_assumption: "Treat this environment as CPU-only until GPU access is restored and re-inventoried."
+
+software:
+  os:
+    name: Ubuntu
+    version: "24.04.3 LTS (Noble Numbat)"
+    kernel: "Linux 6.6.114.1-microsoft-standard-WSL2 x86_64"
+    environment: WSL2
+  python:
+    implementation: CPython
+    version: "3.12.3"
+    executable: /bin/python3
+    pip: "pip 24.0 from /usr/lib/python3/dist-packages/pip"
+
+local_runtime_constraints:
+  runtime_profile: local_first_cpu_only_until_reinventoried
+  remote_runtime_api_allowed: false
+  runtime_network_dependency: "Runtime analysis must not require a remote LLM, cloud RAG, external legal search, telemetry, cloud OCR, or runtime model download."
+  model_storage: "Model weights stay under $PRIVATE_ROOT/models or the Hugging Face cache; public Git records metadata, configs, summaries, and selected profiles only."
+  token_handling: "The Hugging Face token is loaded only through scripts/model_research/run_with_hf_auth.sh and was not read for this inventory."
+  download_policy: "Automated model downloads are capped by configs/models/candidates.yaml max_download_size_gb and remain gated by the open-license floor."
+  max_download_size_gb: 20
+  offline_environment_flags:
+    HF_HUB_DISABLE_TELEMETRY: "1"
+    DO_NOT_TRACK: "1"
+    FINK_RUNTIME_REMOTE_API_ALLOWED: "false"
+    FINK_RUNTIME_OFFLINE: "true"
+    FINK_MODEL_DOWNLOAD_ALLOWED: "false"
+  privacy_boundary: "No contracts, PDFs, ZIPs, .fink artifacts, private inputs, model weights, token values, or .env contents are part of this public inventory."
+  paper_note: "Section 04 may summarize this as a WSL2 Ubuntu 24.04 local research host with Ryzen 9 9950X CPU, 61Gi memory, blocked GPU access, Python 3.12.3, and CPU-only local-first runtime constraints."
