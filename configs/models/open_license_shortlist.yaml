@@ -1,0 +1,172 @@
+schema_version: 1
+task_id: FINK-MR-04
+captured_at: "2026-06-21T21:40:52+09:00"
+base_commit: "101765b7a06d87b7bbe7428d8b5379debe0235ac"
+depends_on:
+  - FINK-MR-03
+human_gate: MODEL_LICENSES_APPROVED
+source_candidates_path: configs/models/candidates.yaml
+source_candidates_task_id: FINK-MR-02
+source_dry_run_path: configs/models/download_size_dry_runs.yaml
+source_dry_run_task_id: FINK-MR-03
+
+shortlist_policy:
+  default_floor: public_open
+  accepted_licenses:
+    - apache-2.0
+    - mit
+    - bsd-2-clause
+    - bsd-3-clause
+    - isc
+    - cc0-1.0
+    - cc-by-4.0
+  rejected_by_default:
+    - unknown
+    - missing
+    - gated
+    - custom
+    - other
+    - noncommercial
+    - research-only
+  required_metadata:
+    - license_present
+    - license_in_public_open_allowlist
+    - gated_false
+    - access_status_public_ungated
+    - private_false
+    - disabled_false
+    - exact_revision_pinned
+    - estimated_size_recorded
+  decision_rule: >
+    A model is accepted only when its recorded license is in the public_open
+    allowlist, it is public and ungated, it is not disabled or private, it has
+    a pinned exact revision, and FINK-MR-03 recorded a metadata-only size dry run.
+    Unknown, missing, gated, custom, other, noncommercial, and research-only
+    licenses remain rejected by default.
+
+summary:
+  candidate_count: 7
+  accepted_count: 7
+  rejected_count: 0
+  accepted_by_license:
+    apache-2.0: 6
+    mit: 1
+  max_download_size_gb: 20
+  all_accepted_licenses_in_public_open_allowlist: true
+  all_candidates_public_ungated: true
+  all_candidates_under_max_download_size_gb: true
+  downloaded_weight_files: false
+  tracked_weight_files_at_capture: []
+  shortlist_status: accepted_for_private_download_planning
+  runtime_boundary: >
+    This shortlist is metadata-only. It does not authorize a remote runtime API,
+    cloud RAG, telemetry, cloud OCR, or committing model weights to public Git.
+
+accepted:
+  - id: paddleocr_vl
+    group: ocr_document
+    repo_id: PaddlePaddle/PaddleOCR-VL
+    role: primary_document_ocr_layout
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    private: false
+    disabled: false
+    exact_revision: baee27eebcbf26cdeab160116679d765f13a3f27
+    estimated_disk_size_bytes: 2156679874
+    estimated_disk_size_gb: 2.156679874
+    decision: accepted_public_open
+    rationale: public ungated apache-2.0 metadata with pinned revision and size dry run.
+  - id: qwen3_vl_4b
+    group: ocr_document
+    repo_id: Qwen/Qwen3-VL-4B-Instruct
+    role: difficult_image_vlm_fallback
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    private: false
+    disabled: false
+    exact_revision: ebb281ec70b05090aa6165b016eac8ec08e71b17
+    estimated_disk_size_bytes: 8890000000
+    estimated_disk_size_gb: 8.89
+    decision: accepted_public_open
+    rationale: public ungated apache-2.0 metadata with pinned revision and size dry run.
+  - id: qwen3_embedding_0_6b
+    group: embedding
+    repo_id: Qwen/Qwen3-Embedding-0.6B
+    role: primary_ko_en_embedding
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    private: false
+    disabled: false
+    exact_revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    estimated_disk_size_bytes: 1210000000
+    estimated_disk_size_gb: 1.21
+    decision: accepted_public_open
+    rationale: public ungated apache-2.0 metadata with pinned revision and size dry run.
+  - id: bge_m3
+    group: embedding
+    repo_id: BAAI/bge-m3
+    role: multilingual_retrieval_baseline
+    license: mit
+    gated: false
+    access_status: public_ungated
+    private: false
+    disabled: false
+    exact_revision: 5617a9f61b028005a4858fdac845db406aefb181
+    estimated_disk_size_bytes: 4590000000
+    estimated_disk_size_gb: 4.59
+    decision: accepted_public_open
+    rationale: public ungated mit metadata with pinned revision and size dry run.
+    security_note: "Repository includes pickle-bearing .pt/.bin files; prefer safetensors or non-pickle assets if selected."
+  - id: qwen3_reranker_0_6b
+    group: reranker
+    repo_id: Qwen/Qwen3-Reranker-0.6B
+    role: primary_ko_en_reranker
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    private: false
+    disabled: false
+    exact_revision: e61197ed45024b0ed8a2d74b80b4d909f1255473
+    estimated_disk_size_bytes: 1210000000
+    estimated_disk_size_gb: 1.21
+    decision: accepted_public_open
+    rationale: public ungated apache-2.0 metadata with pinned revision and size dry run.
+  - id: qwen3_4b
+    group: explanation
+    repo_id: Qwen/Qwen3-4B
+    role: primary_local_explanation
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    private: false
+    disabled: false
+    exact_revision: 1cfa9a7208912126459214e8b04321603b3df60c
+    estimated_disk_size_bytes: 8060000000
+    estimated_disk_size_gb: 8.06
+    decision: accepted_public_open
+    rationale: public ungated apache-2.0 metadata with pinned revision and size dry run.
+  - id: qwen3_8b
+    group: explanation
+    repo_id: Qwen/Qwen3-8B
+    role: optional_high_quality_explanation
+    license: apache-2.0
+    gated: false
+    access_status: public_ungated
+    private: false
+    disabled: false
+    exact_revision: b968826d9c46dd6066d109eabc6255188de91218
+    estimated_disk_size_bytes: 16400000000
+    estimated_disk_size_gb: 16.4
+    decision: accepted_public_open
+    rationale: public ungated apache-2.0 metadata with pinned revision and size dry run.
+
+rejected:
+  count: 0
+  records: []
+  policy_note: >
+    No FINK-MR-02 candidate was rejected after applying the public_open floor.
+    Future candidates with unknown, missing, gated, custom, other,
+    noncommercial, or research-only licenses are rejected by default.

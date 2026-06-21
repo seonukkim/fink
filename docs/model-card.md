@@ -153,3 +153,44 @@ metadata-only download-size dry runs for seven open, public, pinned model
 candidates. The dry-run total is 42.516679874 GB decimal, the largest individual
 candidate is `qwen3_8b` at 16.4 GB, and no model weights were downloaded or
 entered Git.
+
+## Open-License Shortlist
+
+Structured shortlist: `configs/models/open_license_shortlist.yaml`.
+
+Captured for task `FINK-MR-04` at `2026-06-21T21:40:52+09:00` from
+`BASE_COMMIT=101765b7a06d87b7bbe7428d8b5379debe0235ac`.
+
+FINK-MR-04 applies the `public_open` floor to the FINK-MR-02 candidate metadata
+and FINK-MR-03 size dry runs. A model is accepted only when its recorded license
+is in the open allowlist, it is public and ungated, it is not private or
+disabled, it has a pinned exact revision, and a metadata-only size dry run is
+recorded. Unknown, missing, gated, custom, other, noncommercial, and
+research-only licenses are rejected by default.
+
+| Role | Candidate | HF repo | License | Exact revision | Size | Shortlist decision |
+|------|-----------|---------|---------|----------------|------|--------------------|
+| OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2.156679874 GB | accepted_public_open |
+| OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8.89 GB | accepted_public_open |
+| Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `apache-2.0` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | 1.21 GB | accepted_public_open |
+| Embedding baseline | `bge_m3` | `BAAI/bge-m3` | `mit` | `5617a9f61b028005a4858fdac845db406aefb181` | 4.59 GB | accepted_public_open |
+| Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `apache-2.0` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | 1.21 GB | accepted_public_open |
+| Explanation | `qwen3_4b` | `Qwen/Qwen3-4B` | `apache-2.0` | `1cfa9a7208912126459214e8b04321603b3df60c` | 8.06 GB | accepted_public_open |
+| Optional explanation | `qwen3_8b` | `Qwen/Qwen3-8B` | `apache-2.0` | `b968826d9c46dd6066d109eabc6255188de91218` | 16.4 GB | accepted_public_open |
+
+Shortlist outcome:
+
+- Accepted: 7 candidates; rejected: 0 candidates.
+- Accepted licenses: 6 `apache-2.0`, 1 `mit`.
+- Every accepted candidate is public and ungated, below the 20 GB configured
+  per-download cap, and pinned to an exact revision.
+- This is a metadata-only shortlist for private download planning. It does not
+  authorize a remote runtime API and does not place model weights in Git.
+- `BAAI/bge-m3` remains accepted under `mit`, but carries the existing security
+  note to prefer safetensors or non-pickle assets if selected.
+
+Paper note for `04_data_and_implementation.md`: report that FINK-MR-04 filtered
+seven model candidates through the `public_open` floor; all seven were accepted,
+zero were rejected, and future unknown, missing, gated, custom, other,
+noncommercial, or research-only licenses remain rejected by default. The
+shortlist is metadata-only and preserves the no-weight-in-public-Git boundary.
