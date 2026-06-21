@@ -21,6 +21,11 @@ from fink.web.view_model import (
     CreatorReviewViewModel,
     build_creator_review_view_model_from_report,
 )
+from fink.web.source_highlights import (
+    HIGHLIGHT_STATUS_MISSING,
+    MISSING_EXACT_SPAN_KO,
+    empty_source_highlights,
+)
 
 FOUR_DIMENSION_IDS = (
     "review-priority-score",
@@ -168,6 +173,7 @@ def render_creator_review_html(
       {_render_creator_dimensions(view_model)}
       {_render_creator_scenario_inputs(view_model)}
       {_render_creator_findings(view_model)}
+      {_render_source_highlight_controls(view_model.source_highlights or empty_source_highlights())}
       {_render_creator_audit_detail(view_model)}
       {render_export_controls_html(contains_raw_image=contains_raw_image)}
     </section>"""
@@ -317,7 +323,8 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
             finding.get("additional_questions") or []
         )
         items.append(
-            f"""<li class="finding-card" data-finding-id="{_escape(finding['finding_id'])}"
+            f"""<li id="{_escape(finding['finding_id'])}"
+              class="finding-card" data-finding-id="{_escape(finding['finding_id'])}"
               data-finding-rank="{_escape(finding['rank'])}">
               <div class="finding-head">
                 <span class="badge">#{_escape(finding['rank'])}</span>
@@ -331,6 +338,7 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
               <blockquote data-exact-excerpt="true">
                 {_escape(finding['source']['exact_excerpt'])}
               </blockquote>
+              {_render_finding_source_link(finding)}
               <p>{_escape(finding['why_it_matters']['ko'])}</p>
               <p>{_escape(finding['cash_flow_consequence']['ko'])}</p>
               <p><strong>확인 질문:</strong> {_escape(finding['question_to_ask']['ko'])}</p>
@@ -345,6 +353,103 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
       <h3>{_escape(copy['app.findings_heading']['ko'])}</h3>
       <ol>{''.join(items)}</ol>
     </section>"""
+
+
+def _render_finding_source_link(finding: dict[str, Any]) -> str:
+    source = finding.get("source") or {}
+    anchor_id = str(source.get("anchor_id") or "")
+    status = str(source.get("highlight_status") or HIGHLIGHT_STATUS_MISSING)
+    label = source.get("highlight_status_label") or {}
+    if not anchor_id:
+        return f'<p class="source-status" data-highlight-status="{_escape(status)}">{MISSING_EXACT_SPAN_KO}</p>'
+    link_label = (source.get("source_link_label") or {}).get("ko") or "출처 문구 보기"
+    return (
+        f'<p class="source-status" data-highlight-status="{_escape(status)}">'
+        f'<a href="#{_escape(anchor_id)}" data-source-nav="finding-to-source">'
+        f"{_escape(link_label)}</a> "
+        f"<span>{_escape(label.get('ko') or MISSING_EXACT_SPAN_KO)}</span></p>"
+    )
+
+
+def _render_source_highlight_controls(source_highlights: dict[str, Any]) -> str:
+    roles = source_highlights.get("roles") or []
+    sources = source_highlights.get("sources") or []
+    role_items = "".join(
+        f"""<li>
+          <span class="source-highlight role-swatch"
+            data-semantic-role="{_escape(role['role'])}"
+            data-highlight-cue="{_escape(role['cue'])}"></span>
+          <span>{_escape(role['label_ko'])}</span>
+        </li>"""
+        for role in roles
+    )
+    source_items = "".join(_render_source_highlight_item(source) for source in sources)
+    if not source_items:
+        source_items = (
+            '<p class="hint" data-source-highlight-empty="true">'
+            f"{MISSING_EXACT_SPAN_KO}</p>"
+        )
+    return f"""<section class="source-highlights"
+      data-source-highlights="true"
+      data-source-highlights-enabled="true"
+      aria-labelledby="source-highlights-heading">
+      <div class="source-highlight-header">
+        <h3 id="source-highlights-heading">출처 문구 하이라이트</h3>
+        <label class="source-toggle">
+          <input type="checkbox" checked data-source-highlight-toggle="true">
+          <span>하이라이트</span>
+        </label>
+      </div>
+      <ul class="source-highlight-legend" data-source-highlight-legend="true">
+        {role_items}
+      </ul>
+      <div class="source-list">{source_items}</div>
+    </section>"""
+
+
+def _render_source_highlight_item(source: dict[str, Any]) -> str:
+    status = str(source.get("status") or HIGHLIGHT_STATUS_MISSING)
+    label = source.get("status_label") or {}
+    source_id = str(source.get("anchor_id") or source.get("source_id") or "")
+    finding_anchor_id = str(source.get("finding_anchor_id") or "")
+    segments = _render_source_segments(source.get("segments") or [])
+    nav = (
+        f'<a href="#{_escape(finding_anchor_id)}" data-source-nav="source-to-finding">'
+        "발견사항으로 이동</a>"
+        if finding_anchor_id
+        else ""
+    )
+    return f"""<article id="{_escape(source_id)}"
+      class="source-highlight-card"
+      data-source-highlight-status="{_escape(status)}"
+      data-clause-id="{_escape(source.get('clause_id', ''))}">
+      <header>
+        <strong>{_escape(source.get('clause_id', ''))}</strong>
+        <span class="badge">{_escape(label.get('ko') or MISSING_EXACT_SPAN_KO)}</span>
+      </header>
+      <p class="source-text" data-source-text="true">{segments}</p>
+      {nav}
+    </article>"""
+
+
+def _render_source_segments(segments: list[dict[str, Any]]) -> str:
+    rendered = []
+    for segment in segments:
+        text = _escape(segment.get("text", ""))
+        if not segment.get("highlighted"):
+            rendered.append(text)
+            continue
+        roles = tuple(str(role) for role in segment.get("roles", ()))
+        role_label = ", ".join(str(label) for label in segment.get("role_labels_ko", ()))
+        rendered.append(
+            '<mark class="source-highlight"'
+            f' data-semantic-roles="{_escape(" ".join(roles))}"'
+            f' data-semantic-role="{_escape(roles[0] if roles else "")}"'
+            f' data-role-label-ko="{_escape(role_label)}"'
+            f' data-source-span-ids="{_escape(" ".join(segment.get("source_span_ids", ())))}">'
+            f"{text}</mark>"
+        )
+    return "".join(rendered)
 
 
 def _render_creator_missing_inputs(items: list[dict[str, str]]) -> str:

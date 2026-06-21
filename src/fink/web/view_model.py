@@ -7,6 +7,10 @@ from decimal import Decimal
 from typing import Any
 
 from fink.schemas import ExportFormat, RiskCategory, UILocale
+from fink.web.source_highlights import (
+    build_source_highlight_payload,
+    empty_source_highlights,
+)
 
 VIEW_MODEL_NAME = "CreatorReviewViewModel"
 VIEW_MODEL_SCHEMA_VERSION = 1
@@ -227,6 +231,7 @@ class CreatorReviewViewModel:
     findings: tuple[dict[str, Any], ...]
     audit_detail: dict[str, Any]
     scenario_inputs: dict[str, Any] | None = None
+    source_highlights: dict[str, Any] | None = None
     local_only: bool = True
     schema_version: int = VIEW_MODEL_SCHEMA_VERSION
     view_model: str = VIEW_MODEL_NAME
@@ -243,6 +248,7 @@ class CreatorReviewViewModel:
             "statuses": self.statuses,
             "dimensions": self.dimensions,
             "findings": list(self.findings),
+            "source_highlights": self.source_highlights or empty_source_highlights(),
             "scenario_inputs": self.scenario_inputs or _scenario_inputs_from_audit({}),
             "audit_detail": self.audit_detail,
         }
@@ -271,6 +277,11 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         monetary_present=bool(result.monetary_present),
     )
     findings = tuple(_finding_from_ranked(item, result, statuses) for item in result.ranked_findings)
+    findings, source_highlights = build_source_highlight_payload(
+        source_pages=tuple(getattr(result, "source_pages", ())),
+        clauses=tuple(getattr(result, "clauses", ())),
+        findings=findings,
+    )
     dimensions = _dimensions_from_result(result, statuses)
     audit_detail = _audit_detail_from_result(result)
     scenario_inputs = _scenario_inputs_from_audit(
@@ -295,6 +306,7 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         findings=findings,
         audit_detail=audit_detail,
         scenario_inputs=scenario_inputs,
+        source_highlights=source_highlights,
     )
 
 
@@ -372,6 +384,7 @@ def build_creator_review_view_model_from_report(
         findings=findings,
         audit_detail=audit_detail,
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
+        source_highlights=empty_source_highlights(),
     )
 
 
@@ -386,7 +399,10 @@ def build_project_page_synthetic_view_model(
         "title": creator_review_pair("category.revenue_deductions"),
         "source": {
             "clause_id": "synthetic-clause-settlement",
-            "exact_excerpt": "정산 금액에서 회사가 정한 비용을 공제할 수 있다.",
+            "exact_excerpt": (
+                "제3조(정산) 정산은 매 분기 종료일로부터 90일 이내에 지급하며, "
+                "회사는 일반 경비를 공제할 수 있다."
+            ),
         },
         "why_it_matters": {
             "ko": "공제 항목이 열려 있으면 실제 수령액을 확인하기 어렵습니다.",
@@ -461,6 +477,7 @@ def build_project_page_synthetic_view_model(
         findings=(finding,),
         audit_detail=audit_detail,
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
+        source_highlights=empty_source_highlights(),
     )
 
 

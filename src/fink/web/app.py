@@ -1533,7 +1533,101 @@ article {
 }
 mark {
   padding: .05rem .2rem;
-  background: #fff0a8;
+  background: #f4e9ff;
+}
+.source-highlights {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfcfe;
+}
+.source-highlight-header {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.source-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-weight: 700;
+}
+.source-highlight-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: .45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.source-highlight-legend li {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+.role-swatch {
+  display: inline-block;
+  width: 1.6rem;
+  min-height: 1rem;
+}
+.source-list {
+  display: grid;
+  gap: .75rem;
+}
+.source-highlight-card {
+  min-height: 0;
+  background: #fff;
+}
+.source-highlight-card header {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.source-text {
+  margin: .65rem 0;
+  max-width: var(--reading-measure);
+  white-space: pre-wrap;
+}
+.source-highlight {
+  border-radius: 3px;
+  padding: .04rem .12rem;
+  background: #f6f0ff;
+  color: inherit;
+}
+.source-highlight[data-semantic-role="amount_or_rate"] {
+  border-bottom: 3px solid #5f6f95;
+}
+.source-highlight[data-semantic-role="timing_or_term"] {
+  border-bottom: 3px dashed #806b00;
+}
+.source-highlight[data-semantic-role="deduction_recoupment_or_liability"] {
+  border-left: 4px solid #6f5a8f;
+}
+.source-highlight[data-semantic-role="rights_scope_or_exclusivity"] {
+  text-decoration-line: underline;
+  text-decoration-style: double;
+  text-decoration-thickness: 2px;
+  text-decoration-color: #3f7892;
+  text-underline-offset: .18em;
+}
+.source-highlight[data-semantic-role="ambiguity_or_missing_bound"] {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 2px;
+  text-decoration-color: #806b00;
+  text-underline-offset: .18em;
+}
+[data-source-highlights-enabled="false"] .source-highlight {
+  border-color: transparent;
+  background: transparent;
+  text-decoration-color: transparent;
 }
 .source-grid {
   display: grid;
@@ -1810,6 +1904,19 @@ _APP_JS = r"""(function () {
     return node;
   }
 
+  function clearNode(node) {
+    while (node.firstChild) {
+      node.removeChild(node.firstChild);
+    }
+  }
+
+  function localized(pair) {
+    if (!pair) {
+      return "";
+    }
+    return text(pair[activeLocale()] || pair.ko || pair.en);
+  }
+
   function bilingual(tag, className, pair) {
     var wrap = el(tag, className, null);
     var ko = el("span", null, text(pair && pair.ko));
@@ -1835,14 +1942,14 @@ _APP_JS = r"""(function () {
     if (!status) {
       return;
     }
-    status.innerHTML = "";
+    clearNode(status);
     status.appendChild(bilingual("span", null, pair));
   }
 
   function scenarioStatusMessage(pair) {
     var regions = document.querySelectorAll("[data-scenario-status-region]");
     regions.forEach(function (region) {
-      region.innerHTML = "";
+      clearNode(region);
       region.appendChild(bilingual("span", null, pair));
     });
     statusMessage(pair);
@@ -1856,6 +1963,10 @@ _APP_JS = r"""(function () {
     list.setAttribute("data-ranked-findings", "true");
     findings.forEach(function (finding) {
       var item = el("li", "finding-card", null);
+      item.id =
+        finding.source && finding.source.finding_anchor_id
+          ? finding.source.finding_anchor_id
+          : finding.finding_id;
       item.setAttribute("data-finding-id", finding.finding_id);
       item.setAttribute("data-finding-rank", String(finding.rank));
       var head = el("div", "finding-head", null);
@@ -1873,6 +1984,7 @@ _APP_JS = r"""(function () {
       if (finding.source && finding.source.exact_excerpt) {
         item.appendChild(el("p", "finding-snippet", finding.source.exact_excerpt));
       }
+      renderFindingSourceLink(item, finding);
       item.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
       item.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
       item.appendChild(bilingual("p", "action-line", finding.question_to_ask));
@@ -1914,6 +2026,106 @@ _APP_JS = r"""(function () {
       list.appendChild(item);
     });
     container.appendChild(list);
+  }
+
+  function renderFindingSourceLink(item, finding) {
+    var source = finding.source || {};
+    var status = el("p", "source-status", null);
+    status.setAttribute("data-highlight-status", source.highlight_status || "missing_exact_span");
+    if (source.anchor_id) {
+      var link = el("a", null, localized(source.source_link_label) || "출처 문구 보기");
+      link.href = "#" + source.anchor_id;
+      link.setAttribute("data-source-nav", "finding-to-source");
+      status.appendChild(link);
+      status.appendChild(document.createTextNode(" "));
+    }
+    status.appendChild(
+      document.createTextNode(
+        localized(source.highlight_status_label) || "정확한 문구 위치 확인 필요"
+      )
+    );
+    item.appendChild(status);
+  }
+
+  function renderSourceSegments(container, segments) {
+    (segments || []).forEach(function (segment) {
+      if (!segment.highlighted) {
+        container.appendChild(document.createTextNode(text(segment.text)));
+        return;
+      }
+      var marker = document.createElement("mark");
+      var roles = segment.roles || [];
+      marker.className = "source-highlight";
+      marker.setAttribute("data-semantic-roles", roles.join(" "));
+      marker.setAttribute("data-semantic-role", roles[0] || "");
+      marker.setAttribute("data-role-label-ko", (segment.role_labels_ko || []).join(", "));
+      marker.setAttribute("data-source-span-ids", (segment.source_span_ids || []).join(" "));
+      marker.appendChild(document.createTextNode(text(segment.text)));
+      container.appendChild(marker);
+    });
+  }
+
+  function renderSourceHighlights(container, payload) {
+    var highlights = payload.source_highlights || {};
+    var section = el("section", "source-highlights", null);
+    section.setAttribute("data-source-highlights", "true");
+    section.setAttribute("data-source-highlights-enabled", "true");
+
+    var header = el("div", "source-highlight-header", null);
+    header.appendChild(el("h3", null, "출처 문구 하이라이트"));
+    var toggle = el("label", "source-toggle", null);
+    var checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = highlights.enabled_default !== false;
+    checkbox.setAttribute("data-source-highlight-toggle", "true");
+    toggle.appendChild(checkbox);
+    toggle.appendChild(el("span", null, "하이라이트"));
+    header.appendChild(toggle);
+    section.appendChild(header);
+
+    var legend = el("ul", "source-highlight-legend", null);
+    legend.setAttribute("data-source-highlight-legend", "true");
+    (highlights.roles || []).forEach(function (role) {
+      var item = el("li", null, null);
+      var swatch = el("span", "source-highlight role-swatch", null);
+      swatch.setAttribute("data-semantic-role", role.role);
+      swatch.setAttribute("data-highlight-cue", role.cue);
+      item.appendChild(swatch);
+      item.appendChild(el("span", null, role.label_ko));
+      legend.appendChild(item);
+    });
+    section.appendChild(legend);
+
+    var sourceList = el("div", "source-list", null);
+    var sources = highlights.sources || [];
+    if (sources.length === 0) {
+      sourceList.appendChild(el("p", "hint", "정확한 문구 위치 확인 필요"));
+    }
+    sources.forEach(function (source) {
+      var card = el("article", "source-highlight-card", null);
+      card.id = source.anchor_id || source.source_id;
+      card.setAttribute("data-source-highlight-status", source.status || "missing_exact_span");
+      card.setAttribute("data-clause-id", source.clause_id || "");
+      var cardHeader = el("header", null, null);
+      cardHeader.appendChild(el("strong", null, source.clause_id || ""));
+      cardHeader.appendChild(
+        el("span", "badge", localized(source.status_label) || "정확한 문구 위치 확인 필요")
+      );
+      card.appendChild(cardHeader);
+      var sourceText = el("p", "source-text", null);
+      sourceText.setAttribute("data-source-text", "true");
+      renderSourceSegments(sourceText, source.segments || []);
+      card.appendChild(sourceText);
+      if (source.finding_anchor_id) {
+        var back = el("a", null, "발견사항으로 이동");
+        back.href = "#" + source.finding_anchor_id;
+        back.setAttribute("data-source-nav", "source-to-finding");
+        card.appendChild(back);
+      }
+      sourceList.appendChild(card);
+    });
+    section.appendChild(sourceList);
+    container.appendChild(section);
   }
 
   function dimensionCard(titlePair, rows) {
@@ -2063,7 +2275,7 @@ _APP_JS = r"""(function () {
       return;
     }
     container.hidden = false;
-    container.innerHTML = "";
+    clearNode(container);
 
     var heading = el("div", "section-heading", null);
     heading.appendChild(el("p", "eyebrow", "CreatorReviewViewModel"));
@@ -2085,6 +2297,7 @@ _APP_JS = r"""(function () {
     var findingsHeading = bilingual("h3", null, copyPair(payload, "app.findings_heading"));
     container.appendChild(findingsHeading);
     renderFindings(container, payload.findings);
+    renderSourceHighlights(container, payload);
 
     setLocale(activeLocale());
     container.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2285,7 +2498,7 @@ _APP_JS = r"""(function () {
     var container = document.getElementById("result");
     if (container) {
       container.hidden = true;
-      container.innerHTML = "";
+      clearNode(container);
     }
     lastResultPayload = null;
     lastSubmittedAssumptions = {};
@@ -2319,6 +2532,16 @@ _APP_JS = r"""(function () {
       var scenarioButton = target.closest("[data-scenario-recalculate-button]");
       if (scenarioButton) {
         analyze({ scenarioRecompute: true });
+      }
+      var highlightToggle = target.closest("[data-source-highlight-toggle]");
+      if (highlightToggle) {
+        var sourceSection = highlightToggle.closest("[data-source-highlights]");
+        if (sourceSection) {
+          sourceSection.setAttribute(
+            "data-source-highlights-enabled",
+            highlightToggle.checked ? "true" : "false"
+          );
+        }
       }
     });
     setLocale(readStoredLocale() || activeLocale());

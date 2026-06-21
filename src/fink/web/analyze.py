@@ -167,6 +167,8 @@ class LocalAnalysisResult:
     scoring: DocumentScoringResult
     time_result: TimeExposureResult
     measured_runtime_seconds: float
+    source_pages: tuple[OCRPage, ...]
+    clauses: tuple[Any, ...]
 
 
 def run_local_analysis(
@@ -268,6 +270,8 @@ def run_local_analysis(
         scoring=scoring,
         time_result=time_result,
         measured_runtime_seconds=measured_runtime_seconds,
+        source_pages=pages,
+        clauses=clauses,
     )
 
 
