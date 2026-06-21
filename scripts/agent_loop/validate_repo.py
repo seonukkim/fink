@@ -34,6 +34,10 @@ from scripts.agent_loop._common import (
     untracked_files,
 )
 from scripts.copyright_audit import format_summary, run_audit
+from scripts.invariant_suite import (
+    format_summary as format_invariant_summary,
+    run_invariant_suite,
+)
 
 SELF_PATH = Path(__file__).resolve()
 
@@ -386,6 +390,17 @@ def copyright_audit() -> str:
     return format_summary(report)
 
 
+def invariant_suite() -> str:
+    report = run_invariant_suite(REPO_ROOT)
+    if report.violations:
+        details = "; ".join(
+            f"{item.code} at {item.location}: {item.detail}" for item in report.violations[:10]
+        )
+        extra = "" if len(report.violations) <= 10 else f"; +{len(report.violations) - 10} more"
+        raise GateFailure(details + extra)
+    return format_invariant_summary(report)
+
+
 def money(value: Decimal) -> int:
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
@@ -610,6 +625,7 @@ def run_all(args: argparse.Namespace) -> None:
     gate("authority-tier scoring invariant", authority_invariant)
     gate("open-license floor + no tracked weights", model_license_floor)
     gate("copyright/license audit", copyright_audit)
+    gate("INV-1/INV-8 invariant suite", invariant_suite)
     gate("financial-formula tests", financial_formula_tests)
     gate("FINK-S0-01 corpus count/schema gate", fink_stage_corpus_gate)
     gate("upload-deletion tests when relevant", lambda: "not relevant to bootstrap scaffold")
