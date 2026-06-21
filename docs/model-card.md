@@ -517,3 +517,95 @@ financial values, or state legal/fraud/validity/unfairness/guaranteed-loss
 verdicts. Scoring and evidence creation remain outside the local LLM boundary,
 and public benchmark records contain only synthetic/sanitized inputs plus pinned
 metadata for `Qwen/Qwen3-4B`.
+
+## Selected Local Profile Report
+
+Structured selected-profile record: `configs/models/selected_profiles.yaml`.
+Machine gate: `selected_profile_report`.
+
+Captured for task `FINK-MR-10` at `2026-06-21T22:43:17+09:00` from
+`BASE_COMMIT=b71d5327bc29223899a8f29e9bf4ef27da21787f`.
+
+FINK-MR-10 selects `core_local_offline_v1` as the public-safe local profile for
+retrieval, reranking, and explanation-boundary model research, with
+`ocr_local_document_profile_v1` recorded as its selected OCR companion profile.
+Together they define `desktop_local_full_selected_v1` for the desktop-local full
+research path. The report is a metadata/config record only: public Git records
+model IDs, licenses, exact revisions, source configs, selected profiles, and
+synthetic benchmark summaries. It does not record model weights, private model
+paths, token values, real contract text, private corpus passages, PDFs, ZIPs, or
+`.fink` artifacts.
+
+Selected profile components:
+
+| Profile | Role | Candidate | HF repo | License | Exact revision | Source config | Benchmark coverage |
+|---------|------|-----------|---------|---------|----------------|---------------|--------------------|
+| `ocr_local_document_profile_v1` | OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | `configs/models/open_license_shortlist.yaml` | FINK-MR-07 |
+| `ocr_local_document_profile_v1` | OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | `configs/models/open_license_shortlist.yaml` | FINK-MR-07 |
+| `core_local_offline_v1` | Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `apache-2.0` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | `configs/models/open_license_shortlist.yaml` | FINK-MR-06, FINK-MR-08 |
+| `core_local_offline_v1` | Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `apache-2.0` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | `configs/models/open_license_shortlist.yaml` | FINK-MR-06, FINK-MR-08 |
+| `core_local_offline_v1` | Explanation | `qwen3_4b` | `Qwen/Qwen3-4B` | `apache-2.0` | `1cfa9a7208912126459214e8b04321603b3df60c` | `configs/models/open_license_shortlist.yaml` | FINK-MR-06, FINK-MR-09 |
+
+Profile configuration boundary:
+
+- `MODEL_PROFILE_APPROVED` is resolved under the open-license floor.
+- Every selected model is public, ungated, open-allowlisted, and pinned to an
+  exact 40-character revision recorded in `configs/models/open_license_shortlist.yaml`.
+- Runtime analysis remains local-first: no remote LLM, cloud RAG, external
+  legal search, telemetry, cloud OCR, or runtime model download is required.
+- Weights, if privately installed later, stay under `$PRIVATE_ROOT/models` or
+  the Hugging Face cache outside the Git repository.
+- Offline profile flags are
+  `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`,
+  `HF_DATASETS_OFFLINE=1`, `HF_HUB_DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`,
+  `FINK_RUNTIME_REMOTE_API_ALLOWED=false`, `FINK_RUNTIME_OFFLINE=true`, and
+  `FINK_MODEL_DOWNLOAD_ALLOWED=false`.
+
+Accepted but not selected for the default profile:
+
+| Candidate | HF repo | License | Exact revision | Status |
+|-----------|---------|---------|----------------|--------|
+| `bge_m3` | `BAAI/bge-m3` | `mit` | `5617a9f61b028005a4858fdac845db406aefb181` | accepted public-open retrieval baseline, not default selected |
+| `qwen3_8b` | `Qwen/Qwen3-8B` | `apache-2.0` | `b968826d9c46dd6066d109eabc6255188de91218` | accepted public-open optional explanation candidate, not default selected |
+
+Benchmark summary for the selected profile:
+
+| Task | Fixture | Gate | Selected model IDs | Public result summary | Boundary |
+|------|---------|------|--------------------|-----------------------|----------|
+| FINK-MR-07 | `ocr_financial_terms_synthetic_v1` | `ocr_benchmark_summary` | `paddleocr_vl`, `qwen3_vl_4b` | 41/41 exact normalized matches across money, percentages, dates, durations, and article numbers | Synthetic-only extraction check; not a real-contract OCR accuracy claim |
+| FINK-MR-08 | `ko_en_retrieval_synthetic_v1` | `ko_en_retrieval_benchmark` | `qwen3_embedding_0_6b`, `qwen3_reranker_0_6b` | 8/8 KO/EN paired queries resolved to the same canonical IDs; `EV-KOEN=1.000`; 0 English evidence-label violations | Synthetic-only retrieval-consistency check; not a legal-equivalence or real-contract retrieval claim |
+| FINK-MR-09 | `local_explanation_boundary_synthetic_v1` | `local_explanation_boundary_test` | `qwen3_4b` | 6/6 citation coverage, 3/3 boundary-statement coverage, 3/3 quality-passed cases, and 0 boundary violations | Synthetic-only explanation-boundary check; not a real-contract explanation-quality claim |
+
+Model-card conclusion:
+
+- `core_local_offline_v1` is the selected local profile for the public model
+  report, and `ocr_local_document_profile_v1` is the selected OCR companion
+  profile for the desktop-local full research path.
+- The combined `desktop_local_full_selected_v1` profile contains 5 components
+  and an estimated total private storage footprint of 21,526,679,874 decimal
+  bytes if all selected weights are installed outside Git.
+- Public Git remains metadata-only and contains no model weights or private
+  runtime paths.
+- The local explanation model may explain retrieved records only. It must not
+  create legal evidence, set production risk scores, invent financial values, or
+  make fraud, illegality, contract-validity, unfairness, or guaranteed-loss
+  verdicts.
+
+Paper note for `04_data_and_implementation.md`: report that FINK-MR-10 selected
+`core_local_offline_v1` as the metadata-only local retrieval/reranking/
+explanation profile and `ocr_local_document_profile_v1` as the metadata-only
+OCR companion profile, together forming `desktop_local_full_selected_v1`.
+The selected open-allowlisted, public, ungated models are pinned to exact
+revisions: `paddleocr_vl`, `qwen3_vl_4b`, `qwen3_embedding_0_6b`,
+`qwen3_reranker_0_6b`, and `qwen3_4b`. State that weights remain outside
+public Git, runtime analysis remains local-first/offline, and the selected
+profile is configured through `configs/models/selected_profiles.yaml` plus the
+prior shortlist and dry-run records.
+
+Paper note for `05_experiments.md`: report the selected-profile benchmark
+summary as synthetic/sanitized only: MR-07 recorded 41/41 exact normalized OCR
+financial-term matches, MR-08 recorded 8/8 KO/EN canonical-ID matches with
+`EV-KOEN=1.000` and 0 English evidence-label violations, and MR-09 recorded
+6/6 citation coverage, 3/3 boundary-statement coverage, 3/3 quality-passed
+cases, and 0 boundary violations. Do not generalize these figures to
+real-contract OCR, retrieval, or explanation quality.

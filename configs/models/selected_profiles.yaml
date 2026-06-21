@@ -1,0 +1,202 @@
+schema_version: 1
+task_id: FINK-MR-10
+report_id: selected_profile_report
+captured_at: "2026-06-21T22:43:17+09:00"
+base_commit: "b71d5327bc29223899a8f29e9bf4ef27da21787f"
+depends_on:
+  - FINK-MR-07
+  - FINK-MR-08
+  - FINK-MR-09
+human_gate: MODEL_PROFILE_APPROVED
+human_gate_status: RESOLVED
+
+source_records:
+  local_inventory: configs/models/local_inventory.yaml
+  candidates: configs/models/candidates.yaml
+  download_size_dry_runs: configs/models/download_size_dry_runs.yaml
+  open_license_shortlist: configs/models/open_license_shortlist.yaml
+  model_card: docs/model-card.md
+
+public_git_boundary:
+  allowed_content:
+    - model_ids
+    - licenses
+    - exact_revisions
+    - public_safe_configs
+    - benchmark_summaries
+    - selected_profiles
+  excluded_content:
+    - model_weights
+    - private_model_paths
+    - Hugging_Face_token_values
+    - real_contract_text
+    - private_corpus_passages
+    - PDFs_or_ZIPs
+    - .fink_artifacts
+  downloaded_weight_files: false
+  tracked_weight_files_at_capture: []
+
+license_policy:
+  default_floor: public_open
+  max_download_size_gb: 20
+  accepted_licenses:
+    - apache-2.0
+    - mit
+    - bsd-2-clause
+    - bsd-3-clause
+    - isc
+    - cc0-1.0
+    - cc-by-4.0
+  rejected_by_default:
+    - unknown
+    - missing
+    - gated
+    - custom
+    - other
+    - noncommercial
+    - research-only
+
+runtime_config:
+  runtime_profile: core_local_offline_v1
+  desktop_runtime_profile: desktop_local_full
+  remote_runtime_api_allowed: false
+  runtime_download_allowed: false
+  telemetry_allowed: false
+  storage_boundary: "$PRIVATE_ROOT/models or Hugging Face cache outside the Git repository"
+  offline_environment_flags:
+    HF_HUB_OFFLINE: "1"
+    TRANSFORMERS_OFFLINE: "1"
+    HF_DATASETS_OFFLINE: "1"
+    HF_HUB_DISABLE_TELEMETRY: "1"
+    DO_NOT_TRACK: "1"
+    FINK_RUNTIME_REMOTE_API_ALLOWED: "false"
+    FINK_RUNTIME_OFFLINE: "true"
+    FINK_MODEL_DOWNLOAD_ALLOWED: "false"
+
+selected_profiles:
+  - id: core_local_offline_v1
+    status: selected
+    purpose: >
+      Public-safe selected local profile for retrieval, reranking, and
+      explanation-boundary model research. It records only metadata and
+      synthetic benchmark summaries; runtime analysis remains local-first and
+      does not require remote APIs.
+    profile_components:
+      - role: primary_ko_en_embedding
+        model_id: qwen3_embedding_0_6b
+        repo_id: Qwen/Qwen3-Embedding-0.6B
+        license: apache-2.0
+        exact_revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+        estimated_disk_size_bytes: 1210000000
+        source_config: configs/models/open_license_shortlist.yaml
+        benchmark_coverage:
+          - FINK-MR-06
+          - FINK-MR-08
+      - role: primary_ko_en_reranker
+        model_id: qwen3_reranker_0_6b
+        repo_id: Qwen/Qwen3-Reranker-0.6B
+        license: apache-2.0
+        exact_revision: e61197ed45024b0ed8a2d74b80b4d909f1255473
+        estimated_disk_size_bytes: 1210000000
+        source_config: configs/models/open_license_shortlist.yaml
+        benchmark_coverage:
+          - FINK-MR-06
+          - FINK-MR-08
+      - role: primary_local_explanation
+        model_id: qwen3_4b
+        repo_id: Qwen/Qwen3-4B
+        license: apache-2.0
+        exact_revision: 1cfa9a7208912126459214e8b04321603b3df60c
+        estimated_disk_size_bytes: 8060000000
+        source_config: configs/models/open_license_shortlist.yaml
+        benchmark_coverage:
+          - FINK-MR-06
+          - FINK-MR-09
+    total_selected_estimated_disk_size_bytes: 10480000000
+    selected_component_count: 3
+    downloaded_weight_files: false
+    public_git_weight_status: metadata_only
+  - id: ocr_local_document_profile_v1
+    status: selected_companion_profile
+    purpose: >
+      Public-safe selected OCR companion profile for document OCR/layout and
+      difficult-image OCR fallback benchmark coverage. It records only metadata
+      and synthetic benchmark summaries.
+    profile_components:
+      - role: primary_document_ocr_layout
+        model_id: paddleocr_vl
+        repo_id: PaddlePaddle/PaddleOCR-VL
+        license: apache-2.0
+        exact_revision: baee27eebcbf26cdeab160116679d765f13a3f27
+        estimated_disk_size_bytes: 2156679874
+        source_config: configs/models/open_license_shortlist.yaml
+        benchmark_coverage:
+          - FINK-MR-07
+      - role: difficult_image_vlm_fallback
+        model_id: qwen3_vl_4b
+        repo_id: Qwen/Qwen3-VL-4B-Instruct
+        license: apache-2.0
+        exact_revision: ebb281ec70b05090aa6165b016eac8ec08e71b17
+        estimated_disk_size_bytes: 8890000000
+        source_config: configs/models/open_license_shortlist.yaml
+        benchmark_coverage:
+          - FINK-MR-07
+    total_selected_estimated_disk_size_bytes: 11046679874
+    selected_component_count: 2
+    downloaded_weight_files: false
+    public_git_weight_status: metadata_only
+
+combined_desktop_profile:
+  id: desktop_local_full_selected_v1
+  component_profiles:
+    - core_local_offline_v1
+    - ocr_local_document_profile_v1
+  total_selected_estimated_disk_size_bytes: 21526679874
+  component_count: 5
+  note: >
+    Combined desktop-local full research profile assembled from the selected
+    text/retrieval/explanation profile and the selected OCR companion profile.
+    The 20 GB cap is enforced per approved model download; no weights are
+    recorded in public Git.
+
+non_default_accepted_candidates:
+  - model_id: bge_m3
+    repo_id: BAAI/bge-m3
+    license: mit
+    exact_revision: 5617a9f61b028005a4858fdac845db406aefb181
+    status: accepted_public_open_not_selected_for_default_profile
+    note: "Accepted as a multilingual retrieval baseline; not part of the default selected profile."
+  - model_id: qwen3_8b
+    repo_id: Qwen/Qwen3-8B
+    license: apache-2.0
+    exact_revision: b968826d9c46dd6066d109eabc6255188de91218
+    status: accepted_public_open_not_selected_for_default_profile
+    note: "Optional explanation candidate; not part of the default selected profile."
+
+benchmark_summaries:
+  - task_id: FINK-MR-07
+    fixture_id: ocr_financial_terms_synthetic_v1
+    machine_gate: ocr_benchmark_summary
+    selected_model_ids:
+      - paddleocr_vl
+      - qwen3_vl_4b
+    synthetic_or_sanitized_only: true
+    result_summary: "41/41 exact normalized matches across money, percentages, dates, durations, and article numbers."
+    generalization_boundary: "Synthetic-only extraction check, not a real-contract OCR accuracy claim."
+  - task_id: FINK-MR-08
+    fixture_id: ko_en_retrieval_synthetic_v1
+    machine_gate: ko_en_retrieval_benchmark
+    selected_model_ids:
+      - qwen3_embedding_0_6b
+      - qwen3_reranker_0_6b
+    synthetic_or_sanitized_only: true
+    result_summary: "8/8 paired KO/EN queries resolved to the same canonical IDs; EV-KOEN=1.000; 0 English evidence-label violations."
+    generalization_boundary: "Synthetic-only retrieval-consistency check, not a legal-equivalence or real-contract retrieval claim."
+  - task_id: FINK-MR-09
+    fixture_id: local_explanation_boundary_synthetic_v1
+    machine_gate: local_explanation_boundary_test
+    selected_model_ids:
+      - qwen3_4b
+    synthetic_or_sanitized_only: true
+    result_summary: "6/6 citation coverage, 3/3 boundary-statement coverage, 3/3 quality-passed cases, and 0 boundary violations."
+    generalization_boundary: "Synthetic-only explanation-boundary check, not a real-contract explanation-quality claim."

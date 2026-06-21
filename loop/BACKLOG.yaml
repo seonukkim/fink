@@ -1278,4 +1278,5 @@ tasks:
   - 04_data_and_implementation.md
   - 05_experiments.md
   human_gate: MODEL_PROFILE_APPROVED
-  status: READY
+  status: DONE
+  completed_at: '2026-06-21T13:52:12+00:00'
