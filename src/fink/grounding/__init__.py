@@ -5,9 +5,12 @@ from fink.grounding.authority import (
     AuthorityRetrievedRecord,
     AuthorityRetrievalBundle,
     ConflictSet,
+    SignalEligibility,
     authority_gated_retrieval,
     authority_tag_present,
     conflict_preserved_test,
+    eligibility_gate_test,
+    evaluate_signal_eligibility,
 )
 
 __all__ = [
@@ -15,7 +18,10 @@ __all__ = [
     "AuthorityRetrievedRecord",
     "AuthorityRetrievalBundle",
     "ConflictSet",
+    "SignalEligibility",
     "authority_gated_retrieval",
     "authority_tag_present",
     "conflict_preserved_test",
+    "eligibility_gate_test",
+    "evaluate_signal_eligibility",
 ]

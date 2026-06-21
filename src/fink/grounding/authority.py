@@ -30,6 +30,7 @@ SOURCE_YEAR_KEYS = (
 CONFLICT_GROUP_KEYS = ("conflict_group", "overlap_key", "conflict_key")
 YEAR_RE = re.compile(r"(20\d{2}|19\d{2})")
 PRECEDENCE_RULE = "On overlapping webtoon forms, newer source year has precedence; 2025 > 2018."
+FINANCIAL_RISK_CATEGORY_PREFIXES = tuple(f"F{index}" for index in range(1, 10))
 
 
 class AuthorityGroundingError(ValueError):
@@ -104,6 +105,50 @@ class AuthorityRetrievedRecord:
             "precedence_rank": self.precedence_rank,
             "precedence_rule": self.precedence_rule,
             "metadata": dict(self.metadata or {}),
+        }
+
+
+@dataclass(frozen=True)
+class SignalEligibility:
+    """Authority-gated score eligibility for one risk signal."""
+
+    signal_id: str
+    risk_categories: tuple[str, ...]
+    scoring_evidence_ids: tuple[str, ...]
+    practice_reference_ids: tuple[str, ...]
+    ignored_reference_ids: tuple[str, ...]
+    score_eligible: bool
+    practice_reference: bool
+    raw_contribution: float
+    score_contribution: float
+
+    def __post_init__(self) -> None:
+        if not self.signal_id.strip():
+            raise AuthorityGroundingError("signal_id must be nonblank")
+        if self.score_eligible and not self.scoring_evidence_ids:
+            raise AuthorityGroundingError(
+                f"{self.signal_id}: score_eligible requires A0-A2 evidence"
+            )
+        if self.practice_reference and self.score_eligible:
+            raise AuthorityGroundingError(
+                f"{self.signal_id}: practice_reference signals must not score"
+            )
+        if not self.score_eligible and self.score_contribution != 0:
+            raise AuthorityGroundingError(
+                f"{self.signal_id}: non-eligible signals must contribute 0"
+            )
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "signal_id": self.signal_id,
+            "risk_categories": list(self.risk_categories),
+            "scoring_evidence_ids": list(self.scoring_evidence_ids),
+            "practice_reference_ids": list(self.practice_reference_ids),
+            "ignored_reference_ids": list(self.ignored_reference_ids),
+            "score_eligible": self.score_eligible,
+            "practice_reference": self.practice_reference,
+            "raw_contribution": self.raw_contribution,
+            "score_contribution": self.score_contribution,
         }
 
 
@@ -221,6 +266,105 @@ def authority_gated_retrieval(
     )
 
 
+def evaluate_signal_eligibility(
+    signal_id: str,
+    records: Sequence[AuthorityRetrievedRecord],
+    *,
+    risk_categories: Sequence[str] | str = (),
+    raw_contribution: float = 0.0,
+) -> SignalEligibility:
+    """Apply INV-1/AC-AUTH-2 score eligibility to one signal.
+
+    A signal can contribute to review-priority scoring only when an A0-A2
+    evidence record grounds it and the signal belongs to a financial F category.
+    B/C-only references remain practice references and contribute exactly 0.
+    """
+
+    categories = _risk_categories_for_signal(risk_categories, records)
+    scoring_evidence_ids: list[str] = []
+    practice_reference_ids: list[str] = []
+    ignored_reference_ids: list[str] = []
+
+    for record in records:
+        if _is_scoring_evidence(record):
+            scoring_evidence_ids.append(record.record_id)
+        elif record.authority_tier in PRACTICE_AUTHORITY_TIERS:
+            practice_reference_ids.append(record.record_id)
+        else:
+            ignored_reference_ids.append(record.record_id)
+
+    has_financial_category = any(
+        _is_financial_risk_category(category) for category in categories
+    )
+    score_eligible = bool(scoring_evidence_ids and has_financial_category)
+    practice_reference = bool(practice_reference_ids and not score_eligible)
+    score_contribution = float(raw_contribution) if score_eligible else 0.0
+
+    return SignalEligibility(
+        signal_id=signal_id,
+        risk_categories=categories,
+        scoring_evidence_ids=tuple(scoring_evidence_ids),
+        practice_reference_ids=tuple(practice_reference_ids),
+        ignored_reference_ids=tuple(ignored_reference_ids),
+        score_eligible=score_eligible,
+        practice_reference=practice_reference,
+        raw_contribution=float(raw_contribution),
+        score_contribution=score_contribution,
+    )
+
+
+def eligibility_gate_test(
+    eligibilities: SignalEligibility | Sequence[SignalEligibility],
+) -> bool:
+    """Machine-gate helper for AC-AUTH-2 and SC-AGG-T1."""
+
+    signals = (
+        (eligibilities,)
+        if isinstance(eligibilities, SignalEligibility)
+        else tuple(eligibilities)
+    )
+    if not signals:
+        raise AuthorityGroundingError("AC-AUTH-2 requires at least one signal")
+
+    saw_bc_only_practice_reference = False
+    saw_authority_grounded_signal = False
+    for signal in signals:
+        has_financial_category = any(
+            _is_financial_risk_category(category)
+            for category in signal.risk_categories
+        )
+        expected_score_eligible = bool(
+            signal.scoring_evidence_ids and has_financial_category
+        )
+        if signal.score_eligible != expected_score_eligible:
+            raise AuthorityGroundingError(
+                f"{signal.signal_id}: score_eligible must be true iff "
+                "A0-A2 evidence grounds an F-category signal"
+            )
+        if not signal.score_eligible and signal.score_contribution != 0:
+            raise AuthorityGroundingError(
+                f"{signal.signal_id}: non-eligible signals must contribute 0"
+            )
+        if (
+            signal.practice_reference_ids
+            and not signal.scoring_evidence_ids
+            and not signal.score_eligible
+        ):
+            saw_bc_only_practice_reference = True
+            if not signal.practice_reference:
+                raise AuthorityGroundingError(
+                    f"{signal.signal_id}: B/C-only signals must be practice references"
+                )
+        if signal.score_eligible:
+            saw_authority_grounded_signal = True
+
+    if not saw_bc_only_practice_reference:
+        raise AuthorityGroundingError("AC-AUTH-2 requires a B/C-only zero case")
+    if not saw_authority_grounded_signal:
+        raise AuthorityGroundingError("AC-AUTH-2 requires an A0-A2 grounded case")
+    return True
+
+
 def authority_tag_present(bundle: AuthorityRetrievalBundle) -> bool:
     """Machine-gate helper for AC-AUTH-1."""
 
@@ -305,6 +449,47 @@ def _record_from_result(result: RetrievalResult) -> AuthorityRetrievedRecord:
         precedence_rule=PRECEDENCE_RULE if _conflict_group(chunk) else "",
         metadata=dict(chunk.metadata),
     )
+
+
+def _risk_categories_for_signal(
+    risk_categories: Sequence[str] | str,
+    records: Sequence[AuthorityRetrievedRecord],
+) -> tuple[str, ...]:
+    categories = _tuple_text(risk_categories)
+    if categories:
+        return categories
+
+    seen: set[str] = set()
+    inferred: list[str] = []
+    for record in records:
+        for category in record.risk_categories:
+            cleaned = str(category).strip()
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                inferred.append(cleaned)
+    return tuple(inferred)
+
+
+def _is_scoring_evidence(record: AuthorityRetrievedRecord) -> bool:
+    return (
+        record.record_type == "evidence"
+        and record.authority_tier in SCORING_AUTHORITY_TIERS
+    )
+
+
+def _is_financial_risk_category(category: str) -> bool:
+    cleaned = str(category).strip()
+    return any(
+        cleaned == prefix or cleaned.startswith(f"{prefix}_")
+        for prefix in FINANCIAL_RISK_CATEGORY_PREFIXES
+    )
+
+
+def _tuple_text(values: Sequence[str] | str) -> tuple[str, ...]:
+    if isinstance(values, str):
+        cleaned = values.strip()
+        return (cleaned,) if cleaned else ()
+    return tuple(str(value).strip() for value in values if str(value).strip())
 
 
 def _select_with_conflict_siblings(
