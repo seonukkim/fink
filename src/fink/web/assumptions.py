@@ -468,7 +468,8 @@ def render_assumptions_panel_html(
       <p class="hint">Outputs stay input-required until required inputs are supplied.</p>
       <div class="assumption-fields">{fields}</div>
       <div class="action-row">
-        <button type="button" class="secondary" data-scenario-recalculate-button="true">
+        <button type="button" class="secondary" data-scenario-recalculate-button="true"
+          aria-label="시나리오 다시 계산 / Recalculate scenario">
           시나리오 다시 계산
         </button>
       </div>

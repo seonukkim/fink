@@ -66,6 +66,49 @@ HOW_TO_USE_STEPS = (
     },
 )
 
+WEB_DESIGN_TOKENS = {
+    "ink": "#151a22",
+    "muted": "#4a5565",
+    "line": "#d4dbe5",
+    "line_soft": "#e6ebf2",
+    "panel": "#ffffff",
+    "canvas": "#eef2f7",
+    "accent": "#006d77",
+    "accent_strong": "#014f56",
+    "accent_tint": "#f1f8f9",
+    "warn_bg": "#fff3cd",
+    "warn_ink": "#5a4100",
+    "focus_ring": "#0b57d0",
+    "focus_offset": "#ffffff",
+    "danger": "#8a2c0d",
+    "role_amount": "#5f6f95",
+    "role_timing": "#806b00",
+    "role_liability": "#6f5a8f",
+    "role_rights": "#3f7892",
+    "role_ambiguity": "#806b00",
+    "source_mark": "#f6f0ff",
+}
+
+WEB_CONTRAST_CHECKS = (
+    ("body text on panel", "ink", "panel", 4.5),
+    ("body text on canvas", "ink", "canvas", 4.5),
+    ("muted text on panel", "muted", "panel", 4.5),
+    ("muted text on canvas", "muted", "canvas", 4.5),
+    ("primary button text", "panel", "accent", 4.5),
+    ("secondary button text", "accent_strong", "panel", 4.5),
+    ("link text on panel", "accent_strong", "panel", 4.5),
+    ("badge text on accent tint", "accent_strong", "accent_tint", 4.5),
+    ("warning text on warning background", "warn_ink", "warn_bg", 4.5),
+    ("danger action text", "danger", "panel", 4.5),
+    ("focus ring on panel", "focus_ring", "panel", 3.0),
+    ("focus ring on canvas", "focus_ring", "canvas", 3.0),
+    ("amount highlight cue", "role_amount", "source_mark", 3.0),
+    ("timing highlight cue", "role_timing", "source_mark", 3.0),
+    ("liability highlight cue", "role_liability", "source_mark", 3.0),
+    ("rights highlight cue", "role_rights", "source_mark", 3.0),
+    ("ambiguity highlight cue", "role_ambiguity", "source_mark", 3.0),
+)
+
 
 @dataclass(frozen=True)
 class WebBindSettings:
@@ -175,8 +218,10 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
       <p class="subtitle">Contractual Financial Review Priority</p>
     </div>
     <nav class="locale-toggle" aria-label="Locale" data-locale-toggle="true">
-      <button type="button" data-locale-button="ko" aria-pressed="true">KO</button>
-      <button type="button" data-locale-button="en" aria-pressed="false">EN generated</button>
+      <button type="button" data-locale-button="ko" aria-pressed="true"
+        aria-label="한국어 화면 / Korean interface">KO</button>
+      <button type="button" data-locale-button="en" aria-pressed="false"
+        aria-label="영어 생성 화면 / English generated interface">EN generated</button>
     </nav>
   </header>
 
@@ -186,7 +231,8 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
     {lan_warning}
   </section>
 
-  <main id="workspace" class="workspace">
+  <main id="workspace" class="workspace"
+    data-responsive-validation-targets="320-no-horizontal-overflow 390x844 768x1024 1440x900 200-percent-zoom">
     <div class="primary-flow">
       {_render_how_to_section()}
       {_render_input_card()}
@@ -245,6 +291,7 @@ def _render_input_card() -> str:
       </label>
       <textarea id="paste-box" name="paste_text" rows="8" spellcheck="false"
         data-ingest-mode="paste"
+        aria-describedby="analyze-status"
         placeholder="제3조(정산) ..."></textarea>
       <div class="file-input-row" data-upload-area="true">
         <label class="upload-label" for="contract-file">
@@ -252,17 +299,20 @@ def _render_input_card() -> str:
           <span lang="en" data-locale-text="en">Upload one file (optional)</span>
         </label>
         <input id="contract-file" name="contract_file" type="file" data-file-input="true"
+          aria-describedby="pdf-local-notice pdf-error-region"
           accept="text/plain,.txt,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.heic,.heif">
-        <p class="pdf-local-notice" data-pdf-local-notice="true">
+        <p id="pdf-local-notice" class="pdf-local-notice" data-pdf-local-notice="true">
           {html.escape(PDF_LOCAL_NOTICE)}
         </p>
-        <div class="local-error" data-pdf-error-region="true" role="alert">
+        <div id="pdf-error-region" class="local-error" data-pdf-error-region="true"
+          role="alert" aria-live="assertive">
           unsupported, empty, corrupted, encrypted, oversized, and OCR-missing files
           return a local structured error. Nothing is transmitted.
         </div>
       </div>
       <div class="action-row">
-        <button type="button" id="analyze-btn" data-analyze-button="true">
+        <button type="button" id="analyze-btn" data-analyze-button="true"
+          aria-controls="result analyze-status">
           분석하기 / Analyze
         </button>
       </div>
@@ -281,6 +331,7 @@ def _render_result_section() -> str:
       class="result-pane card"
       aria-labelledby="result-heading"
       aria-live="polite"
+      role="region"
       data-analysis-result="true"
       hidden
     >
@@ -1160,36 +1211,63 @@ def _privacy_payload(settings: WebBindSettings) -> dict[str, Any]:
 
 
 def _css() -> str:
-    return """
-:root {
+    tokens = WEB_DESIGN_TOKENS
+    return f"""
+:root {{
   color-scheme: light;
-  --ink: #151a22;
-  --muted: #4a5565;
-  --line: #d4dbe5;
-  --line-soft: #e6ebf2;
-  --panel: #ffffff;
-  --canvas: #eef2f7;
-  --accent: #006d77;
-  --accent-strong: #014f56;
-  --accent-tint: #f1f8f9;
-  --warn-bg: #fff3cd;
-  --warn-ink: #5a4100;
+  --ink: {tokens["ink"]};
+  --muted: {tokens["muted"]};
+  --line: {tokens["line"]};
+  --line-soft: {tokens["line_soft"]};
+  --panel: {tokens["panel"]};
+  --canvas: {tokens["canvas"]};
+  --accent: {tokens["accent"]};
+  --accent-strong: {tokens["accent_strong"]};
+  --accent-tint: {tokens["accent_tint"]};
+  --warn-bg: {tokens["warn_bg"]};
+  --warn-ink: {tokens["warn_ink"]};
+  --focus-ring: {tokens["focus_ring"]};
+  --focus-offset: {tokens["focus_offset"]};
+  --danger: {tokens["danger"]};
+  --role-amount: {tokens["role_amount"]};
+  --role-timing: {tokens["role_timing"]};
+  --role-liability: {tokens["role_liability"]};
+  --role-rights: {tokens["role_rights"]};
+  --role-ambiguity: {tokens["role_ambiguity"]};
+  --source-mark: {tokens["source_mark"]};
   /* 8px spacing rhythm. */
   --space-1: .5rem;
   --space-2: 1rem;
   --space-3: 1.5rem;
   --space-4: 2rem;
-  --radius: 10px;
+  --radius: 8px;
   --shadow: 0 1px 2px rgba(21, 26, 34, .06), 0 6px 18px rgba(21, 26, 34, .05);
   --reading-measure: 66ch;
-}
+}}
+""" + """
 * { box-sizing: border-box; }
+html {
+  scroll-padding: calc(var(--space-4) + 44px);
+}
 body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+img, svg, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+section, article, details, div, main, aside, nav, header, footer {
+  min-width: 0;
 }
 .skip-link {
   position: absolute;
@@ -1197,8 +1275,9 @@ body {
   top: -5rem;
   background: var(--ink);
   color: #fff;
+  min-height: 44px;
   padding: .75rem 1rem;
-  z-index: 3;
+  z-index: 100;
 }
 .skip-link:focus { top: 1rem; }
 .sr-only {
@@ -1242,6 +1321,9 @@ button, input, textarea {
   font: inherit;
   min-height: 44px;
 }
+summary {
+  min-height: 44px;
+}
 button {
   border: 1px solid var(--accent-strong);
   background: var(--accent);
@@ -1255,8 +1337,9 @@ button.secondary, .locale-toggle button {
   color: var(--accent-strong);
 }
 button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
-  outline: 3px solid #ffbf47;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--focus-offset);
 }
 .disclosure-bar {
   display: grid;
@@ -1416,8 +1499,8 @@ textarea {
 }
 .page-actions button { flex: 1 1 6rem; }
 .danger {
-  border-color: #8a2c0d;
-  color: #8a2c0d;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 .ocr-label {
   font-weight: 700;
@@ -1453,20 +1536,20 @@ textarea {
 }
 .source-reader-panel, .report-reader-panel,
 .source-highlight-card, .source-highlight, .finding-card {
-  scroll-margin: var(--space-4);
+  scroll-margin: calc(var(--space-4) + 44px);
 }
 .source-reader-panel:focus,
 .report-reader-panel:focus,
 .source-highlight-card:focus,
 .source-highlight:focus,
 .finding-card:focus {
-  outline: 3px solid currentColor;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
 }
 [data-active-anchor="true"] {
-  outline: 3px solid currentColor;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
-  box-shadow: 0 0 0 6px #fff;
+  box-shadow: 0 0 0 6px var(--focus-offset);
 }
 .assumptions-panel {
   display: grid;
@@ -1563,7 +1646,7 @@ article {
 }
 mark {
   padding: .05rem .2rem;
-  background: #f4e9ff;
+  background: var(--source-mark);
 }
 .source-highlights {
   display: grid;
@@ -1628,33 +1711,33 @@ mark {
 .source-highlight {
   border-radius: 3px;
   padding: .04rem .12rem;
-  background: #f6f0ff;
+  background: var(--source-mark);
   color: inherit;
 }
 .source-kind {
   background: var(--accent-tint);
 }
 .source-highlight[data-semantic-role="amount_or_rate"] {
-  border-bottom: 3px solid #5f6f95;
+  border-bottom: 3px solid var(--role-amount);
 }
 .source-highlight[data-semantic-role="timing_or_term"] {
-  border-bottom: 3px dashed #806b00;
+  border-bottom: 3px dashed var(--role-timing);
 }
 .source-highlight[data-semantic-role="deduction_recoupment_or_liability"] {
-  border-left: 4px solid #6f5a8f;
+  border-left: 4px solid var(--role-liability);
 }
 .source-highlight[data-semantic-role="rights_scope_or_exclusivity"] {
   text-decoration-line: underline;
   text-decoration-style: double;
   text-decoration-thickness: 2px;
-  text-decoration-color: #3f7892;
+  text-decoration-color: var(--role-rights);
   text-underline-offset: .18em;
 }
 .source-highlight[data-semantic-role="ambiguity_or_missing_bound"] {
   text-decoration-line: underline;
   text-decoration-style: dotted;
   text-decoration-thickness: 2px;
-  text-decoration-color: #806b00;
+  text-decoration-color: var(--role-ambiguity);
   text-underline-offset: .18em;
 }
 [data-source-highlights-enabled="false"] .source-highlight {
@@ -1757,8 +1840,9 @@ footer {
   margin-bottom: var(--space-1);
 }
 .upload-details > summary:focus-visible, .tool-details > summary:focus-visible {
-  outline: 3px solid #ffbf47;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--focus-offset);
 }
 .check-first, .recommended-action {
   display: grid;
@@ -1898,6 +1982,35 @@ footer {
 .finding-snippet { margin: 0; max-width: var(--reading-measure); color: var(--muted); }
 .guidance-card h4 { margin: 0; }
 .guidance-why { margin: 0; max-width: var(--reading-measure); font-weight: 600; }
+@media (max-width: 480px) {
+  .workspace {
+    padding: var(--space-1);
+  }
+  .dimension-grid,
+  .scenario-field-list,
+  .assumption-fields,
+  .metric-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .locale-toggle,
+  .action-row,
+  .reader-jump-links {
+    width: 100%;
+  }
+  .locale-toggle button,
+  .action-row button {
+    flex: 1 1 100%;
+  }
+  .badge,
+  .source-badge {
+    max-width: 100%;
+  }
+}
+@media (min-width: 768px) {
+  .workspace {
+    padding: var(--space-3);
+  }
+}
 @media (min-width: 900px) {
   .workspace {
     padding: var(--space-4) var(--space-4);
@@ -1931,6 +2044,138 @@ footer {
   }
   .page-thumb {
     min-height: 10rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+@media (forced-colors: active) {
+  :root {
+    color-scheme: light dark;
+  }
+  body,
+  .topbar,
+  footer,
+  .card,
+  .tool-details,
+  .source-highlights,
+  .finding-card,
+  .scenario-inputs,
+  .assumptions-panel,
+  .page-card,
+  .source-highlight-card,
+  .source-card {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+  button,
+  button.secondary,
+  .locale-toggle button {
+    color: ButtonText;
+    background: ButtonFace;
+    border-color: ButtonText;
+  }
+  a,
+  .tile-link,
+  .reader-jump-links a,
+  .reader-back-link,
+  .source-status a {
+    color: LinkText;
+  }
+  .badge,
+  .source-badge,
+  .unverified-badge,
+  .model-suggestion-origin {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+  }
+  mark,
+  .source-highlight {
+    color: HighlightText;
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible,
+  summary:focus-visible,
+  [data-active-anchor="true"] {
+    outline: 3px solid Highlight;
+    box-shadow: none;
+  }
+}
+@media print {
+  body,
+  .topbar,
+  footer,
+  .card,
+  .tool-details,
+  .source-highlights,
+  .finding-card,
+  .scenario-inputs,
+  .assumptions-panel,
+  .page-card,
+  .source-highlight-card,
+  .source-card {
+    color: #000;
+    background: #fff;
+    box-shadow: none;
+  }
+  .skip-link,
+  .locale-toggle,
+  #analyze-btn,
+  #contract-file,
+  .reader-jump-links,
+  .reader-back-link {
+    display: none !important;
+  }
+  details,
+  details > summary,
+  details:not([open]) > *:not(summary) {
+    display: block;
+  }
+  a {
+    color: #000;
+    text-decoration: underline;
+  }
+  .badge,
+  .source-badge,
+  .unverified-badge,
+  .model-suggestion-origin {
+    color: #000;
+    background: transparent;
+    border: 1px solid #000;
+    font-weight: 700;
+  }
+  mark,
+  .source-highlight {
+    color: #000;
+    background: transparent;
+    border-color: #000;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: #000;
+    text-decoration-thickness: 1.5pt;
+  }
+  .source-highlight[data-semantic-role="timing_or_term"] {
+    text-decoration-style: dashed;
+  }
+  .source-highlight[data-semantic-role="rights_scope_or_exclusivity"] {
+    text-decoration-style: double;
+  }
+  .source-highlight[data-semantic-role="ambiguity_or_missing_bound"] {
+    text-decoration-style: dotted;
   }
 }
 """
@@ -1980,6 +2225,20 @@ _APP_JS = r"""(function () {
 
   function activeLocale() {
     return normalizeLocale(document.documentElement.getAttribute("data-active-locale"));
+  }
+
+  function prefersReducedMotion() {
+    return (
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  function scrollOptions(block) {
+    return {
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: block
+    };
   }
 
   function text(node) {
@@ -2061,6 +2320,7 @@ _APP_JS = r"""(function () {
     link.href = "#" + targetId;
     link.setAttribute("data-source-nav", "finding-to-source");
     link.setAttribute("data-source-focus-target", targetId);
+    link.setAttribute("aria-label", "원문에서 보기 / View source excerpt");
     link.appendChild(bilingual("span", null, source.source_link_label || copyLabel(payload, "action.open_source")));
     status.appendChild(link);
     status.appendChild(document.createTextNode(" "));
@@ -2082,6 +2342,7 @@ _APP_JS = r"""(function () {
     button.type = "button";
     button.setAttribute("data-copy-question", "true");
     button.setAttribute("data-copy-value", text(question && question.ko));
+    button.setAttribute("aria-label", "물어볼 말 복사 / Copy question to ask");
     button.appendChild(bilingual("span", null, copyLabel(payload, "action.copy_question")));
     return button;
   }
@@ -2265,6 +2526,10 @@ _APP_JS = r"""(function () {
     checkbox.type = "checkbox";
     checkbox.checked = highlights.enabled_default !== false;
     checkbox.setAttribute("data-source-highlight-toggle", "true");
+    checkbox.setAttribute(
+      "aria-label",
+      "출처 하이라이트 켜기 또는 끄기 / Toggle source highlights"
+    );
     toggle.appendChild(checkbox);
     toggle.appendChild(
       bilingual("span", null, {
@@ -2329,6 +2594,7 @@ _APP_JS = r"""(function () {
         back.href = "#" + source.finding_anchor_id;
         back.setAttribute("data-source-nav", "source-to-finding");
         back.setAttribute("data-source-focus-target", source.finding_anchor_id);
+        back.setAttribute("aria-label", "검토 항목으로 돌아가기 / Back to finding");
         back.appendChild(
           bilingual("span", null, {
             ko: "검토 항목으로 돌아가기",
@@ -2350,6 +2616,7 @@ _APP_JS = r"""(function () {
     var sourceLink = el("a", null, null);
     sourceLink.href = "#source-reader";
     sourceLink.setAttribute("data-reader-jump", "source");
+    sourceLink.setAttribute("aria-label", "원문 보기 / View source");
     sourceLink.appendChild(
       bilingual("span", null, {
         ko: "원문 보기",
@@ -2360,6 +2627,7 @@ _APP_JS = r"""(function () {
     var reportLink = el("a", null, null);
     reportLink.href = "#review-reader";
     reportLink.setAttribute("data-reader-jump", "report");
+    reportLink.setAttribute("aria-label", "검토 항목으로 돌아가기 / Back to findings");
     reportLink.appendChild(
       bilingual("span", null, {
         ko: "검토 항목으로 돌아가기",
@@ -2486,6 +2754,7 @@ _APP_JS = r"""(function () {
     var button = el("button", "secondary", null);
     button.type = "button";
     button.setAttribute("data-scenario-recalculate-button", "true");
+    button.setAttribute("aria-label", "시나리오 다시 계산 / Recalculate scenario");
     button.appendChild(bilingual("span", null, scenario.recompute.button_label));
     actionRow.appendChild(button);
     section.appendChild(actionRow);
@@ -2601,7 +2870,7 @@ _APP_JS = r"""(function () {
     container.appendChild(workspace);
 
     setLocale(activeLocale());
-    container.scrollIntoView({ behavior: "smooth", block: "start" });
+    container.scrollIntoView(scrollOptions("start"));
   }
 
   function collectAssumptions() {
@@ -2837,7 +3106,7 @@ _APP_JS = r"""(function () {
     if (!target.hasAttribute("tabindex")) {
       target.setAttribute("tabindex", "-1");
     }
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.scrollIntoView(scrollOptions("center"));
     try {
       target.focus({ preventScroll: true });
     } catch (error) {

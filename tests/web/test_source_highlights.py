@@ -346,7 +346,7 @@ class SourceHighlightTests(unittest.TestCase):
             "grid-template-columns: minmax(18rem, .9fr) minmax(0, 1.35fr)",
             markup,
         )
-        self.assertIn("scroll-margin: var(--space-4)", markup)
+        self.assertIn("scroll-margin: calc(var(--space-4) + 44px)", markup)
         self.assertIn('[data-active-anchor="true"]', markup)
         self.assertNotIn("position: sticky", markup)
 

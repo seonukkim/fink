@@ -234,7 +234,8 @@ def _render_creator_first_action(view_model: CreatorReviewViewModel) -> str:
       <p class="cash-flow-line">{_render_pair_inline(first['cash_flow_consequence'])}</p>
       <div class="action-row">
         <button type="button" class="secondary" data-copy-question="true"
-          data-copy-value="{_escape(question['ko'])}">
+          data-copy-value="{_escape(question['ko'])}"
+          aria-label="물어볼 말 복사 / Copy question to ask">
           {_render_pair_inline(copy['action.copy_question'])}
         </button>
         {_render_open_in_source_link(first, copy, css_class='secondary-link')}
@@ -251,7 +252,8 @@ def render_export_controls_html(*, contains_raw_image: bool = False) -> str:
         f"""<button type="button" class="secondary"
           data-export-format="{_escape(fmt)}"
           data-export-local-only="true"
-          data-contains-raw-image="false">{_escape(fmt.upper())}</button>"""
+          data-contains-raw-image="false"
+          aria-label="Export {fmt.upper()} locally">{_escape(fmt.upper())}</button>"""
         for fmt in EXPORT_FORMATS
     )
     return f"""<section class="report-export-controls"
@@ -359,7 +361,8 @@ def _render_creator_scenario_inputs(view_model: CreatorReviewViewModel) -> str:
       <h3>{_escape((scenario.get('primary_heading') or {}).get('ko', '시나리오 입력'))}</h3>
       {body}
       <div class="action-row">
-        <button type="button" class="secondary" data-scenario-recalculate-button="true">
+        <button type="button" class="secondary" data-scenario-recalculate-button="true"
+          aria-label="시나리오 다시 계산 / Recalculate scenario">
           {_escape((scenario.get('recompute') or {}).get('button_label', {}).get('ko', '시나리오 다시 계산'))}
         </button>
       </div>
@@ -458,7 +461,8 @@ def _render_finding_question_section(
       <h4>{_render_pair_inline(copy['section.question'])}</h4>
       {_render_pair_paragraph(question)}
       <button type="button" class="secondary" data-copy-question="true"
-        data-copy-value="{_escape(question['ko'])}">
+        data-copy-value="{_escape(question['ko'])}"
+        aria-label="물어볼 말 복사 / Copy question to ask">
         {_render_pair_inline(copy['action.copy_question'])}
       </button>
       {additional_questions}
@@ -508,7 +512,8 @@ def _render_open_in_source_link(
     return (
         f'<p class="source-status" data-highlight-status="{_escape(status)}">'
         f'<a href="#{_escape(focus_anchor_id)}"{class_attr} data-source-nav="finding-to-source"'
-        f' data-source-focus-target="{_escape(focus_anchor_id)}">'
+        f' data-source-focus-target="{_escape(focus_anchor_id)}"'
+        f' aria-label="원문에서 보기 / View source excerpt">'
         f"{_render_pair_inline(link_label)}</a> "
         f"<span>{_escape(label.get('ko') or MISSING_EXACT_SPAN_KO)}</span></p>"
     )
@@ -540,7 +545,8 @@ def _render_source_highlight_controls(source_highlights: dict[str, Any]) -> str:
       <div class="source-highlight-header">
         <h3 id="source-highlights-heading">출처 문구 하이라이트</h3>
         <label class="source-toggle">
-          <input type="checkbox" checked data-source-highlight-toggle="true">
+          <input type="checkbox" checked data-source-highlight-toggle="true"
+            aria-label="출처 하이라이트 켜기 또는 끄기 / Toggle source highlights">
           <span>하이라이트</span>
         </label>
       </div>
@@ -561,7 +567,8 @@ def _render_source_highlight_item(source: dict[str, Any]) -> str:
     segments = _render_source_segments(source.get("segments") or [])
     nav = (
         f'<a href="#{_escape(finding_anchor_id)}" data-source-nav="source-to-finding"'
-        f' data-source-focus-target="{_escape(finding_anchor_id)}">'
+        f' data-source-focus-target="{_escape(finding_anchor_id)}"'
+        f' aria-label="검토 항목으로 돌아가기 / Back to finding">'
         "검토 항목으로 돌아가기</a>"
         if finding_anchor_id
         else ""

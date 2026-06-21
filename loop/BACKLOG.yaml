@@ -1692,8 +1692,9 @@ tasks:
   - web_smoke
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-21T23:59:28+00:00'
 - id: FINK-RANK-01
   phase: P2
   priority: P2
