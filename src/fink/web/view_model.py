@@ -50,6 +50,19 @@ CREATOR_REVIEW_REQUIRED_COPY_KEYS = (
     "status.money.needs_inputs",
     "status.money.range_available",
     "status.timing.review_time_estimated",
+    "status.timing.contract_timing_missing",
+    "status.currency.needs_confirmation",
+    "status.currency.krw_assumed",
+    "section.why_check",
+    "section.wording",
+    "section.impact",
+    "section.question",
+    "section.evidence",
+    "section.detail",
+    "action.copy_question",
+    "action.open_source",
+    "diagnostic.rule_focus_index",
+    "diagnostic.rule_focus_note",
     "finding.priority_basis.missing_protection",
     "finding.priority_basis.detected_term",
     "finding.model_path.local_rules",
@@ -58,20 +71,20 @@ CREATOR_REVIEW_REQUIRED_COPY_KEYS = (
 
 _COPY: dict[str, dict[str, str]] = {
     "app.review_priority_label": {
-        "ko": "계약상 금융 검토 우선도",
+        "ko": "계약 금융 검토",
         "en": "Contractual Financial Review Priority",
     },
     "app.summary_heading": {
-        "ko": "금융 결정 브리프",
-        "en": "Financial Decision Brief",
+        "ko": "지금 먼저 확인할 것",
+        "en": "Check first now",
     },
     "app.recommendation_heading": {
-        "ko": "권장 확인 항목",
-        "en": "Recommended review action",
+        "ko": "지금 먼저 확인할 것",
+        "en": "Check first now",
     },
     "app.findings_heading": {
-        "ko": "우선 검토할 발견사항",
-        "en": "Findings to review first",
+        "ko": "서명 전에 확인할 항목",
+        "en": "Items to check before signing",
     },
     "app.source_clause_label": {
         "ko": "출처 조항",
@@ -82,20 +95,20 @@ _COPY: dict[str, dict[str, str]] = {
         "en": "Exact excerpt",
     },
     "dimension.review_priority": {
-        "ko": "검토 우선도",
-        "en": "Review priority",
+        "ko": "검토 순서",
+        "en": "Review order",
     },
     "dimension.money": {
-        "ko": "금액 영향",
-        "en": "Money consequence",
+        "ko": "현금흐름 영향",
+        "en": "Cash-flow impact",
     },
     "dimension.time": {
-        "ko": "시간 영향",
-        "en": "Timing consequence",
+        "ko": "시점",
+        "en": "Timing",
     },
     "dimension.evidence": {
-        "ko": "근거 상태",
-        "en": "Evidence status",
+        "ko": "판독 상태",
+        "en": "Reading status",
     },
     "status.reading.review_needed": {
         "ko": "검토 필요",
@@ -106,43 +119,95 @@ _COPY: dict[str, dict[str, str]] = {
         "en": "No prominent signal",
     },
     "status.evidence.unverified": {
-        "ko": "공식 근거 미확인",
-        "en": "Official grounding unverified",
+        "ko": "근거 미확인",
+        "en": "Official evidence unverified",
     },
     "status.scenario.needs_inputs": {
-        "ko": "시나리오 입력 필요",
-        "en": "Scenario inputs needed",
+        "ko": "입력 필요",
+        "en": "Input needed",
     },
     "status.scenario.inputs_present": {
-        "ko": "시나리오 입력 반영",
-        "en": "Scenario inputs included",
+        "ko": "입력 반영",
+        "en": "Inputs included",
     },
     "status.quantification.not_quantified": {
-        "ko": "금액 범위 미산정",
-        "en": "Money range not quantified",
+        "ko": "상한 미확정",
+        "en": "Upper bound not set",
     },
     "status.quantification.range_available": {
-        "ko": "저/기준/고 범위 산정",
+        "ko": "범위 계산됨",
         "en": "Low/base/high range available",
     },
     "status.money.needs_inputs": {
-        "ko": "금액 가정 필요",
-        "en": "Money assumptions needed",
+        "ko": "입력 필요",
+        "en": "Input needed",
     },
     "status.money.range_available": {
-        "ko": "금액 범위 있음",
-        "en": "Money range available",
+        "ko": "범위 계산됨",
+        "en": "Range available",
     },
     "status.timing.review_time_estimated": {
-        "ko": "검토 시간 추정",
-        "en": "Review time estimated",
+        "ko": "계약 시점 확인",
+        "en": "Contract timing to check",
+    },
+    "status.timing.contract_timing_missing": {
+        "ko": "시점 입력 필요",
+        "en": "Timing input needed",
+    },
+    "status.currency.needs_confirmation": {
+        "ko": "통화 확인 필요",
+        "en": "Currency needs confirmation",
+    },
+    "status.currency.krw_assumed": {
+        "ko": "KRW 기준",
+        "en": "KRW basis",
+    },
+    "section.why_check": {
+        "ko": "왜 확인",
+        "en": "Why check",
+    },
+    "section.wording": {
+        "ko": "문구",
+        "en": "Wording",
+    },
+    "section.impact": {
+        "ko": "영향",
+        "en": "Impact",
+    },
+    "section.question": {
+        "ko": "물어볼 말",
+        "en": "Question to ask",
+    },
+    "section.evidence": {
+        "ko": "근거",
+        "en": "Evidence",
+    },
+    "section.detail": {
+        "ko": "상세",
+        "en": "Detail",
+    },
+    "action.copy_question": {
+        "ko": "물어볼 말 복사",
+        "en": "Copy question",
+    },
+    "action.open_source": {
+        "ko": "원문에서 보기",
+        "en": "Open in source",
+    },
+    "diagnostic.rule_focus_index": {
+        "ko": "규칙 기반 검토 집중도 지수",
+        "en": "Rule-based review focus index",
+    },
+    "diagnostic.rule_focus_note": {
+        "ko": "위험 확률, 손실액, 안전 판정이 아닙니다.",
+        "en": "This is not a risk probability, loss amount, or safety verdict.",
     },
     "finding.priority_basis.missing_protection": {
-        "ko": "보호 조항이 빠졌거나 약해 보여 우선 확인 대상으로 정렬했습니다.",
+        "ko": "보호 조항이 빠졌거나 약해 보여 먼저 볼 항목으로 정렬했습니다.",
         "en": "Prioritized because a protective term appears missing or weak.",
     },
     "finding.priority_basis.detected_term": {
-        "ko": "현금흐름에 영향을 줄 수 있는 조건으로 감지되어 우선 확인 대상으로 정렬했습니다.",
+        "ko": "현금흐름에 영향을 줄 수 있는 조건으로 감지되어 먼저 볼 항목으로 정렬했습니다.",
         "en": "Prioritized because the term may affect creator cash flow.",
     },
     "finding.model_path.local_rules": {
@@ -216,7 +281,7 @@ _RISK_TO_PRIMARY_FIM = {
 }
 
 _LOCAL_MODEL_PATH = {
-    "ko": "기기 내 OCR/분절/규칙 신호/검토 우선도 뷰모델",
+    "ko": "기기 내 OCR/분절/규칙 신호/검토 순서 뷰모델",
     "en": "Local OCR, segmentation, rule-signal, and review-priority view model",
 }
 
@@ -375,7 +440,7 @@ def build_creator_review_view_model_from_report(
     return CreatorReviewViewModel(
         ui_locale=locale,
         summary={
-            "ko": "합성 예시 보고서는 우선 검토할 금융 조건을 한 화면에 정리합니다.",
+            "ko": "합성 예시 보고서는 먼저 볼 금융 조건을 한 화면에 정리합니다.",
             "en": "This synthetic report organizes the financial terms to review first.",
         },
         recommendation=recommendation,
@@ -463,14 +528,20 @@ def build_project_page_synthetic_view_model(
                 "label": creator_review_pair("dimension.money"),
                 "scenario_status": statuses[SCENARIO_STATUS],
                 "quantification_status": statuses[QUANTIFICATION_STATUS],
+                "currency_status": creator_review_pair("status.currency.needs_confirmation"),
                 "ranges": [],
             },
             "time": {
                 "label": creator_review_pair("dimension.time"),
                 "timing_state": creator_review_pair("status.timing.review_time_estimated"),
+                "contract_timing": {
+                    "ko": "지급 시점과 계약 기간을 계약서에서 확인하세요.",
+                    "en": "Check payment timing and contract duration in the contract.",
+                },
             },
             "evidence": {
                 "label": creator_review_pair("dimension.evidence"),
+                "reading_status": statuses[READING_STATUS],
                 "evidence_status": statuses[EVIDENCE_STATUS],
             },
         },
@@ -557,12 +628,12 @@ def _summary_from_result(result: Any) -> dict[str, str]:
     finding_count = len(result.ranked_findings)
     return {
         "ko": (
-            "이 브리프는 법률 자문이 아닌 계약상 금융 검토 우선도입니다. "
-            f"우선 검토할 발견사항 {finding_count}건을 정리했습니다. "
+            "이 화면은 법률 자문이 아닌 계약상 금융 검토 항목 정리입니다. "
+            f"먼저 볼 발견사항 {finding_count}건을 정리했습니다. "
             f"{result.recommended_action.cash_flow_ko}"
         ),
         "en": (
-            "This brief is a Contractual Financial Review Priority aid, not legal advice. "
+            "This screen is a Contractual Financial Review Priority aid, not legal advice. "
             f"It organizes {finding_count} findings to review first. "
             f"{result.recommended_action.cash_flow_en}"
         ),
@@ -572,6 +643,7 @@ def _summary_from_result(result: Any) -> dict[str, str]:
 def _dimensions_from_result(result: Any, statuses: dict[str, dict[str, Any]]) -> dict[str, Any]:
     time_exposure = result.time_result.time_exposure
     money_ranges = [_money_range_payload(exposure) for exposure in result.exposures if not exposure.is_user_input_required]
+    has_contract_timing = _has_contract_timing(time_exposure)
     return {
         "review_priority": {
             "label": creator_review_pair("dimension.review_priority"),
@@ -582,13 +654,19 @@ def _dimensions_from_result(result: Any, statuses: dict[str, dict[str, Any]]) ->
             "label": creator_review_pair("dimension.money"),
             "scenario_status": statuses[SCENARIO_STATUS],
             "quantification_status": statuses[QUANTIFICATION_STATUS],
+            "currency_status": creator_review_pair("status.currency.needs_confirmation"),
             "ranges": money_ranges,
             "note": {"ko": result.monetary_note_ko, "en": result.monetary_note_en},
         },
         "time": {
             "label": creator_review_pair("dimension.time"),
-            "timing_state": creator_review_pair("status.timing.review_time_estimated"),
+            "timing_state": creator_review_pair(
+                "status.timing.review_time_estimated"
+                if has_contract_timing
+                else "status.timing.contract_timing_missing"
+            ),
             "estimated_human_review_minutes": time_exposure.estimated_human_review_minutes,
+            "contract_timing": _contract_timing_payload(time_exposure),
             "cash_flow_consequence": {
                 "ko": result.recommended_action.cash_flow_ko,
                 "en": result.recommended_action.cash_flow_en,
@@ -609,6 +687,7 @@ def _dimensions_from_report(report: Any, statuses: dict[str, dict[str, Any]]) ->
         for exposure in assessment.monetary_exposures
         if not exposure.is_user_input_required
     ]
+    has_contract_timing = _has_contract_timing(assessment.time_exposure)
     return {
         "review_priority": {
             "label": creator_review_pair("dimension.review_priority"),
@@ -619,12 +698,18 @@ def _dimensions_from_report(report: Any, statuses: dict[str, dict[str, Any]]) ->
             "label": creator_review_pair("dimension.money"),
             "scenario_status": statuses[SCENARIO_STATUS],
             "quantification_status": statuses[QUANTIFICATION_STATUS],
+            "currency_status": creator_review_pair("status.currency.needs_confirmation"),
             "ranges": ranges,
         },
         "time": {
             "label": creator_review_pair("dimension.time"),
-            "timing_state": creator_review_pair("status.timing.review_time_estimated"),
+            "timing_state": creator_review_pair(
+                "status.timing.review_time_estimated"
+                if has_contract_timing
+                else "status.timing.contract_timing_missing"
+            ),
             "estimated_human_review_minutes": assessment.time_exposure.estimated_human_review_minutes,
+            "contract_timing": _contract_timing_payload(assessment.time_exposure),
         },
         "evidence": {
             "label": creator_review_pair("dimension.evidence"),
@@ -686,7 +771,10 @@ def _finding_from_signal(
 ) -> dict[str, Any]:
     category = _category_code(signal.risk_category)
     excerpt = _excerpt_for_clause(signal.clause_id, highlighted_evidence)
-    monetary_present = bool(report.assessment.monetary_exposures)
+    monetary_present = any(
+        not exposure.is_user_input_required
+        for exposure in report.assessment.monetary_exposures
+    )
     questions = _questions_from_report(report, signal.clause_id, practice_references)
     first_question = questions[0] if questions else _first_question(None)
     title = creator_review_pair(_CATEGORY_COPY_KEY.get(category, "dimension.review_priority"))
@@ -709,6 +797,7 @@ def _finding_from_signal(
         "priority_basis": _priority_basis(bool(signal.is_missing_protection)),
         "extracted_fields": [],
         "missing_inputs": _missing_inputs(monetary_present),
+        "evidence": _evidence_payload_from_signal(signal),
         "citations": _citations_for_signal(signal, report, evidence_records),
         "model_path": creator_review_pair("finding.model_path.local_rules"),
     }
@@ -753,6 +842,33 @@ def _evidence_payload_from_ranked(finding: Any) -> dict[str, Any]:
         "missing": {
             "ko": finding.missing_evidence_ko,
             "en": finding.missing_evidence_en,
+        },
+    }
+
+
+def _evidence_payload_from_signal(signal: Any) -> dict[str, Any]:
+    evidence_ids = list(getattr(signal, "grounding_evidence_ids", ()) or ())
+    if evidence_ids:
+        return {
+            "state": "official_evidence_unverified",
+            "label": {
+                "ko": "로컬 공식 근거 연결",
+                "en": "Local official evidence linked",
+            },
+            "grounding_evidence_ids": evidence_ids,
+            "authority_tiers": [],
+            "source_ids": [],
+            "missing": None,
+        }
+    return {
+        "state": "candidate_unverified",
+        "label": {"ko": "미확인 후보", "en": "Unverified candidate"},
+        "grounding_evidence_ids": [],
+        "authority_tiers": [],
+        "source_ids": [],
+        "missing": {
+            "ko": "로컬 공식 근거 연결이 필요합니다.",
+            "en": "Local official evidence needs to be linked.",
         },
     }
 
@@ -878,6 +994,58 @@ def _money_range_payload(exposure: Any) -> dict[str, Any]:
     }
 
 
+def _has_contract_timing(time_exposure: Any) -> bool:
+    fields = (
+        "payment_due_days",
+        "payment_delay_days",
+        "contract_duration_months",
+        "renewal_duration_months",
+        "exclusivity_duration_months",
+        "termination_notice_days",
+        "estimated_months_to_recoup",
+    )
+    return any(getattr(time_exposure, field, None) is not None for field in fields)
+
+
+def _contract_timing_payload(time_exposure: Any) -> dict[str, str]:
+    parts_ko: list[str] = []
+    parts_en: list[str] = []
+    if getattr(time_exposure, "payment_due_days", None) is not None:
+        value = time_exposure.payment_due_days
+        parts_ko.append(f"지급 {value}일")
+        parts_en.append(f"payment due {value} days")
+    if getattr(time_exposure, "payment_delay_days", None) is not None:
+        value = time_exposure.payment_delay_days
+        parts_ko.append(f"지연 {value}일")
+        parts_en.append(f"delay {value} days")
+    if getattr(time_exposure, "contract_duration_months", None) is not None:
+        value = time_exposure.contract_duration_months
+        parts_ko.append(f"계약 {value}개월")
+        parts_en.append(f"contract {value} months")
+    if getattr(time_exposure, "renewal_duration_months", None) is not None:
+        value = time_exposure.renewal_duration_months
+        parts_ko.append(f"갱신 {value}개월")
+        parts_en.append(f"renewal {value} months")
+    if getattr(time_exposure, "exclusivity_duration_months", None) is not None:
+        value = time_exposure.exclusivity_duration_months
+        parts_ko.append(f"독점 {value}개월")
+        parts_en.append(f"exclusivity {value} months")
+    if getattr(time_exposure, "termination_notice_days", None) is not None:
+        value = time_exposure.termination_notice_days
+        parts_ko.append(f"해지 통지 {value}일")
+        parts_en.append(f"termination notice {value} days")
+    if getattr(time_exposure, "estimated_months_to_recoup", None) is not None:
+        value = time_exposure.estimated_months_to_recoup
+        parts_ko.append(f"회수 {value}개월")
+        parts_en.append(f"recoupment {value} months")
+    if not parts_ko:
+        return {
+            "ko": "계약서에서 지급일, 계약 기간, 해지 통지일을 확인해야 합니다.",
+            "en": "Payment date, contract duration, and notice timing need to be checked.",
+        }
+    return {"ko": " · ".join(parts_ko), "en": " · ".join(parts_en)}
+
+
 def _exposure_to_audit(exposure: Any) -> dict[str, Any]:
     return {
         "fim_module": exposure.module.value,
@@ -928,14 +1096,15 @@ def _category_why(category: str) -> dict[str, str]:
 
 
 def _first_question(guidance: Any | None) -> dict[str, str]:
+    fallback = {
+        "ko": "서명 전 이 조건의 금액·시기 영향을 구체적으로 확인할 수 있나요?",
+        "en": "Before signing, can the money and timing effect of this term be clarified?",
+    }
     if guidance is None:
-        return {
-            "ko": "서명 전 이 조건의 금액·시기 영향을 구체적으로 확인할 수 있나요?",
-            "en": "Before signing, can the money and timing effect of this term be clarified?",
-        }
+        return fallback
     return {
-        "ko": guidance.questions_ko[0] if guidance.questions_ko else "",
-        "en": guidance.questions_en[0] if guidance.questions_en else "",
+        "ko": guidance.questions_ko[0] if guidance.questions_ko else fallback["ko"],
+        "en": guidance.questions_en[0] if guidance.questions_en else fallback["en"],
     }
 
 

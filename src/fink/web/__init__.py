@@ -1,4 +1,4 @@
-"""Local web helpers for FInk's responsive, local-first web flow."""
+"""Local web helpers for FInk's responsive on-device review flow."""
 
 from fink.web.analyze import (
     CategoryGuidance,

@@ -2,7 +2,7 @@
 
 This module composes the existing offline FInk engines into a single
 deterministic call so the web layer can turn pasted contract text (or an
-already-ingested document) into a natural-language Decision Brief plus the four
+already-ingested document) into a natural-language review summary plus the four
 separate report dimensions.
 
 Decision-Focused framing: the pipeline does not only surface a ranked list of
@@ -632,7 +632,7 @@ def _ingest_validation_error(message: str) -> Exception:
 
 
 # ---------------------------------------------------------------------------
-# Deterministic natural-language Decision Brief (no LLM, no network).
+# Deterministic natural-language review summary (no LLM, no network).
 # Korean strings are canonical; English strings are a generated aid. Every
 # Korean run is kept well under 180 Hangul-to-Hangul characters and ends in a
 # period so the long-private-quotation gate never matches.
@@ -804,8 +804,8 @@ _NO_FINDINGS_KO = "두드러진 금융 신호가 발견되지 않았습니다. �
 _NO_FINDINGS_EN = (
     "No prominent financial signals were found. Still, review the key terms yourself."
 )
-_BRIEF_LEAD_KO = "이 브리프는 결정에 도움을 주는 자동 요약이며 법률 자문이 아닙니다."
-_BRIEF_LEAD_EN = "This brief is an automated decision aid and is not legal advice."
+_SUMMARY_LEAD_KO = "이 요약은 결정에 도움을 주는 자동 정리이며 법률 자문이 아닙니다."
+_SUMMARY_LEAD_EN = "This summary is an automated decision aid and is not legal advice."
 
 
 def _category_guidance_for(
@@ -833,7 +833,7 @@ def _build_nl_summary(
     monetary_present: bool,
     locale: UILocale,
 ) -> str:
-    """Build a short, deterministic Decision Brief paragraph.
+    """Build a short, deterministic review-summary paragraph.
 
     Each sentence ends with a period so the long-private-quotation gate, which
     only matches >=180 Hangul-to-Hangul characters with no period or newline,
@@ -841,7 +841,7 @@ def _build_nl_summary(
     """
 
     is_ko = locale is UILocale.KO
-    lead = _BRIEF_LEAD_KO if is_ko else _BRIEF_LEAD_EN
+    lead = _SUMMARY_LEAD_KO if is_ko else _SUMMARY_LEAD_EN
     action_line = recommended_action.action_ko if is_ko else recommended_action.action_en
     cash_line = recommended_action.cash_flow_ko if is_ko else recommended_action.cash_flow_en
 
@@ -870,10 +870,10 @@ def _build_nl_summary(
     if not monetary_present:
         sentences.append(MONETARY_BLANK_KO if is_ko else MONETARY_BLANK_EN)
     if is_ko:
-        sentences.append("점수 0은 위험이 없다는 뜻이 아니라 오프라인 근거 미확인을 뜻합니다.")
+        sentences.append("근거 미확인은 안전 판정이 아니라 추가 확인이 필요하다는 뜻입니다.")
     else:
         sentences.append(
-            "A score of 0 means grounding is UNVERIFIED offline, not that there is no risk."
+            "Unverified evidence is not a safety finding; it means further checking is needed."
         )
     return " ".join(sentences)
 

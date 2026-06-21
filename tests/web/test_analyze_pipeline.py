@@ -84,11 +84,17 @@ class AnalyzePipelineTests(unittest.TestCase):
             self.assertIn(key, dimensions)
         self.assertGreaterEqual(dimensions["review_priority"]["score"], 0)
         self.assertLessEqual(dimensions["review_priority"]["score"], 100)
+        self.assertIn("currency_status", dimensions["monetary"])
+        self.assertIn("contract_timing", dimensions["time"])
+        self.assertNotIn("runtime", json.dumps(dimensions["time"], ensure_ascii=False).lower())
         self.assertEqual(
             dimensions["monetary"]["quantification_status"]["state"],
             "not_quantified",
         )
         self.assertGreaterEqual(len(payload["findings"]), 1)
+        for finding in payload["findings"]:
+            self.assertTrue(finding["question_to_ask"]["ko"].strip())
+            self.assertTrue(finding["question_to_ask"]["en"].strip())
         primary_json = json.dumps(_without_audit(payload), ensure_ascii=False)
         for forbidden in (
             "FIM-",
@@ -98,6 +104,8 @@ class AnalyzePipelineTests(unittest.TestCase):
             "overall_confidence",
             "severity_raw",
             "signal_confidence",
+            "Decision Brief",
+            "브리프",
         ):
             self.assertNotIn(forbidden, primary_json)
         audit_json = json.dumps(payload["audit_detail"], ensure_ascii=False)

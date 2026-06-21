@@ -84,6 +84,9 @@ class AnalyzeEndpointTests(unittest.TestCase):
             b"overall_confidence",
             b"FIM-",
             b"authority_factor",
+            b"Decision Brief",
+            "브리프".encode("utf-8"),
+            b"local-first",
         ):
             self.assertNotIn(forbidden, body)
 
@@ -105,8 +108,15 @@ class AnalyzeEndpointTests(unittest.TestCase):
         self.assertGreaterEqual(data["dimensions"]["review_priority"]["score"], 0)
         self.assertGreaterEqual(len(data["findings"]), 1)
         self.assertIn("evidence", data["findings"][0])
+        for finding in data["findings"]:
+            self.assertTrue(finding["question_to_ask"]["ko"].strip())
+            self.assertTrue(finding["question_to_ask"]["en"].strip())
+        self.assertIn("currency_status", data["dimensions"]["monetary"])
+        self.assertIn("contract_timing", data["dimensions"]["time"])
         self.assertTrue(data["summary"]["ko"].strip())
         self.assertTrue(data["summary"]["en"].strip())
+        self.assertNotIn("브리프", data["summary"]["ko"])
+        self.assertNotIn("Decision Brief", data["summary"]["en"])
 
     def test_analyze_post_missing_locale_defaults_to_ko(self) -> None:
         body = json.dumps({"paste_text": SAMPLE_KO}).encode("utf-8")

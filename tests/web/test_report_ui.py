@@ -181,6 +181,29 @@ class ReportUITests(unittest.TestCase):
         for dimension_id in WEB.report_dimension_ids():
             self.assertIn(f'data-report-dimension="{dimension_id}"', markup)
 
+        self.assertLess(markup.index('data-check-first="true"'), markup.index('data-dimension-count="4"'))
+        self.assertLess(markup.index('data-exact-excerpt="true"'), markup.index(" / 100"))
+        self.assertGreater(markup.index(" / 100"), markup.index('data-audit-detail="true"'))
+        self.assertIn("규칙 기반 검토 집중도 지수", markup)
+        self.assertIn("위험 확률, 손실액, 안전 판정이 아닙니다.", markup)
+        self.assertIn("물어볼 말 복사", markup)
+        self.assertIn("원문에서 보기", markup)
+        self.assertIn("통화 확인 필요", markup)
+        self.assertIn('data-collapsed-badge-count="3"', markup)
+        self.assertIn('<details id=', markup)
+        first_finding = markup.split('data-finding-rank="1"', 1)[1].split("</details>", 1)[0]
+        self.assertIn("open", first_finding)
+        section_order = [
+            'data-finding-section="section.why_check"',
+            'data-finding-section="section.wording"',
+            'data-finding-section="section.impact"',
+            'data-finding-section="section.question"',
+            'data-finding-section="section.evidence"',
+            'data-finding-section="section.detail"',
+        ]
+        positions = [first_finding.index(section) for section in section_order]
+        self.assertEqual(positions, sorted(positions))
+
         self.assertEqual(view_model.view_model, "CreatorReviewViewModel")
         self.assertIn("reading_status", view_model.statuses)
         self.assertIn("evidence_status", view_model.statuses)
@@ -193,6 +216,14 @@ class ReportUITests(unittest.TestCase):
         self.assertIn('data-selection-origin="model_suggestion"', markup)
         self.assertIn("모델 제안 — 확인 필요", markup)
         self.assertIn("시나리오 다시 계산", markup)
+        self.assertIn("계약 24개월", markup)
+        self.assertNotIn("검토 시간", markup)
+        self.assertNotIn("measured_runtime_seconds", markup)
+        self.assertNotIn("Overall confidence", markup)
+        self.assertNotIn("Decision Brief", markup)
+        self.assertNotIn("브리프", markup)
+        self.assertNotIn("local-first", markup)
+        self.assertNotIn("우선도", markup)
         self.assertNotIn("overall risk score", markup.lower())
         self.assertNotIn("fraud probability", markup.lower())
         self.assertNotIn("guaranteed loss", markup.lower())
@@ -228,7 +259,7 @@ class ReportUITests(unittest.TestCase):
         self.assertIn("공제 비용", markdown)
 
         primary_html = html_markup.split('data-audit-detail="true"', 1)[0]
-        for forbidden in ("FIM-1", "F2", "overall_confidence", "runtime_s"):
+        for forbidden in ("FIM-1", "F2", "overall_confidence", "runtime_s", " / 100"):
             self.assertNotIn(forbidden, primary_html)
             self.assertNotIn(forbidden, markdown)
         self.assertIn("FIM-1", html_markup)
@@ -241,6 +272,10 @@ class ReportUITests(unittest.TestCase):
         self.assertEqual(payload["view_model"], "CreatorReviewViewModel")
         self.assertEqual(payload["findings"][0]["rank"], 1)
         self.assertIn("audit_detail", payload)
+        markup = WEB.render_report_html(view_model)
+        self.assertIn("입력 필요", markup)
+        self.assertIn("상한 미확정", markup)
+        self.assertIn("통화 확인 필요", markup)
         self.assertNotIn("FIM-1", WEB.export_creator_review_markdown(view_model))
 
 

@@ -198,6 +198,7 @@ def _render_synchronized_reader(
       <section id="review-reader" class="report-reader-panel" data-reader-pane="report"
         tabindex="-1" aria-labelledby="reader-report-heading">
         <h3 id="reader-report-heading" class="sr-only">검토 항목</h3>
+        {_render_creator_first_action(view_model)}
         {_render_creator_dimensions(view_model)}
         {_render_creator_scenario_inputs(view_model)}
         {_render_creator_findings(view_model)}
@@ -205,6 +206,44 @@ def _render_synchronized_reader(
         {render_export_controls_html(contains_raw_image=contains_raw_image)}
       </section>
     </div>"""
+
+
+def _render_creator_first_action(view_model: CreatorReviewViewModel) -> str:
+    copy = view_model.to_payload()["copy"]
+    first = view_model.findings[0] if view_model.findings else None
+    dimensions = view_model.dimensions
+    evidence_status = dimensions["evidence"]["evidence_status"]["label"]
+    quantification_status = dimensions["monetary"]["quantification_status"]["label"]
+    if first is None:
+        return f"""<section class="check-first" data-check-first="true">
+          <p class="eyebrow">{_render_pair_inline(copy['app.recommendation_heading'])}</p>
+          <h2>{_render_pair_inline(copy['app.summary_heading'])}</h2>
+          <p>{_render_pair_inline(view_model.recommendation['action'])}</p>
+        </section>"""
+    title = first["title"]
+    source = first.get("source") or {}
+    excerpt = source.get("exact_excerpt") or ""
+    question = first["question_to_ask"]
+    return f"""<section class="check-first" data-check-first="true"
+      data-top-finding-id="{_escape(first['finding_id'])}">
+      <p class="eyebrow">{_render_pair_inline(copy['app.recommendation_heading'])}</p>
+      <h2>{_render_pair_inline(copy['app.summary_heading'])}</h2>
+      <p class="action-line">{_render_pair_inline(view_model.recommendation['action'])}</p>
+      <h3>{_render_pair_inline(title)}</h3>
+      <blockquote data-exact-excerpt="true">{_escape(excerpt)}</blockquote>
+      <p class="cash-flow-line">{_render_pair_inline(first['cash_flow_consequence'])}</p>
+      <div class="action-row">
+        <button type="button" class="secondary" data-copy-question="true"
+          data-copy-value="{_escape(question['ko'])}">
+          {_render_pair_inline(copy['action.copy_question'])}
+        </button>
+        {_render_open_in_source_link(first, copy, css_class='secondary-link')}
+      </div>
+      <p class="status-row" data-check-first-statuses="true">
+        <span class="badge">{_render_pair_inline(evidence_status)}</span>
+        <span class="badge">{_render_pair_inline(quantification_status)}</span>
+      </p>
+    </section>"""
 
 
 def render_export_controls_html(*, contains_raw_image: bool = False) -> str:
@@ -237,37 +276,29 @@ def _render_creator_dimensions(view_model: CreatorReviewViewModel) -> str:
     time = dimensions["time"]
     evidence = dimensions["evidence"]
     money_ranges = money.get("ranges") or ()
-    money_body = (
-        _render_creator_money_ranges(money_ranges)
-        if money_ranges
-        else _render_pair_paragraph(money.get("note") or money["quantification_status"]["label"])
-    )
+    money_body = _render_creator_money_ranges(money_ranges) if money_ranges else ""
     return f"""<div class="dimension-grid" data-dimension-count="4">
       <article data-report-dimension="review-priority-score">
-        <h3>{_escape(review['label']['ko'])}</h3>
-        <output aria-label="{_escape(review['label']['en'])}">
-          {_escape(str(review['score']))} / 100
-        </output>
-        <p>{_escape(review['reading_status']['label']['ko'])}</p>
+        <h3>{_render_pair_inline(review['label'])}</h3>
+        <p class="state-line">{_render_pair_inline(review['reading_status']['label'])}</p>
+        <p>{_render_pair_inline(view_model.recommendation['action'])}</p>
       </article>
       <article data-report-dimension="monetary-exposure-range" data-grand-total="absent">
-        <h3>{_escape(money['label']['ko'])}</h3>
-        <p>{_escape(money['scenario_status']['label']['ko'])}</p>
-        <p>{_escape(money['quantification_status']['label']['ko'])}</p>
+        <h3>{_render_pair_inline(money['label'])}</h3>
+        <p class="state-line">{_render_pair_inline(money['scenario_status']['label'])}</p>
+        <p class="state-line">{_render_pair_inline(money['quantification_status']['label'])}</p>
+        <p class="state-line">{_render_pair_inline(money['currency_status'])}</p>
         {money_body}
       </article>
       <article data-report-dimension="time-exposure">
-        <h3>{_escape(time['label']['ko'])}</h3>
-        <dl class="metric-list">
-          <dt>검토 시간</dt>
-          <dd>{_escape(_format_optional_number(time.get('estimated_human_review_minutes'), 'minutes'))}</dd>
-        </dl>
-        {_render_pair_paragraph(time.get("cash_flow_consequence"))}
+        <h3>{_render_pair_inline(time['label'])}</h3>
+        <p class="state-line">{_render_pair_inline(time['timing_state'])}</p>
+        {_render_pair_paragraph(time.get("contract_timing"))}
       </article>
       <article data-report-dimension="evidence-ocr-confidence">
-        <h3>{_escape(evidence['label']['ko'])}</h3>
-        <p>{_escape(evidence['reading_status']['label']['ko'])}</p>
-        <p>{_escape(evidence['evidence_status']['label']['ko'])}</p>
+        <h3>{_render_pair_inline(evidence['label'])}</h3>
+        <p class="state-line">{_render_pair_inline(evidence['reading_status']['label'])}</p>
+        <p class="state-line">{_render_pair_inline(evidence['evidence_status']['label'])}</p>
       </article>
     </div>"""
 
@@ -344,62 +375,141 @@ def _render_creator_findings(view_model: CreatorReviewViewModel) -> str:
     copy = view_model.to_payload()["copy"]
     items = []
     for finding in view_model.findings:
-        citations = _render_creator_citations(finding.get("citations") or [])
-        evidence = _render_creator_finding_evidence(finding.get("evidence") or {})
-        missing = _render_creator_missing_inputs(finding.get("missing_inputs") or [])
-        additional_questions = _render_creator_additional_questions(
-            finding.get("additional_questions") or []
-        )
         source = finding.get("source") or {}
         finding_anchor_id = str(source.get("finding_anchor_id") or finding["finding_id"])
+        open_attr = " open" if int(finding["rank"]) == 1 else ""
+        badges = _render_finding_summary_badges(finding, view_model)
         items.append(
-            f"""<li id="{_escape(finding_anchor_id)}" tabindex="-1"
-              class="finding-card" data-finding-id="{_escape(finding['finding_id'])}"
-              data-finding-rank="{_escape(finding['rank'])}"
-              data-reader-focus-target="finding">
-              <div class="finding-head">
-                <span class="badge">#{_escape(finding['rank'])}</span>
-                <span class="badge">{_escape(finding['states']['evidence_state'])}</span>
-              </div>
-              <h4>{_escape(finding['title']['ko'])}</h4>
-              <p class="finding-snippet">
-                <strong>{_escape(copy['app.source_clause_label']['ko'])}:</strong>
-                {_escape(finding['source']['clause_id'])}
-              </p>
-              <blockquote data-exact-excerpt="true">
-                {_escape(finding['source']['exact_excerpt'])}
-              </blockquote>
-              {_render_finding_source_link(finding)}
-              <p>{_escape(finding['why_it_matters']['ko'])}</p>
-              <p>{_escape(finding['cash_flow_consequence']['ko'])}</p>
-              <p><strong>확인 질문:</strong> {_escape(finding['question_to_ask']['ko'])}</p>
-              {additional_questions}
-              {evidence}
-              <p>{_escape(finding['priority_basis']['ko'])}</p>
-              {missing}
-              {citations}
+            f"""<li>
+              <details id="{_escape(finding_anchor_id)}" tabindex="-1"
+                class="finding-card" data-finding-id="{_escape(finding['finding_id'])}"
+                data-finding-rank="{_escape(finding['rank'])}"
+                data-reader-focus-target="finding"{open_attr}>
+                <summary class="finding-summary">
+                  <span class="finding-title">{_render_pair_inline(finding['title'])}</span>
+                  <span class="finding-badges" data-collapsed-badge-count="3">{badges}</span>
+                </summary>
+                {_render_finding_section(copy, 'section.why_check', finding['why_it_matters'])}
+                {_render_finding_wording_section(copy, finding)}
+                {_render_finding_section(copy, 'section.impact', finding['cash_flow_consequence'])}
+                {_render_finding_question_section(copy, finding)}
+                {_render_finding_evidence_section(copy, finding)}
+                {_render_finding_detail_section(copy, finding)}
+              </details>
             </li>"""
         )
     return f"""<section class="ranked-findings" data-ranked-findings="true">
-      <h3>{_escape(copy['app.findings_heading']['ko'])}</h3>
+      <h3>{_render_pair_inline(copy['app.findings_heading'])}</h3>
       <ol>{''.join(items)}</ol>
     </section>"""
 
 
-def _render_finding_source_link(finding: dict[str, Any]) -> str:
+def _render_finding_summary_badges(
+    finding: dict[str, Any],
+    view_model: CreatorReviewViewModel,
+) -> str:
+    evidence = finding.get("evidence") or {}
+    evidence_label = (evidence.get("label") or {}).get("ko") or finding["states"]["evidence_state"]
+    quantification = view_model.dimensions["monetary"]["quantification_status"]["label"]["ko"]
+    badges = (
+        f"#{finding['rank']}",
+        evidence_label,
+        quantification,
+    )
+    return "".join(f'<span class="badge">{_escape(item)}</span>' for item in badges)
+
+
+def _render_finding_section(
+    copy: dict[str, dict[str, Any]],
+    label_key: str,
+    pair: dict[str, str],
+) -> str:
+    return f"""<section class="finding-section" data-finding-section="{_escape(label_key)}">
+      <h4>{_render_pair_inline(copy[label_key])}</h4>
+      {_render_pair_paragraph(pair)}
+    </section>"""
+
+
+def _render_finding_wording_section(
+    copy: dict[str, dict[str, Any]],
+    finding: dict[str, Any],
+) -> str:
+    source = finding.get("source") or {}
+    return f"""<section class="finding-section" data-finding-section="section.wording">
+      <h4>{_render_pair_inline(copy['section.wording'])}</h4>
+      <p class="finding-snippet">
+        <strong>{_render_pair_inline(copy['app.source_clause_label'])}:</strong>
+        {_escape(source.get('clause_id', ''))}
+      </p>
+      <blockquote data-exact-excerpt="true">{_escape(source.get('exact_excerpt', ''))}</blockquote>
+      {_render_open_in_source_link(finding, copy)}
+    </section>"""
+
+
+def _render_finding_question_section(
+    copy: dict[str, dict[str, Any]],
+    finding: dict[str, Any],
+) -> str:
+    question = finding["question_to_ask"]
+    additional_questions = _render_creator_additional_questions(
+        finding.get("additional_questions") or []
+    )
+    return f"""<section class="finding-section" data-finding-section="section.question">
+      <h4>{_render_pair_inline(copy['section.question'])}</h4>
+      {_render_pair_paragraph(question)}
+      <button type="button" class="secondary" data-copy-question="true"
+        data-copy-value="{_escape(question['ko'])}">
+        {_render_pair_inline(copy['action.copy_question'])}
+      </button>
+      {additional_questions}
+    </section>"""
+
+
+def _render_finding_evidence_section(
+    copy: dict[str, dict[str, Any]],
+    finding: dict[str, Any],
+) -> str:
+    evidence = _render_creator_finding_evidence(finding.get("evidence") or {})
+    citations = _render_creator_citations(finding.get("citations") or [])
+    if not evidence and not citations:
+        evidence = '<p class="hint">근거 미확인</p>'
+    return f"""<section class="finding-section" data-finding-section="section.evidence">
+      <h4>{_render_pair_inline(copy['section.evidence'])}</h4>
+      {evidence}
+      {citations}
+    </section>"""
+
+
+def _render_finding_detail_section(
+    copy: dict[str, dict[str, Any]],
+    finding: dict[str, Any],
+) -> str:
+    missing = _render_creator_missing_inputs(finding.get("missing_inputs") or [])
+    return f"""<section class="finding-section" data-finding-section="section.detail">
+      <h4>{_render_pair_inline(copy['section.detail'])}</h4>
+      {_render_pair_paragraph(finding['priority_basis'])}
+      {missing}
+    </section>"""
+
+
+def _render_open_in_source_link(
+    finding: dict[str, Any],
+    copy: dict[str, dict[str, Any]],
+    *,
+    css_class: str = "",
+) -> str:
     source = finding.get("source") or {}
     anchor_id = str(source.get("anchor_id") or "")
-    focus_anchor_id = str(source.get("focus_anchor_id") or anchor_id)
+    focus_anchor_id = str(source.get("focus_anchor_id") or anchor_id or "source-reader")
     status = str(source.get("highlight_status") or HIGHLIGHT_STATUS_MISSING)
     label = source.get("highlight_status_label") or {}
-    if not focus_anchor_id:
-        return f'<p class="source-status" data-highlight-status="{_escape(status)}">{MISSING_EXACT_SPAN_KO}</p>'
-    link_label = (source.get("source_link_label") or {}).get("ko") or "출처 문구 보기"
+    link_label = source.get("source_link_label") or copy["action.open_source"]
+    class_attr = f' class="{_escape(css_class)}"' if css_class else ""
     return (
         f'<p class="source-status" data-highlight-status="{_escape(status)}">'
-        f'<a href="#{_escape(focus_anchor_id)}" data-source-nav="finding-to-source"'
+        f'<a href="#{_escape(focus_anchor_id)}"{class_attr} data-source-nav="finding-to-source"'
         f' data-source-focus-target="{_escape(focus_anchor_id)}">'
-        f"{_escape(link_label)}</a> "
+        f"{_render_pair_inline(link_label)}</a> "
         f"<span>{_escape(label.get('ko') or MISSING_EXACT_SPAN_KO)}</span></p>"
     )
 
@@ -531,8 +641,8 @@ def _render_creator_finding_evidence(evidence: dict[str, Any]) -> str:
     label = evidence.get("label") or {}
     missing = evidence.get("missing") or {}
     missing_text = str(missing.get("ko") or "").strip() if isinstance(missing, dict) else ""
-    ids = ", ".join(str(item) for item in evidence.get("grounding_evidence_ids", ()))
-    detail = ids or missing_text
+    ids = tuple(evidence.get("grounding_evidence_ids", ()) or ())
+    detail = f"연결된 근거 {len(ids)}건" if ids else missing_text
     if not detail:
         return ""
     return (
@@ -555,6 +665,15 @@ def _render_creator_citations(citations: list[dict[str, str]]) -> str:
     return f'<ul data-citations="true">{rows}</ul>'
 
 
+def _render_pair_inline(pair: dict[str, Any] | None) -> str:
+    if not pair:
+        return ""
+    return (
+        f'<span lang="ko" data-locale-text="ko">{_escape(pair.get("ko", ""))}</span>'
+        f'<span lang="en" data-locale-text="en">{_escape(pair.get("en", ""))}</span>'
+    )
+
+
 def _render_creator_audit_detail(view_model: CreatorReviewViewModel) -> str:
     audit_json = json.dumps(
         view_model.audit_detail,
@@ -562,9 +681,16 @@ def _render_creator_audit_detail(view_model: CreatorReviewViewModel) -> str:
         sort_keys=True,
         default=str,
     )
-    label = view_model.to_payload()["copy"]["export.audit_detail_label"]
+    copy = view_model.to_payload()["copy"]
+    label = copy["export.audit_detail_label"]
+    score = view_model.dimensions["review_priority"]["score"]
     return f"""<details class="audit-detail" data-audit-detail="true">
-      <summary>{_escape(label['ko'])}</summary>
+      <summary>{_render_pair_inline(label)}</summary>
+      <section class="advanced-diagnostic" data-advanced-diagnostic="rule-focus-index">
+        <h4>{_render_pair_inline(copy['diagnostic.rule_focus_index'])}</h4>
+        <output>{_escape(score)} / 100</output>
+        {_render_pair_paragraph(copy['diagnostic.rule_focus_note'])}
+      </section>
       <pre>{_escape(audit_json)}</pre>
     </details>"""
 
@@ -573,8 +699,7 @@ def _render_pair_paragraph(pair: dict[str, str] | None) -> str:
     if not pair:
         return ""
     return (
-        f'<p><span lang="ko">{_escape(pair["ko"])}</span> '
-        f'<span lang="en">{_escape(pair["en"])}</span></p>'
+        f'<p>{_render_pair_inline(pair)}</p>'
     )
 
 
@@ -583,11 +708,8 @@ def _render_dimensions(report: AnalysisReport) -> str:
     confidence = assessment.confidence
     return f"""<div class="dimension-grid" data-dimension-count="4">
       <article data-report-dimension="review-priority-score">
-        <h3>Review Priority Score</h3>
-        <output aria-label="Contractual Financial Review Priority Score">
-          {_escape(str(assessment.review_priority_score))} / 100
-        </output>
-        <p>계약상 금융 검토 우선도 / Contractual Financial Review Priority.</p>
+        <h3>검토 순서</h3>
+        <p>먼저 확인할 항목을 정렬합니다.</p>
       </article>
       <article data-report-dimension="monetary-exposure-range" data-grand-total="absent">
         <h3>Monetary Exposure Range</h3>
@@ -603,7 +725,6 @@ def _render_dimensions(report: AnalysisReport) -> str:
           <dt>OCR confidence</dt><dd>{confidence.ocr_confidence:.2f}</dd>
           <dt>Evidence confidence</dt><dd>{confidence.evidence_confidence:.2f}</dd>
           <dt>Data completeness</dt><dd>{confidence.data_completeness:.2f}</dd>
-          <dt>Overall confidence</dt><dd>{confidence.overall_confidence:.2f}</dd>
         </dl>
         {_render_list("confidence-drivers", confidence.drivers)}
       </article>
@@ -652,7 +773,6 @@ def _render_monetary_exposures(exposures: tuple[MonetaryExposureEstimate, ...]) 
 
 def _render_time_exposure(time_exposure: TimeExposure) -> str:
     fields = (
-        ("measured_runtime_seconds", time_exposure.measured_analysis_runtime_seconds, "seconds"),
         ("estimated_human_review_minutes", time_exposure.estimated_human_review_minutes, "minutes"),
         ("payment_due_days", time_exposure.payment_due_days, "days"),
         ("payment_delay_days", time_exposure.payment_delay_days, "days"),
@@ -732,7 +852,9 @@ def _render_category_card(
       <header>
         <p class="eyebrow">{category.value}</p>
         <h4>{_escape(CATEGORY_LABELS[category])}</h4>
-        <output aria-label="{category.value} category score">{score:.1f} / 100</output>
+        <span class="badge" aria-label="{category.value} category review focus">
+          review focus {score:.1f}
+        </span>
       </header>
       {_render_flagged_clauses(clauses, highlighted_evidence)}
       {_render_official_comparison(official_records)}
@@ -1014,19 +1136,19 @@ def _format_optional_number(value: Any, unit: str) -> str:
 
 def _empty_dimension_title(dimension_id: str) -> str:
     return {
-        "review-priority-score": "Review Priority Score",
-        "monetary-exposure-range": "Monetary Exposure Range",
-        "time-exposure": "Time Exposure",
-        "evidence-ocr-confidence": "Evidence & OCR Confidence",
+        "review-priority-score": "검토 순서",
+        "monetary-exposure-range": "현금흐름 영향",
+        "time-exposure": "시점",
+        "evidence-ocr-confidence": "판독 상태",
     }[dimension_id]
 
 
 def _empty_dimension_hint(dimension_id: str) -> str:
     return {
-        "review-priority-score": "0-100 ordinal review priority appears here.",
-        "monetary-exposure-range": "Low / base / high ranges stay separate by exposure type.",
-        "time-exposure": "Typed timing fields and pathway labels appear here.",
-        "evidence-ocr-confidence": "UNVERIFIED source status and OCR confidence appear here.",
+        "review-priority-score": "먼저 확인할 항목이 여기에 표시됩니다.",
+        "monetary-exposure-range": "입력 필요, 상한 미확정, 통화 확인 상태를 분리해 표시합니다.",
+        "time-exposure": "계약서 안의 지급일과 기간만 표시합니다.",
+        "evidence-ocr-confidence": "판독과 근거 상태를 표시합니다.",
     }[dimension_id]
 
 

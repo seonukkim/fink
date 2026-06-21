@@ -1537,8 +1537,9 @@ tasks:
   - legal_verdict_scan
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-21T23:41:53+00:00'
 - id: FINK-READ-01
   phase: UX
   priority: P1

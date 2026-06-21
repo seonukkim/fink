@@ -61,8 +61,8 @@ HOW_TO_USE_STEPS = (
         "en": "Press the Analyze button once",
     },
     {
-        "ko": "결정 브리프와 네 가지 출력을 확인하세요",
-        "en": "Read the Decision Brief and four outputs",
+        "ko": "지금 먼저 확인할 것과 네 가지 카드를 확인하세요",
+        "en": "Read the check-first item and four cards",
     },
 )
 
@@ -136,10 +136,10 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
     """Render the local-only creator flow without external assets.
 
     The page is split into a prominent primary flow (a 1-2-3 how-to strip, one
-    hero input card with the paste box plus a single collapsed upload affordance,
-    and the Decision Brief target) and a de-emphasized advanced-tools column
-    where the monetary-assumptions grid, the report shell, and the OCR page
-    editor live inside collapsed ``<details>`` panels. Both Korean and English
+    input card with the paste box plus a single collapsed upload affordance,
+    and the result target) and a de-emphasized advanced-tools column where the
+    monetary-assumptions grid, the report shell, and the OCR page editor live
+    inside collapsed ``<details>`` panels. Both Korean and English
     copy are rendered into the DOM and flipped via the ``data-active-locale``
     attribute, so the KO/EN toggle works before any analyze call. All ``fetch``
     and render logic lives in ``/app.js`` because the Content-Security-Policy
@@ -170,8 +170,8 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
   <a class="skip-link" href="#workspace">Skip to workspace</a>
   <header class="topbar">
     <div>
-      <p class="eyebrow">FInk local-first review</p>
-      <h1>계약상 금융 검토 우선도</h1>
+      <p class="eyebrow">FInk on-device review</p>
+      <h1>계약 금융 검토</h1>
       <p class="subtitle">Contractual Financial Review Priority</p>
     </div>
     <nav class="locale-toggle" aria-label="Locale" data-locale-toggle="true">
@@ -274,7 +274,7 @@ def _render_input_card() -> str:
 
 
 def _render_result_section() -> str:
-    """Render the Decision Brief target that ``/app.js`` fills after Analyze."""
+    """Render the result target that ``/app.js`` fills after Analyze."""
 
     return """<section
       id="result"
@@ -285,10 +285,10 @@ def _render_result_section() -> str:
       hidden
     >
       <div class="section-heading">
-        <p class="eyebrow">Decision Brief</p>
+        <p class="eyebrow">Review result</p>
         <h2 id="result-heading">
-          <span lang="ko" data-locale-text="ko">금융 결정 브리프</span>
-          <span lang="en" data-locale-text="en">Financial Decision Brief</span>
+          <span lang="ko" data-locale-text="ko">지금 먼저 확인할 것</span>
+          <span lang="en" data-locale-text="en">Check first now</span>
         </h2>
       </div>
       <p class="hint" data-result-placeholder="true">
@@ -1760,7 +1760,7 @@ footer {
   outline: 3px solid #ffbf47;
   outline-offset: 2px;
 }
-.recommended-action {
+.check-first, .recommended-action {
   display: grid;
   gap: var(--space-1);
   margin: var(--space-2) 0;
@@ -1769,6 +1769,22 @@ footer {
   border-left: 6px solid var(--accent);
   border-radius: var(--radius);
   background: var(--accent-tint);
+}
+.check-first h2, .check-first h3 {
+  margin: 0;
+}
+.check-first blockquote, .finding-section blockquote {
+  margin: 0;
+  padding: .75rem .85rem;
+  border-left: 4px solid var(--accent);
+  background: #fff;
+  max-width: var(--reading-measure);
+}
+.status-row {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin: 0;
 }
 .action-line { font-weight: 800; margin: 0; font-size: 1.1rem; }
 .cash-flow-line { margin: 0; color: var(--muted); }
@@ -1834,6 +1850,41 @@ footer {
   padding: var(--space-2);
   background: var(--panel);
   box-shadow: var(--shadow);
+}
+.finding-card[open] {
+  border-color: var(--accent);
+}
+.finding-summary {
+  cursor: pointer;
+  display: grid;
+  gap: .5rem;
+  list-style-position: inside;
+}
+.finding-title {
+  font-weight: 800;
+}
+.finding-badges {
+  display: flex;
+  gap: .35rem;
+  flex-wrap: wrap;
+}
+.finding-section {
+  display: grid;
+  gap: .45rem;
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--line-soft);
+}
+.finding-section h4 {
+  margin: 0;
+}
+.advanced-diagnostic {
+  display: grid;
+  gap: .5rem;
+  margin-top: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #fbfcfe;
 }
 .finding-head { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
 /* The rank badge leads each finding card. */
@@ -1997,14 +2048,92 @@ _APP_JS = r"""(function () {
     statusMessage(pair);
   }
 
-  function renderFindings(container, findings) {
+  function copyLabel(payload, key) {
+    return copyPair(payload, key);
+  }
+
+  function renderOpenSourceLink(finding, payload) {
+    var source = finding.source || {};
+    var status = el("p", "source-status", null);
+    var targetId = source.focus_anchor_id || source.anchor_id || "source-reader";
+    status.setAttribute("data-highlight-status", source.highlight_status || "missing_exact_span");
+    var link = el("a", null, null);
+    link.href = "#" + targetId;
+    link.setAttribute("data-source-nav", "finding-to-source");
+    link.setAttribute("data-source-focus-target", targetId);
+    link.appendChild(bilingual("span", null, source.source_link_label || copyLabel(payload, "action.open_source")));
+    status.appendChild(link);
+    status.appendChild(document.createTextNode(" "));
+    status.appendChild(
+      bilingual(
+        "span",
+        null,
+        source.highlight_status_label || {
+          ko: "정확한 문구 위치 확인 필요",
+          en: "Exact source phrase position needs confirmation"
+        }
+      )
+    );
+    return status;
+  }
+
+  function renderCopyQuestionButton(question, payload) {
+    var button = el("button", "secondary", null);
+    button.type = "button";
+    button.setAttribute("data-copy-question", "true");
+    button.setAttribute("data-copy-value", text(question && question.ko));
+    button.appendChild(bilingual("span", null, copyLabel(payload, "action.copy_question")));
+    return button;
+  }
+
+  function renderFindingSection(labelPair, contentClass) {
+    var section = el("section", "finding-section", null);
+    section.setAttribute("data-finding-section", contentClass);
+    section.appendChild(bilingual("h4", null, labelPair));
+    return section;
+  }
+
+  function renderFindingEvidence(section, finding) {
+    var evidence = finding.evidence || {};
+    if (evidence.label) {
+      section.appendChild(bilingual("p", "finding-snippet", evidence.label));
+    }
+    if (evidence.grounding_evidence_ids && evidence.grounding_evidence_ids.length > 0) {
+      section.appendChild(
+        bilingual("p", "finding-snippet", {
+          ko: "연결된 근거 " + evidence.grounding_evidence_ids.length + "건",
+          en: evidence.grounding_evidence_ids.length + " linked evidence item(s)"
+        })
+      );
+    } else if (evidence.missing) {
+      section.appendChild(bilingual("p", "finding-snippet", evidence.missing));
+    }
+    if (finding.citations && finding.citations.length > 0) {
+      var citationList = el("ul", null, null);
+      finding.citations.forEach(function (citation) {
+        var citationText = [
+          citation.evidence_id,
+          citation.source_id,
+          citation.authority_tier
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        citationList.appendChild(el("li", null, citationText));
+      });
+      section.appendChild(citationList);
+    }
+  }
+
+  function renderFindings(container, payload) {
+    var findings = payload.findings;
     if (!findings || findings.length === 0) {
       return;
     }
     var list = el("ol", "ranked-findings", null);
     list.setAttribute("data-ranked-findings", "true");
     findings.forEach(function (finding) {
-      var item = el("li", "finding-card", null);
+      var listItem = el("li", null, null);
+      var item = el("details", "finding-card", null);
       item.id =
         finding.source && finding.source.finding_anchor_id
           ? finding.source.finding_anchor_id
@@ -2013,84 +2142,80 @@ _APP_JS = r"""(function () {
       item.setAttribute("data-finding-id", finding.finding_id);
       item.setAttribute("data-finding-rank", String(finding.rank));
       item.setAttribute("data-reader-focus-target", "finding");
-      var head = el("div", "finding-head", null);
-      head.appendChild(el("span", "badge", "#" + finding.rank));
+      if (Number(finding.rank) === 1) {
+        item.open = true;
+      }
+      var summary = el("summary", "finding-summary", null);
+      summary.appendChild(bilingual("span", "finding-title", finding.title));
+      var badges = el("span", "finding-badges", null);
+      badges.setAttribute("data-collapsed-badge-count", "3");
+      badges.appendChild(el("span", "badge", "#" + finding.rank));
       var evidenceLabel =
         finding.evidence && finding.evidence.label
-          ? localized(finding.evidence.label)
-          : finding.states.evidence_state;
-      head.appendChild(el("span", "badge unverified-badge", evidenceLabel));
-      item.appendChild(head);
-      item.appendChild(bilingual("p", "finding-label", finding.title));
+          ? finding.evidence.label
+          : { ko: finding.states.evidence_state, en: finding.states.evidence_state };
+      badges.appendChild(bilingual("span", "badge unverified-badge", evidenceLabel));
+      badges.appendChild(
+        bilingual(
+          "span",
+          "badge",
+          payload.dimensions.monetary.quantification_status.label
+        )
+      );
+      summary.appendChild(badges);
+      item.appendChild(summary);
+
+      var why = renderFindingSection(copyLabel(payload, "section.why_check"), "section.why_check");
+      why.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
+      item.appendChild(why);
+
+      var wording = renderFindingSection(copyLabel(payload, "section.wording"), "section.wording");
       if (finding.source && finding.source.clause_id) {
-        item.appendChild(el("p", "finding-heading", finding.source.clause_id));
+        wording.appendChild(el("p", "finding-heading", finding.source.clause_id));
       }
       if (finding.source && finding.source.exact_excerpt) {
-        item.appendChild(el("p", "finding-snippet", finding.source.exact_excerpt));
+        var quote = el("blockquote", null, finding.source.exact_excerpt);
+        quote.setAttribute("data-exact-excerpt", "true");
+        wording.appendChild(quote);
       }
-      renderFindingSourceLink(item, finding);
-      item.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
-      item.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
-      item.appendChild(bilingual("p", "action-line", finding.question_to_ask));
-      if (finding.evidence) {
-        var evidenceLine = null;
-        if (
-          finding.evidence.grounding_evidence_ids &&
-          finding.evidence.grounding_evidence_ids.length > 0
-        ) {
-          evidenceLine = finding.evidence.grounding_evidence_ids.join(", ");
-        } else if (finding.evidence.missing) {
-          evidenceLine = localized(finding.evidence.missing);
-        }
-        if (evidenceLine) {
-          item.appendChild(el("p", "finding-snippet", evidenceLine));
-        }
-      }
-      if (finding.citations && finding.citations.length > 0) {
-        var citationList = el("ul", null, null);
-        finding.citations.forEach(function (citation) {
-          var citationText = [
-            citation.evidence_id,
-            citation.source_id,
-            citation.authority_tier
-          ]
-            .filter(Boolean)
-            .join(" · ");
-          citationList.appendChild(el("li", null, citationText));
-        });
-        item.appendChild(citationList);
-      }
+      wording.appendChild(renderOpenSourceLink(finding, payload));
+      item.appendChild(wording);
+
+      var impact = renderFindingSection(copyLabel(payload, "section.impact"), "section.impact");
+      impact.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
+      item.appendChild(impact);
+
+      var question = renderFindingSection(copyLabel(payload, "section.question"), "section.question");
+      question.appendChild(bilingual("p", "action-line", finding.question_to_ask));
+      question.appendChild(renderCopyQuestionButton(finding.question_to_ask, payload));
       if (finding.additional_questions && finding.additional_questions.length > 0) {
         var moreQuestions = el("ul", null, null);
-        finding.additional_questions.forEach(function (question) {
-          moreQuestions.appendChild(bilingual("li", null, question));
+        finding.additional_questions.forEach(function (extraQuestion) {
+          moreQuestions.appendChild(bilingual("li", null, extraQuestion));
         });
-        item.appendChild(moreQuestions);
+        question.appendChild(moreQuestions);
       }
-      list.appendChild(item);
+      item.appendChild(question);
+
+      var evidence = renderFindingSection(copyLabel(payload, "section.evidence"), "section.evidence");
+      renderFindingEvidence(evidence, finding);
+      item.appendChild(evidence);
+
+      var detail = renderFindingSection(copyLabel(payload, "section.detail"), "section.detail");
+      detail.appendChild(bilingual("p", "finding-snippet", finding.priority_basis));
+      if (finding.missing_inputs && finding.missing_inputs.length > 0) {
+        var missing = el("ul", null, null);
+        finding.missing_inputs.forEach(function (missingInput) {
+          missing.appendChild(bilingual("li", null, missingInput));
+        });
+        detail.appendChild(missing);
+      }
+      item.appendChild(detail);
+
+      listItem.appendChild(item);
+      list.appendChild(listItem);
     });
     container.appendChild(list);
-  }
-
-  function renderFindingSourceLink(item, finding) {
-    var source = finding.source || {};
-    var status = el("p", "source-status", null);
-    status.setAttribute("data-highlight-status", source.highlight_status || "missing_exact_span");
-    if (source.anchor_id) {
-      var link = el("a", null, localized(source.source_link_label) || "출처 문구 보기");
-      var targetId = source.focus_anchor_id || source.anchor_id;
-      link.href = "#" + targetId;
-      link.setAttribute("data-source-nav", "finding-to-source");
-      link.setAttribute("data-source-focus-target", targetId);
-      status.appendChild(link);
-      status.appendChild(document.createTextNode(" "));
-    }
-    status.appendChild(
-      document.createTextNode(
-        localized(source.highlight_status_label) || "정확한 문구 위치 확인 필요"
-      )
-    );
-    item.appendChild(status);
   }
 
   function renderSourceSegments(container, segments) {
@@ -2129,14 +2254,24 @@ _APP_JS = r"""(function () {
     section.setAttribute("data-reader-source-content", "true");
 
     var header = el("div", "source-highlight-header", null);
-    header.appendChild(el("h3", null, "출처 문구 하이라이트"));
+    header.appendChild(
+      bilingual("h3", null, {
+        ko: "출처 문구 하이라이트",
+        en: "Source highlights"
+      })
+    );
     var toggle = el("label", "source-toggle", null);
     var checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = highlights.enabled_default !== false;
     checkbox.setAttribute("data-source-highlight-toggle", "true");
     toggle.appendChild(checkbox);
-    toggle.appendChild(el("span", null, "하이라이트"));
+    toggle.appendChild(
+      bilingual("span", null, {
+        ko: "하이라이트",
+        en: "Highlights"
+      })
+    );
     header.appendChild(toggle);
     section.appendChild(header);
 
@@ -2156,7 +2291,12 @@ _APP_JS = r"""(function () {
     var sourceList = el("div", "source-list", null);
     var sources = highlights.sources || [];
     if (sources.length === 0) {
-      sourceList.appendChild(el("p", "hint", "정확한 문구 위치 확인 필요"));
+      sourceList.appendChild(
+        bilingual("p", "hint", {
+          ko: "정확한 문구 위치 확인 필요",
+          en: "Exact source phrase position needs confirmation"
+        })
+      );
     }
     sources.forEach(function (source) {
       var card = el("article", "source-highlight-card", null);
@@ -2185,10 +2325,16 @@ _APP_JS = r"""(function () {
       renderSourceSegments(sourceText, source.segments || []);
       card.appendChild(sourceText);
       if (source.finding_anchor_id) {
-        var back = el("a", null, "검토 항목으로 돌아가기");
+        var back = el("a", null, null);
         back.href = "#" + source.finding_anchor_id;
         back.setAttribute("data-source-nav", "source-to-finding");
         back.setAttribute("data-source-focus-target", source.finding_anchor_id);
+        back.appendChild(
+          bilingual("span", null, {
+            ko: "검토 항목으로 돌아가기",
+            en: "Back to finding"
+          })
+        );
         card.appendChild(back);
       }
       sourceList.appendChild(card);
@@ -2201,26 +2347,33 @@ _APP_JS = r"""(function () {
     var nav = el("nav", "reader-jump-links", null);
     nav.setAttribute("aria-label", "Reader shortcuts");
     nav.setAttribute("data-mobile-reader-links", "true");
-    var sourceLink = el("a", null, "원문 보기");
+    var sourceLink = el("a", null, null);
     sourceLink.href = "#source-reader";
     sourceLink.setAttribute("data-reader-jump", "source");
+    sourceLink.appendChild(
+      bilingual("span", null, {
+        ko: "원문 보기",
+        en: "View source"
+      })
+    );
     nav.appendChild(sourceLink);
-    var reportLink = el("a", null, "검토 항목으로 돌아가기");
+    var reportLink = el("a", null, null);
     reportLink.href = "#review-reader";
     reportLink.setAttribute("data-reader-jump", "report");
+    reportLink.appendChild(
+      bilingual("span", null, {
+        ko: "검토 항목으로 돌아가기",
+        en: "Back to findings"
+      })
+    );
     nav.appendChild(reportLink);
     return nav;
   }
 
-  function dimensionCard(titlePair, rows) {
-    var card = el("div", "dimension-card", null);
+  function dimensionCard(titlePair, dimensionId) {
+    var card = el("article", "dimension-card", null);
+    card.setAttribute("data-report-dimension", dimensionId);
     card.appendChild(bilingual("h4", null, titlePair));
-    var dl = el("dl", "metric-list", null);
-    rows.forEach(function (row) {
-      dl.appendChild(el("dt", null, row[0]));
-      dl.appendChild(el("dd", null, row[1]));
-    });
-    card.appendChild(dl);
     return card;
   }
 
@@ -2228,25 +2381,20 @@ _APP_JS = r"""(function () {
     var dims = payload.dimensions;
     var grid = el("div", "dimension-grid", null);
     grid.setAttribute("data-dimension-grid", "true");
+    grid.setAttribute("data-dimension-count", "4");
 
     var priority = dims.review_priority;
-    var priorityCard = dimensionCard(
-      priority.label,
-      [
-        ["score", String(priority.score) + " / 100"],
-        ["reading", priority.reading_status.state]
-      ]
-    );
+    var priorityCard = dimensionCard(priority.label, "review-priority-score");
+    priorityCard.appendChild(bilingual("p", "state-line", priority.reading_status.label));
+    priorityCard.appendChild(bilingual("p", "hint", payload.recommendation.action));
     grid.appendChild(priorityCard);
 
     var monetary = dims.monetary;
-    var monetaryCard = dimensionCard(
-      monetary.label,
-      [
-        ["scenario", monetary.scenario_status.state],
-        ["quantification", monetary.quantification_status.state]
-      ]
-    );
+    var monetaryCard = dimensionCard(monetary.label, "monetary-exposure-range");
+    monetaryCard.setAttribute("data-grand-total", "absent");
+    monetaryCard.appendChild(bilingual("p", "state-line", monetary.scenario_status.label));
+    monetaryCard.appendChild(bilingual("p", "state-line", monetary.quantification_status.label));
+    monetaryCard.appendChild(bilingual("p", "state-line", monetary.currency_status));
     if (monetary.ranges && monetary.ranges.length > 0) {
       monetary.ranges.forEach(function (range) {
         var line =
@@ -2264,20 +2412,16 @@ _APP_JS = r"""(function () {
     grid.appendChild(monetaryCard);
 
     var time = dims.time;
-    grid.appendChild(
-      dimensionCard(time.label, [
-        ["timing", "review_time_estimated"],
-        ["review_min", String(time.estimated_human_review_minutes)]
-      ])
-    );
+    var timeCard = dimensionCard(time.label, "time-exposure");
+    timeCard.appendChild(bilingual("p", "state-line", time.timing_state));
+    timeCard.appendChild(bilingual("p", "hint", time.contract_timing));
+    grid.appendChild(timeCard);
 
     var evidence = dims.evidence;
-    grid.appendChild(
-      dimensionCard(evidence.label, [
-        ["reading", evidence.reading_status.state],
-        ["evidence", evidence.evidence_status.state]
-      ])
-    );
+    var evidenceCard = dimensionCard(evidence.label, "evidence-ocr-confidence");
+    evidenceCard.appendChild(bilingual("p", "state-line", evidence.reading_status.label));
+    evidenceCard.appendChild(bilingual("p", "state-line", evidence.evidence_status.label));
+    grid.appendChild(evidenceCard);
 
     container.appendChild(grid);
   }
@@ -2353,6 +2497,56 @@ _APP_JS = r"""(function () {
     container.appendChild(section);
   }
 
+  function renderCheckFirst(container, payload) {
+    var section = el("section", "check-first", null);
+    section.setAttribute("data-check-first", "true");
+    section.appendChild(bilingual("p", "eyebrow", copyLabel(payload, "app.recommendation_heading")));
+    section.appendChild(bilingual("h2", null, copyLabel(payload, "app.summary_heading")));
+    section.appendChild(bilingual("p", "action-line", payload.recommendation.action));
+
+    var finding = payload.findings && payload.findings.length > 0 ? payload.findings[0] : null;
+    if (finding) {
+      section.setAttribute("data-top-finding-id", finding.finding_id);
+      section.appendChild(bilingual("h3", null, finding.title));
+      if (finding.source && finding.source.exact_excerpt) {
+        var quote = el("blockquote", null, finding.source.exact_excerpt);
+        quote.setAttribute("data-exact-excerpt", "true");
+        section.appendChild(quote);
+      }
+      section.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
+      var actions = el("div", "action-row", null);
+      actions.appendChild(renderCopyQuestionButton(finding.question_to_ask, payload));
+      actions.appendChild(renderOpenSourceLink(finding, payload));
+      section.appendChild(actions);
+    }
+
+    var statuses = el("p", "status-row", null);
+    statuses.setAttribute("data-check-first-statuses", "true");
+    statuses.appendChild(
+      bilingual("span", "badge", payload.dimensions.evidence.evidence_status.label)
+    );
+    statuses.appendChild(
+      bilingual("span", "badge", payload.dimensions.monetary.quantification_status.label)
+    );
+    section.appendChild(statuses);
+    container.appendChild(section);
+  }
+
+  function renderAdvancedDiagnostics(container, payload) {
+    var details = el("details", "audit-detail", null);
+    details.setAttribute("data-audit-detail", "true");
+    details.appendChild(bilingual("summary", null, copyLabel(payload, "export.audit_detail_label")));
+    var diagnostic = el("section", "advanced-diagnostic", null);
+    diagnostic.setAttribute("data-advanced-diagnostic", "rule-focus-index");
+    diagnostic.appendChild(bilingual("h4", null, copyLabel(payload, "diagnostic.rule_focus_index")));
+    diagnostic.appendChild(
+      el("output", null, String(payload.dimensions.review_priority.score) + " / 100")
+    );
+    diagnostic.appendChild(bilingual("p", "hint", copyLabel(payload, "diagnostic.rule_focus_note")));
+    details.appendChild(diagnostic);
+    container.appendChild(details);
+  }
+
   function renderResult(payload) {
     var container = document.getElementById("result");
     if (!container) {
@@ -2374,9 +2568,15 @@ _APP_JS = r"""(function () {
     sourcePane.tabIndex = -1;
     sourcePane.setAttribute("data-reader-pane", "source");
     sourcePane.setAttribute("aria-labelledby", "source-highlights-heading");
-    var backToReport = el("a", "reader-back-link", "검토 항목으로 돌아가기");
+    var backToReport = el("a", "reader-back-link", null);
     backToReport.href = "#review-reader";
     backToReport.setAttribute("data-source-nav", "source-to-finding");
+    backToReport.appendChild(
+      bilingual("span", null, {
+        ko: "검토 항목으로 돌아가기",
+        en: "Back to findings"
+      })
+    );
     sourcePane.appendChild(backToReport);
     renderSourceHighlights(sourcePane, payload);
 
@@ -2387,26 +2587,14 @@ _APP_JS = r"""(function () {
     reportPane.setAttribute("aria-labelledby", "reader-report-heading");
     reportPane.appendChild(el("h3", "sr-only", "검토 항목"));
 
-    var heading = el("div", "section-heading", null);
-    heading.appendChild(el("p", "eyebrow", "CreatorReviewViewModel"));
-    heading.appendChild(bilingual("h2", null, copyPair(payload, "app.summary_heading")));
-    reportPane.appendChild(heading);
-
-    reportPane.appendChild(bilingual("p", "nl-summary", payload.summary));
-
-    var action = payload.recommendation;
-    var actionBox = el("div", "recommended-action", null);
-    actionBox.setAttribute("data-recommended-action", payload.statuses.reading_status.state);
-    actionBox.appendChild(bilingual("p", "action-line", action.action));
-    actionBox.appendChild(bilingual("p", "cash-flow-line", action.cash_flow));
-    reportPane.appendChild(actionBox);
-
+    renderCheckFirst(reportPane, payload);
     renderDimensions(reportPane, payload);
     renderScenarioInputs(reportPane, payload);
 
     var findingsHeading = bilingual("h3", null, copyPair(payload, "app.findings_heading"));
     reportPane.appendChild(findingsHeading);
-    renderFindings(reportPane, payload.findings);
+    renderFindings(reportPane, payload);
+    renderAdvancedDiagnostics(reportPane, payload);
 
     workspace.appendChild(sourcePane);
     workspace.appendChild(reportPane);
@@ -2669,6 +2857,45 @@ _APP_JS = r"""(function () {
     return true;
   }
 
+  function copyQuestion(button) {
+    var value = button.getAttribute("data-copy-value") || "";
+    if (!value) {
+      return;
+    }
+    function done() {
+      statusMessage({
+        ko: "물어볼 말을 복사했습니다.",
+        en: "Question copied."
+      });
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(done).catch(function () {
+        fallbackCopy(value);
+        done();
+      });
+      return;
+    }
+    fallbackCopy(value);
+    done();
+  }
+
+  function fallbackCopy(value) {
+    var box = document.createElement("textarea");
+    box.value = value;
+    box.setAttribute("readonly", "readonly");
+    box.style.position = "fixed";
+    box.style.left = "-9999px";
+    document.body.appendChild(box);
+    box.select();
+    try {
+      document.execCommand("copy");
+    } catch (error) {
+      return;
+    } finally {
+      document.body.removeChild(box);
+    }
+  }
+
   function init() {
     var toggle = document.querySelector("[data-locale-toggle]");
     if (toggle) {
@@ -2697,6 +2924,11 @@ _APP_JS = r"""(function () {
       var readerLink = target.closest("[data-source-nav], [data-reader-jump]");
       if (readerLink && activateReaderAnchor(readerLink)) {
         event.preventDefault();
+      }
+      var copyButton = target.closest("[data-copy-question]");
+      if (copyButton) {
+        event.preventDefault();
+        copyQuestion(copyButton);
       }
       var highlightToggle = target.closest("[data-source-highlight-toggle]");
       if (highlightToggle) {

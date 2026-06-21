@@ -63,7 +63,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("skip-link", markup)
         self.assertIn('data-default-locale="ko"', markup)
         self.assertIn("EN generated", markup)
-        self.assertIn("계약상 금융 검토 우선도", markup)
+        self.assertIn("계약 금융 검토", markup)
         self.assertIn("Contractual Financial Review Priority", markup)
 
         self.assertIn(WEB.PRIVACY_BANNER, markup)
@@ -102,11 +102,15 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('data-how-to-steps="true"', markup)
         self.assertIn("사용 방법 1-2-3", markup)
         self.assertIn("How to use 1-2-3", markup)
+        self.assertIn("지금 먼저 확인할 것", markup)
+        self.assertIn("Check first now", markup)
         self.assertIn('id="result"', markup)
         self.assertIn("고급 시나리오 입력", markup)
         self.assertIn('data-live-recompute="false"', markup)
         self.assertIn('data-recompute-trigger="explicit"', markup)
         self.assertIn("시나리오 다시 계산", markup)
+        for forbidden in ("Decision Brief", "브리프", "local-first", "우선도"):
+            self.assertNotIn(forbidden, markup)
 
     def test_app_js_route_and_analyze_endpoint_are_local_only(self) -> None:
         import json
@@ -160,6 +164,9 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("var analyzeInFlight = false;", script)
         self.assertIn("function setAnalyzeBusy(isBusy)", script)
         self.assertIn("function firstChangedAssumption(previous, current)", script)
+        self.assertIn("function renderCheckFirst(container, payload)", script)
+        self.assertIn("function renderAdvancedDiagnostics(container, payload)", script)
+        self.assertIn('setAttribute("data-copy-question", "true")', script)
         self.assertIn("previous_assumptions", script)
         self.assertIn("scenarioRecompute", script)
         self.assertIn('button.setAttribute("aria-busy"', script)
