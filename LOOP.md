@@ -1,13 +1,13 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-21T21:05:52+00:00`
+- Generated: `2026-06-21T21:32:18+00:00`
 - Current branch: `main`
 - Base commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
 - Claude verdict: `APPROVE`
-- Latest run path: `.fink/runs/20260621T204622Z-c08c417c/FINK-UPL-01/round-01`
+- Latest run path: `.fink/runs/20260621T210556Z-a739dd31/FINK-CLN-01/round-01`
 
 ## Gates
 
@@ -36,8 +36,8 @@
 
 ## Tasks
 
-- Next eligible task: `FINK-CLN-01`
-- Done count: `57`
+- Next eligible task: `FINK-VM-01`
+- Done count: `58`
 - Blocked count: `0`
 - Next task selection order: highest priority, shortest scope, lexical task ID.
 
