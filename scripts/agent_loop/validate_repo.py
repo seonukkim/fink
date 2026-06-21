@@ -355,6 +355,37 @@ def financial_formula_tests() -> str:
     return "FIM sanity vectors"
 
 
+def fink_stage_corpus_gate() -> str:
+    script = REPO_ROOT / "scripts" / "import_stage_corpus.py"
+    if not script.is_file():
+        return "FINK-S0-01 loader not present"
+    index = REPO_ROOT / "data" / "corpus" / "stage-3" / "32_FINAL_FILE_INDEX.csv"
+    if not index.is_file():
+        return "local corpus not imported"
+    proc = subprocess.run(
+        [sys.executable, str(script), "--validate-only", "--json"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout).strip()
+        raise GateFailure(detail or "corpus validation failed")
+    report = json.loads(proc.stdout)
+    counts = report.get("counts", {})
+    require(counts.get("sources") == 35, "source count mismatch")
+    require(counts.get("glossary_terms") == 156, "glossary count mismatch")
+    require(counts.get("evidence_records") == 20, "evidence count mismatch")
+    require(counts.get("knowledge_cards") == 64, "knowledge-card count mismatch")
+    require(counts.get("checklist_items") == 52, "checklist count mismatch")
+    require(counts.get("canonical_features") == 29, "canonical feature count mismatch")
+    require(counts.get("auxiliary_features") == 3, "auxiliary feature count mismatch")
+    require(counts.get("taxonomy_financial_categories") == 9, "financial taxonomy mismatch")
+    require(counts.get("taxonomy_crosscutting_categories") == 5, "cross taxonomy mismatch")
+    return "count_check schema_load_ok"
+
+
 def paper_ledgers() -> str:
     expected = {
         "docs/paper/CLAIM_LEDGER.csv": [
@@ -510,6 +541,7 @@ def run_all(args: argparse.Namespace) -> None:
     gate("forbidden legal-verdict scan", legal_verdict_scan)
     gate("authority-tier scoring invariant", authority_invariant)
     gate("financial-formula tests", financial_formula_tests)
+    gate("FINK-S0-01 corpus count/schema gate", fink_stage_corpus_gate)
     gate("upload-deletion tests when relevant", lambda: "not relevant to bootstrap scaffold")
     gate("offline-network test when relevant", lambda: "not relevant to bootstrap scaffold")
     gate("responsive-page smoke test when relevant", lambda: "not relevant to bootstrap scaffold")
