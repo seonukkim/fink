@@ -74,3 +74,44 @@ Paper note for `04_data_and_implementation.md`: summarize this environment as a
 local WSL2 Ubuntu 24.04 research host with Ryzen 9 9950X CPU, 61Gi memory,
 blocked GPU access, Python 3.12.3, no remote runtime API dependency, and
 CPU-only local-first constraints at capture time.
+
+## Hugging Face Candidate Metadata
+
+Structured candidate inventory: `configs/models/candidates.yaml`.
+
+Captured for task `FINK-MR-02` at `2026-06-21T21:18:54+09:00` from
+`BASE_COMMIT=1feb4ac2377577e1e580fdc3a75e6b643d5ec238`.
+
+The inventory records only public metadata for model research. It does not
+download weights, read `.env`, record token values, or authorize a remote
+runtime API. Shell network access was blocked in this sandbox by name-resolution
+failure; future refreshes should use the approved cached Hugging Face token via
+`scripts/model_research/run_with_hf_auth.sh`.
+
+| Role | Candidate | HF repo | License | Gated | Pinned revision | Size |
+|------|-----------|---------|---------|-------|-----------------|------|
+| OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | false | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2.16 GB |
+| OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | false | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8.89 GB |
+| Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `apache-2.0` | false | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | 1.21 GB |
+| Embedding baseline | `bge_m3` | `BAAI/bge-m3` | `mit` | false | `5617a9f61b028005a4858fdac845db406aefb181` | 4.59 GB |
+| Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `apache-2.0` | false | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | 1.21 GB |
+| Explanation | `qwen3_4b` | `Qwen/Qwen3-4B` | `apache-2.0` | false | `1cfa9a7208912126459214e8b04321603b3df60c` | 8.06 GB |
+| Optional explanation | `qwen3_8b` | `Qwen/Qwen3-8B` | `apache-2.0` | false | `b968826d9c46dd6066d109eabc6255188de91218` | 16.4 GB |
+
+Metadata policy outcome:
+
+- All candidates are public and recorded as ungated at capture.
+- All declared licenses are within the open-license floor enforced by
+  `model_license_floor`.
+- Every candidate has a full 40-character pinned revision under `main`.
+- All listed sizes are below the configured 20 GB automated-download cap, though
+  any future download remains subject to the open-license floor and storage
+  privacy boundary.
+- `BAAI/bge-m3` includes pickle-bearing `.pt/.bin` files in the repository;
+  prefer safetensors or non-pickle assets if that baseline is selected.
+
+Paper note for `04_data_and_implementation.md`: report that the local model
+shortlist was inventoried from Hugging Face metadata on 2026-06-21, with all
+candidates public/ungated, open-allowlisted (`apache-2.0` or `mit`), pinned to
+exact revisions, and kept as metadata-only public records. State that weights
+are not committed and runtime analysis remains offline/local-first.

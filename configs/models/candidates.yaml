@@ -1,5 +1,16 @@
 schema_version: 1
 
+hf_metadata_capture:
+  task_id: FINK-MR-02
+  captured_at: "2026-06-21T21:18:54+09:00"
+  base_commit: "1feb4ac2377577e1e580fdc3a75e6b643d5ec238"
+  human_gate: MODEL_METADATA_NETWORK_APPROVED
+  source_note: >
+    Public Hugging Face model API/page metadata captured for model research only.
+    Runtime analysis remains local-first and must not require a remote model API,
+    cloud RAG, telemetry, cloud OCR, or runtime model download.
+  shell_network_status: "blocked in this sandbox by name-resolution failure; future refreshes should run through scripts/model_research/run_with_hf_auth.sh"
+
 license_policy:
   # Open-source-only floor. This allowlist must stay a subset of the canonical
   # OPEN_LICENSE_FLOOR enforced by the model_license_floor machine gate; it cannot
@@ -29,27 +40,184 @@ candidates:
     - id: paddleocr_vl
       repo_id: PaddlePaddle/PaddleOCR-VL
       role: primary_document_ocr_layout
+      hf_metadata:
+        license: apache-2.0
+        gated: false
+        access_status: public_ungated
+        private: false
+        disabled: false
+        pinned_revision: baee27eebcbf26cdeab160116679d765f13a3f27
+        revision_ref: main
+        last_modified: "2026-05-28T09:36:36.000Z"
+        metadata_source_url: "https://huggingface.co/api/models/PaddlePaddle/PaddleOCR-VL"
+        revision_source_url: "https://huggingface.co/PaddlePaddle/PaddleOCR-VL/tree/main"
+        pipeline_tag: image-text-to-text
+        library_name: PaddleOCR
+        file_size_gb: 2.16
+        used_storage_bytes: 2156679874
+        parameter_count: 958588736
+        tensor_type: BF16
+        tags:
+          - PaddleOCR
+          - safetensors
+          - image-to-text
+          - ocr
+          - document-parse
+          - layout
+          - table
+          - formula
+          - chart
+          - multilingual
     - id: qwen3_vl_4b
       repo_id: Qwen/Qwen3-VL-4B-Instruct
       role: difficult_image_vlm_fallback
+      hf_metadata:
+        license: apache-2.0
+        gated: false
+        access_status: public_ungated
+        private: false
+        disabled: false
+        pinned_revision: ebb281ec70b05090aa6165b016eac8ec08e71b17
+        revision_ref: main
+        last_modified_display: "2025-10-15"
+        metadata_source_url: "https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct"
+        revision_source_url: "https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct/commit/ebb281ec70b05090aa6165b016eac8ec08e71b17"
+        pipeline_tag: image-text-to-text
+        library_name: transformers
+        file_size_gb: 8.89
+        parameter_count: 4B
+        tensor_type: BF16
+        tags:
+          - transformers
+          - safetensors
+          - qwen3_vl
+          - conversational
+          - eval-results
 
   embedding:
     - id: qwen3_embedding_0_6b
       repo_id: Qwen/Qwen3-Embedding-0.6B
       role: primary_ko_en_embedding
+      hf_metadata:
+        license: apache-2.0
+        gated: false
+        access_status: public_ungated
+        private: false
+        disabled: false
+        pinned_revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+        revision_ref: main
+        last_modified_display: "2026-04-20"
+        metadata_source_url: "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B"
+        revision_source_url: "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/commit/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+        pipeline_tag: feature-extraction
+        library_name: sentence-transformers
+        file_size_gb: 1.21
+        parameter_count: 0.6B
+        tags:
+          - sentence-transformers
+          - safetensors
+          - transformers
+          - qwen3
+          - sentence-similarity
+          - text-embeddings-inference
     - id: bge_m3
       repo_id: BAAI/bge-m3
       role: multilingual_retrieval_baseline
+      hf_metadata:
+        license: mit
+        gated: false
+        access_status: public_ungated
+        private: false
+        disabled: false
+        pinned_revision: 5617a9f61b028005a4858fdac845db406aefb181
+        revision_ref: main
+        last_modified_display: "2024-07-03"
+        metadata_source_url: "https://huggingface.co/BAAI/bge-m3"
+        revision_source_url: "https://huggingface.co/BAAI/bge-m3/commit/5617a9f61b028005a4858fdac845db406aefb181"
+        pipeline_tag: sentence-similarity
+        library_name: sentence-transformers
+        file_size_gb: 4.59
+        security_note: "Repository includes pickle-bearing .pt/.bin files; prefer safetensors or non-pickle assets if selected."
+        tags:
+          - sentence-transformers
+          - pytorch
+          - onnx
+          - xlm-roberta
+          - feature-extraction
+          - eval-results
+          - text-embeddings-inference
 
   reranker:
     - id: qwen3_reranker_0_6b
       repo_id: Qwen/Qwen3-Reranker-0.6B
       role: primary_ko_en_reranker
+      hf_metadata:
+        license: apache-2.0
+        gated: false
+        access_status: public_ungated
+        private: false
+        disabled: false
+        pinned_revision: e61197ed45024b0ed8a2d74b80b4d909f1255473
+        revision_ref: main
+        last_modified_display: "2026-05-23"
+        metadata_source_url: "https://huggingface.co/Qwen/Qwen3-Reranker-0.6B"
+        revision_source_url: "https://huggingface.co/Qwen/Qwen3-Reranker-0.6B/commit/e61197ed45024b0ed8a2d74b80b4d909f1255473"
+        pipeline_tag: text-ranking
+        library_name: transformers
+        file_size_gb: 1.21
+        parameter_count: 0.6B
+        tags:
+          - transformers
+          - safetensors
+          - sentence-transformers
+          - qwen3
+          - text-generation
 
   explanation:
     - id: qwen3_4b
       repo_id: Qwen/Qwen3-4B
       role: primary_local_explanation
+      hf_metadata:
+        license: apache-2.0
+        gated: false
+        access_status: public_ungated
+        private: false
+        disabled: false
+        pinned_revision: 1cfa9a7208912126459214e8b04321603b3df60c
+        revision_ref: main
+        last_modified_display: "2025-07-26"
+        metadata_source_url: "https://huggingface.co/Qwen/Qwen3-4B"
+        revision_source_url: "https://huggingface.co/Qwen/Qwen3-4B/commit/1cfa9a7208912126459214e8b04321603b3df60c"
+        pipeline_tag: text-generation
+        library_name: transformers
+        file_size_gb: 8.06
+        parameter_count: 4B
+        tags:
+          - transformers
+          - safetensors
+          - qwen3
+          - text-generation
     - id: qwen3_8b
       repo_id: Qwen/Qwen3-8B
       role: optional_high_quality_explanation
+      hf_metadata:
+        license: apache-2.0
+        gated: false
+        access_status: public_ungated
+        private: false
+        disabled: false
+        pinned_revision: b968826d9c46dd6066d109eabc6255188de91218
+        revision_ref: main
+        last_modified_display: "2025-07-26"
+        metadata_source_url: "https://huggingface.co/Qwen/Qwen3-8B"
+        revision_source_url: "https://huggingface.co/Qwen/Qwen3-8B/commit/b968826d9c46dd6066d109eabc6255188de91218"
+        pipeline_tag: text-generation
+        library_name: transformers
+        file_size_gb: 16.4
+        parameter_count: 8B
+        tags:
+          - transformers
+          - safetensors
+          - qwen3
+          - conversational
+          - text-generation-inference
