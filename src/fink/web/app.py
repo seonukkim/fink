@@ -90,6 +90,10 @@ class WebBindingError(ValueError):
     """Raised when the requested web bind mode would expose FInk too broadly."""
 
 
+class LocaleValidationError(ValueError):
+    """Raised when an explicit API locale is not one of the supported UI locales."""
+
+
 def resolve_bind_settings(
     *,
     host: str | None = None,
@@ -481,7 +485,7 @@ def _analysis_payload_from_request(body: dict[str, Any]) -> dict[str, Any]:
     paste_text = body.get("paste_text")
     if not isinstance(paste_text, str):
         raise _ingest_validation_error("paste_text must be a string")
-    locale = _resolve_locale(body.get("locale"))
+    locale = _resolve_api_locale(body)
     scenario_inputs = _assumptions_from_payload(body.get("assumptions"))
     result = run_local_analysis(
         pasted_text=paste_text,
@@ -491,13 +495,22 @@ def _analysis_payload_from_request(body: dict[str, Any]) -> dict[str, Any]:
     return analysis_result_to_payload(result, locale)
 
 
-def _resolve_locale(value: Any) -> UILocale:
+def _resolve_api_locale(body: dict[str, Any]) -> UILocale:
+    if "locale" not in body or body.get("locale") is None:
+        return UILocale.KO
+    return _coerce_locale(body["locale"])
+
+
+def _coerce_locale(value: Any) -> UILocale:
+    if isinstance(value, UILocale):
+        return value
     if isinstance(value, str):
+        normalized = value.strip().lower()
         try:
-            return UILocale(value.strip().lower())
-        except ValueError:
-            return UILocale.KO
-    return UILocale.KO
+            return UILocale(normalized)
+        except ValueError as exc:
+            raise LocaleValidationError("locale must be 'ko' or 'en'") from exc
+    raise LocaleValidationError("locale must be 'ko' or 'en'")
 
 
 def _assumptions_from_payload(value: Any) -> EditableAssumptions | None:
@@ -585,6 +598,16 @@ def _structured_local_error(
     }
 
 
+def _structured_locale_error() -> dict[str, Any]:
+    return _structured_local_error(
+        code="locale_invalid",
+        message_ko="지원하지 않는 화면 언어입니다.",
+        message_en="Unsupported UI locale. Use 'ko' or 'en'.",
+        action_ko="locale 값을 ko 또는 en으로 보내거나 생략하세요.",
+        action_en="Send locale as 'ko' or 'en', or omit it to use Korean.",
+    )
+
+
 def app_js() -> str:
     """Return the analyze and locale-toggle JavaScript served at /app.js.
 
@@ -650,6 +673,8 @@ def _create_fastapi_app(settings: WebBindSettings) -> Any:
             )
         try:
             payload = _analysis_payload_from_request(body if isinstance(body, dict) else {})
+        except LocaleValidationError:
+            return JSONResponse(_structured_locale_error(), status_code=422)
         except _local_analysis_client_errors() as exc:
             return JSONResponse(
                 _structured_local_error(
@@ -768,6 +793,9 @@ class LocalASGIApp:
             return
         try:
             payload = _analysis_payload_from_request(parsed)
+        except LocaleValidationError:
+            await _send_json(send, 422, _structured_locale_error())
+            return
         except _local_analysis_client_errors() as exc:
             await _send_json(send, 400, _structured_local_error(
                 code="input_invalid",
@@ -1410,7 +1438,31 @@ footer {
 _APP_JS = r"""(function () {
   "use strict";
 
+  var LOCALE_STORAGE_KEY = "fink.ui_locale";
+
+  function normalizeLocale(locale) {
+    var normalized = String(locale || "").trim().toLowerCase();
+    return normalized === "en" || normalized === "ko" ? normalized : "ko";
+  }
+
+  function readStoredLocale() {
+    try {
+      return window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeStoredLocale(locale) {
+    try {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    } catch (error) {
+      return;
+    }
+  }
+
   function setLocale(locale) {
+    locale = normalizeLocale(locale);
     var root = document.documentElement;
     root.setAttribute("data-active-locale", locale);
     root.setAttribute("lang", locale);
@@ -1419,10 +1471,11 @@ _APP_JS = r"""(function () {
       var active = button.getAttribute("data-locale-button") === locale;
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
+    writeStoredLocale(locale);
   }
 
   function activeLocale() {
-    return document.documentElement.getAttribute("data-active-locale") || "ko";
+    return normalizeLocale(document.documentElement.getAttribute("data-active-locale"));
   }
 
   function text(node) {
@@ -1733,7 +1786,7 @@ _APP_JS = r"""(function () {
     if (clearButton) {
       clearButton.addEventListener("click", clearAll);
     }
-    setLocale(activeLocale());
+    setLocale(readStoredLocale() || activeLocale());
   }
 
   if (document.readyState === "loading") {

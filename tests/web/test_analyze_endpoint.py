@@ -97,6 +97,40 @@ class AnalyzeEndpointTests(unittest.TestCase):
         self.assertTrue(data["nl_summary"]["ko"].strip())
         self.assertTrue(data["nl_summary"]["en"].strip())
 
+    def test_analyze_post_missing_locale_defaults_to_ko(self) -> None:
+        body = json.dumps({"paste_text": SAMPLE_KO}).encode("utf-8")
+        status, _, payload = asyncio.run(
+            _asgi_request(self.app, "POST", "/api/analyze", body)
+        )
+        self.assertEqual(status, 200)
+        data = json.loads(payload)
+        self.assertEqual(data["ui_locale"], "ko")
+
+    def test_valid_locale_strings_and_enums_are_equivalent(self) -> None:
+        import fink.web.app as appmod
+        from fink.schemas import UILocale
+
+        self.assertIs(appmod._resolve_api_locale({"locale": "ko"}), UILocale.KO)
+        self.assertIs(appmod._resolve_api_locale({"locale": UILocale.KO}), UILocale.KO)
+        self.assertIs(appmod._resolve_api_locale({"locale": "en"}), UILocale.EN)
+        self.assertIs(appmod._resolve_api_locale({"locale": UILocale.EN}), UILocale.EN)
+
+    def test_analyze_post_invalid_locale_returns_structured_422(self) -> None:
+        body = json.dumps({"paste_text": SAMPLE_KO, "locale": "ja"}).encode("utf-8")
+        status, headers, payload = asyncio.run(
+            _asgi_request(self.app, "POST", "/api/analyze", body)
+        )
+        self.assertEqual(status, 422)
+        self.assertEqual(headers["content-type"], "application/json")
+        data = json.loads(payload)
+        self.assertTrue(data["local_only"])
+        self.assertEqual(data["error_code"], "locale_invalid")
+        self.assertIn("error", data)
+        self.assertIn("error_en", data)
+        self.assertIn("next_action", data)
+        self.assertNotIn("ui_locale", data)
+        self.assertNotEqual(data["error_code"], "internal_local_error")
+
     def test_analyze_post_malformed_body_returns_400(self) -> None:
         status, headers, payload = asyncio.run(
             _asgi_request(self.app, "POST", "/api/analyze", b"{not valid json")

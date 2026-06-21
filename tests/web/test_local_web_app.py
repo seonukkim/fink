@@ -145,6 +145,17 @@ class WebSmokeTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(json.loads(payload)["local_only"])
 
+    def test_app_js_invalid_stored_locale_falls_back_to_ko(self) -> None:
+        script = WEB.app_js()
+        self.assertIn("fink.ui_locale", script)
+        self.assertIn("function normalizeLocale(locale)", script)
+        self.assertIn(
+            'return normalized === "en" || normalized === "ko" ? normalized : "ko";',
+            script,
+        )
+        self.assertIn("window.localStorage.getItem(LOCALE_STORAGE_KEY)", script)
+        self.assertIn("setLocale(readStoredLocale() || activeLocale());", script)
+
     def test_lan_binding_is_gated_by_opt_in_warning_and_private_host(self) -> None:
         loopback = WEB.resolve_bind_settings(host="localhost")
         self.assertEqual(loopback.host, WEB.DEFAULT_LOOPBACK_HOST)
