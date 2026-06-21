@@ -356,3 +356,80 @@ candidate revisions (`PaddlePaddle/PaddleOCR-VL` at
 `ebb281ec70b05090aa6165b016eac8ec08e71b17`) while keeping weights and private
 inputs out of Git. State that the measured result is synthetic-only and is not a
 real-contract OCR accuracy claim.
+
+## KO/EN Retrieval Consistency Benchmark
+
+Gate command: `python3 -m unittest tests.model_research.test_ko_en_retrieval_benchmark`.
+
+Captured for task `FINK-MR-08` on `2026-06-21` from
+`BASE_COMMIT=bce4b537aa785c01746e500f3ca0e451f1d52c14`.
+
+Benchmark data boundary:
+
+- Fixture id: `ko_en_retrieval_synthetic_v1`.
+- Inputs are synthetic/sanitized only: 8 Korean/English paired query rows for
+  non-equivalence-sensitive retrieval aliases. They contain no real contract
+  text, raw filenames, private corpus passages, PDFs, ZIPs, model weights,
+  Hugging Face token values, or `.fink` artifacts.
+- Korean terms are the canonical concept surfaces. English labels are generated
+  retrieval aliases only, never evidence, and never legal-equivalence claims.
+- The benchmark measures deterministic local canonical-ID resolution over
+  public-safe glossary chunks. It does not load model weights or require a
+  remote runtime API.
+- Results are measured on synthetic/sanitized fixtures and must not be
+  generalized. They do not support a legal, fraud, validity, unfairness, or
+  guaranteed-loss verdict; FInk remains a Contractual Financial Review Priority
+  aid.
+
+Exact retrieval profile revisions recorded for reproducibility:
+
+| Role | Candidate | HF repo | License | Exact revision | Weight status |
+|------|-----------|---------|---------|----------------|---------------|
+| Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `apache-2.0` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | not loaded in public repo |
+| Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `apache-2.0` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | not loaded in public repo |
+
+Synthetic benchmark summary:
+
+| Metric | Result |
+|--------|--------|
+| Model profile | `core_local_offline_v1` |
+| Machine gate | `ko_en_retrieval_benchmark` |
+| Query pairs | 8 |
+| Paired canonical-ID matches | 8/8 |
+| EV-KOEN | 1.000 |
+| Top-1 canonical consistency | 1.000 |
+| Non-equivalence caveat coverage | 8/8 |
+| English evidence-label violations | 0 |
+
+Paired concepts:
+
+| Canonical ID | KO query | EN query | Outcome |
+|--------------|----------|----------|---------|
+| `CANON_ASSIGNMENT_LICENSE_BOUNDARY` | `저작권 양도 이용허락` | `assignment license boundary` | same canonical ID |
+| `CANON_RESCISSION` | `계약 해제` | `rescission` | same canonical ID |
+| `CANON_TERMINATION` | `계약 해지` | `termination` | same canonical ID |
+| `CANON_WORK_MADE_FOR_HIRE` | `업무상저작물` | `work made for hire` | same canonical ID |
+| `CANON_PUBLICITY` | `초상 영리 이용` | `publicity image likeness` | same canonical ID |
+| `CANON_LIQUIDATED_DAMAGES` | `손해배상액 예정` | `liquidated damages` | same canonical ID |
+| `CANON_CONSIDERATION` | `계약 대가` | `consideration payment basis` | same canonical ID |
+| `CANON_DEPOSIT` | `계약금` | `deposit` | same canonical ID |
+
+Coverage notes:
+
+- Every paired row carries a non-equivalence caveat: generated English aliases
+  are retrieval aids only and Korean remains canonical.
+- English query resolution is restricted to non-scoring glossary chunks, so
+  English aliases are not labeled evidence and do not contribute to authority
+  scoring.
+- The fixture includes synthetic A1 decoys with overlapping terms to verify that
+  canonical-ID resolution stays in the glossary alias path rather than treating
+  English text as evidence.
+
+Paper note for `05_experiments.md`: report that FINK-MR-08 benchmarked
+Korean/English canonical-ID retrieval consistency on
+`ko_en_retrieval_synthetic_v1`, a synthetic/sanitized fixture set with 8 paired
+queries. The local benchmark resolved 8/8 KO and EN paired queries to the same
+canonical IDs (`EV-KOEN=1.000`) with 8/8 non-equivalence caveats present and 0
+English evidence-label violations. State that this is a synthetic-only
+retrieval-consistency check, not a legal-equivalence claim or a real-contract
+retrieval performance claim.
