@@ -10,6 +10,3 @@ Licensing summary (all open-source):
 - **Third-party models** referenced for local model research keep their own
   open-source licenses (Apache-2.0 or MIT), listed in
   `configs/models/candidates.yaml`. No model weights are distributed here.
-- **ICML 2026 paper template** under `paper/template/icml2026/` is third-party,
-  included under its original ICML license, and is unmodified. The MIT license
-  above does not apply to it.

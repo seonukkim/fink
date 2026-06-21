@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="FInk reads a creator contract and shows which clauses are worth a closer financial look, and what they could cost. Synthetic-demo only.">
+  <meta name="description" content="FInk is an AI-assisted financial review of creator contracts: it identifies cost-bearing clauses and what to check before signing. Synthetic demonstration only; not legal advice.">
   <title>FInk | Contractual Financial Review Priority</title>
   <link rel="icon" href="assets/images/fink-icon-32.png" sizes="32x32">
   <link rel="stylesheet" href="styles.css">
@@ -21,7 +21,7 @@
       <a href="#outputs">Outputs</a>
       <a href="#demo">Demo</a>
       <a href="#evaluation">Evaluation</a>
-      <a href="#cite">Cite</a>
+      <a href="#cite">Citation</a>
     </nav>
     <div class="lang-switch" role="group" aria-label="Language">
       <button type="button" data-lang="en" class="is-active">EN</button>
@@ -31,95 +31,94 @@
 
   <main id="main">
     <section id="top" class="hero">
-      <p class="eyebrow">UNIST IE412 · AI for Finance · 2026 Spring</p>
+      <p class="eyebrow">UNIST IE412 · AI for Finance · 2026 Spring · Final Project</p>
       <h1 class="title">F<span>I</span>nk</h1>
       <p class="lede"
-         data-en="Read a creator contract, and see which clauses could cost money — and what to ask before signing."
-         data-ko="창작자 계약서를 읽고, 돈이 나갈 수 있는 조항이 무엇인지, 서명 전에 무엇을 물어봐야 할지 알려 줍니다.">Read a creator contract, and see which clauses could cost money — and what to ask before signing.</p>
+         data-en="AI-Assisted Review of Creator Contracts: Identifying Cost-Bearing Clauses and What to Check Before Signing"
+         data-ko="AI 기반 창작자 계약서 검토: 비용 유발 조항 식별과 서명 전 확인 사항">AI-Assisted Review of Creator Contracts: Identifying Cost-Bearing Clauses and What to Check Before Signing</p>
       <p class="abstract"
-         data-en="Creator contracts decide real money: royalties, settlement timing, deductions, minimum-guarantee recoupment, IP rights. Put a contract in as a photo, PDF, or pasted text, and FInk finds the clauses that affect a creator's money and reports four things separately — which clauses to review first, a low/base/high cost range, when the money moves, and how sure the reading is. It runs on your own machine and shows official-source evidence; it is not legal advice."
-         data-ko="창작자 계약은 로열티, 정산 시점, 공제, 최소보장(MG) 회수, 저작권처럼 실제 돈을 좌우하는 조항으로 가득합니다. 계약서를 사진·PDF·텍스트로 넣으면, FInk이 돈에 영향을 주는 조항을 찾아 네 가지를 따로 보여 줍니다. 먼저 볼 조항, 저·기준·고 금액 범위, 돈이 오가는 시점, 그리고 판독이 얼마나 확실한지입니다. 분석은 내 컴퓨터에서 돌아가고 공식 출처 근거를 함께 보여 주며, 법률 자문은 하지 않습니다.">Creator contracts decide real money…</p>
+         data-en="Creator contracts govern real financial outcomes — royalties, settlement timing, deductions, minimum-guarantee recoupment, and the assignment of intellectual-property rights — yet they are often signed under time pressure and without financial expertise. FInk takes a contract as a photo, PDF, or pasted text, identifies the clauses that bear on the creator's finances, and reports four quantities separately: the order in which clauses warrant review, a low/base/high cost range, the timing of each cash flow, and the confidence of the reading. It runs entirely on the user's machine, grounds every finding in official-source evidence, and issues no legal conclusion."
+         data-ko="창작자 계약은 로열티, 정산 시점, 공제, 최소보장(MG) 회수, 저작권 귀속처럼 실제 재무 결과를 좌우하는 조항으로 이루어지지만, 정작 시간에 쫓기고 재무 지식이 없는 상태에서 체결되곤 합니다. FInk은 사진·PDF·텍스트로 입력한 계약서에서 창작자의 재무에 영향을 주는 조항을 식별하고, 네 가지를 분리해 제시합니다. 조항을 검토할 우선순위, 저·기준·고 금액 범위, 각 현금흐름의 시점, 그리고 판독의 신뢰도입니다. 분석은 전적으로 사용자 기기에서 이루어지고, 모든 결과는 공식 출처 근거에 기반하며, 어떠한 법률적 결론도 내리지 않습니다.">Creator contracts govern real financial outcomes…</p>
       <div class="links">
-        <a class="btn primary" href="https://github.com/seonukkim/fink">Code (GitHub)</a>
-        <a class="btn" href="#demo" data-en="Run the demo" data-ko="데모 실행">Run the demo</a>
-        <a class="btn" href="#how" data-en="How it works" data-ko="작동 방식">How it works</a>
-        <a class="btn" href="https://github.com/seonukkim/fink/tree/main/docs/paper">Paper notes</a>
+        <a class="btn primary" href="https://github.com/seonukkim/fink">GitHub</a>
+        <a class="btn" href="#demo">Demo</a>
+        <a class="btn" href="https://github.com/seonukkim/fink/tree/main/docs/paper">Paper</a>
       </div>
     </section>
 
     <p class="disclaimer">
-      <span data-en="FInk reports a Contractual Financial Review Priority. It is not legal advice, and not a fraud, illegality, validity, unfairness, or guaranteed-loss verdict. This page is a synthetic demo: no real contract, key, or private input appears here."
-            data-ko="FInk은 계약 금융 검토 우선순위를 보고합니다. 법률 자문이 아니며, 사기·위법·유효성·불공정·확정 손실에 대한 판정도 아닙니다. 이 페이지는 합성 데모라서, 실제 계약·키·사적 입력은 담겨 있지 않습니다.">FInk reports a Contractual Financial Review Priority…</span>
+      <span data-en="FInk reports a Contractual Financial Review Priority. It is not legal advice, and it is not a verdict on fraud, illegality, validity, unfairness, or guaranteed loss. This page is a synthetic demonstration: it contains no real contract, credential, or private input."
+            data-ko="FInk은 계약 금융 검토 우선순위(Contractual Financial Review Priority)를 보고합니다. 법률 자문이 아니며, 사기·위법·유효성·불공정·확정 손실에 대한 판정도 아닙니다. 이 페이지는 합성 데이터로 구성한 시연이며, 실제 계약·자격증명·사적 입력을 포함하지 않습니다.">FInk reports a Contractual Financial Review Priority…</span>
     </p>
 
     <section id="problem" class="band">
-      <h2 data-en="The problem" data-ko="문제">The problem</h2>
-      <p data-en="A creator gets a contract full of financial terms, but little time and no finance background. The clauses that matter most — recoupment, deductions, payment delay — are the easiest to miss. FInk turns that contract into a short, prioritized review, so the creator knows what to ask before signing."
-         data-ko="창작자는 금융 용어가 가득한 계약서를 받지만, 시간도 지식도 부족할 때가 많습니다. 정작 중요한 회수, 공제, 지급 지연 같은 조항은 가장 놓치기 쉽습니다. FInk은 그 계약서를 짧고 우선순위가 매겨진 검토로 바꿔, 서명 전에 무엇을 물어봐야 할지 알려 줍니다.">A creator gets a contract full of financial terms…</p>
+      <h2>Problem</h2>
+      <p data-en="A creator typically receives a contract dense with financial terms, with neither the time nor the background to assess them. The clauses of greatest financial consequence — recoupment, deductions, delayed settlement — are also the easiest to overlook. FInk converts the contract into a concise, prioritized review, so the creator knows which terms to question before signing."
+         data-ko="창작자는 대개 재무 지식도 시간도 부족한 상태에서, 금융 조항으로 빼곡한 계약서를 받습니다. 정작 재무적 영향이 가장 큰 조항(회수, 공제, 정산 지연)이 가장 놓치기 쉽습니다. FInk은 이 계약서를 간결하고 우선순위가 매겨진 검토로 바꾸어, 창작자가 서명 전에 어떤 조항을 따져 물어야 하는지 알 수 있게 합니다.">A creator typically receives a contract dense with financial terms…</p>
     </section>
 
     <section id="how" class="band">
-      <h2 data-en="How it works" data-ko="작동 방식">How it works</h2>
-      <p data-en="FInk reads the document on the device. Photos and scans go through OCR, the text is split into clauses, and each clause is matched against evidence from official sources. Deterministic financial rules then build low/base/high cash-flow scenarios. The priority score comes from rules, so it is reproducible; open models (PaddleOCR-VL, Qwen3, BGE-M3) handle OCR, retrieval, and explanation, and never set the score."
-         data-ko="FInk은 문서를 기기 안에서 읽습니다. 사진이나 스캔은 OCR로 처리하고, 본문을 조항 단위로 나눈 뒤, 각 조항을 공식 출처의 근거와 대조합니다. 여기에 결정론적 금융 규칙을 적용해 저·기준·고 현금흐름 시나리오를 만듭니다. 우선순위 점수는 규칙에서 나오므로 재현할 수 있습니다. OCR·검색·설명에는 공개 모델(PaddleOCR-VL, Qwen3, BGE-M3)을 쓰지만, 이 모델들이 점수를 정하지는 않습니다.">FInk reads the document on the device…</p>
+      <h2>How it works</h2>
+      <p data-en="FInk processes the document entirely on the device. Photographs and scans are read by OCR; the text is segmented into clauses; and each clause is matched against evidence from official sources. Deterministic financial rules then construct low, base, and high cash-flow scenarios. Because the priority score is produced by rules rather than a model, it is reproducible. Open-source models (PaddleOCR-VL, Qwen3, BGE-M3) perform OCR, retrieval, and explanation, but never set the score."
+         data-ko="FInk은 문서를 전적으로 기기 안에서 처리합니다. 사진과 스캔은 OCR로 판독하고, 본문을 조항 단위로 분할한 뒤, 각 조항을 공식 출처의 근거와 대조합니다. 이어서 결정론적 금융 규칙이 저·기준·고 현금흐름 시나리오를 구성합니다. 우선순위 점수는 모델이 아니라 규칙으로 산출되므로 재현할 수 있습니다. 공개 모델(PaddleOCR-VL, Qwen3, BGE-M3)은 OCR·검색·설명을 담당할 뿐, 점수를 정하지 않습니다.">FInk processes the document entirely on the device…</p>
 
       <ol class="flow" aria-label="FInk pipeline">
         <li><span class="step-n">1</span><span class="step-t" data-en="Input — photo · image · PDF · pasted clause" data-ko="입력 — 사진 · 이미지 · PDF · 붙여넣은 조항">Input — photo · image · PDF · pasted clause</span></li>
-        <li><span class="step-n">2</span><span class="step-t" data-en="OCR &amp; page reconstruction (Korean + English)" data-ko="OCR · 페이지 재구성 (한국어 + 영어)">OCR &amp; page reconstruction (Korean + English)</span></li>
+        <li><span class="step-n">2</span><span class="step-t" data-en="OCR &amp; page reconstruction (Korean and English)" data-ko="OCR · 페이지 재구성 (한국어 · 영어)">OCR &amp; page reconstruction (Korean and English)</span></li>
         <li><span class="step-n">3</span><span class="step-t" data-en="Clause segmentation" data-ko="조항 분할">Clause segmentation</span></li>
         <li><span class="step-n">4</span><span class="step-t" data-en="Evidence retrieval from official sources" data-ko="공식 출처에서 근거 검색">Evidence retrieval from official sources</span></li>
-        <li><span class="step-n">5</span><span class="step-t" data-en="Financial risk signals + cash-flow scenarios" data-ko="금융 위험 신호 + 현금흐름 시나리오">Financial risk signals + cash-flow scenarios</span></li>
-        <li><span class="step-n">6</span><span class="step-t" data-en="Review report (the four outputs below)" data-ko="검토 리포트 (아래 네 가지 출력)">Review report (the four outputs below)</span></li>
+        <li><span class="step-n">5</span><span class="step-t" data-en="Financial risk signals &amp; cash-flow scenarios" data-ko="금융 위험 신호 · 현금흐름 시나리오">Financial risk signals &amp; cash-flow scenarios</span></li>
+        <li><span class="step-n">6</span><span class="step-t" data-en="Review report — the four outputs below" data-ko="검토 리포트 — 아래 네 가지 출력">Review report — the four outputs below</span></li>
       </ol>
     </section>
 
     <section id="outputs" class="band">
-      <h2 data-en="Four outputs" data-ko="네 가지 출력">Four outputs</h2>
-      <p class="sub" data-en="Shown side by side, never merged into one total-loss number." data-ko="나란히 보여 주며, 하나의 총손실 숫자로 합치지 않습니다.">Shown side by side, never merged into one total-loss number.</p>
+      <h2>Outputs</h2>
+      <p class="sub" data-en="Reported side by side, and never combined into a single total-loss figure." data-ko="나란히 보고하며, 하나의 총손실 수치로 합치지 않습니다.">Reported side by side, and never combined into a single total-loss figure.</p>
       <div class="grid4">
         <article>
           <h3 data-en="Review priority" data-ko="검토 우선순위">Review priority</h3>
-          <p data-en="Which clauses deserve a closer look, in order." data-ko="어떤 조항을 먼저 자세히 봐야 하는지 순서로 보여 줍니다.">Which clauses deserve a closer look, in order.</p>
+          <p data-en="The clauses that warrant the closest review, in order." data-ko="가장 먼저 자세히 살펴볼 조항을 순서대로 제시합니다.">The clauses that warrant the closest review, in order.</p>
         </article>
         <article>
-          <h3 data-en="Money: low / base / high" data-ko="금액: 저 / 기준 / 고">Money: low / base / high</h3>
-          <p data-en="A cost range from extracted values or editable assumptions." data-ko="추출한 값이나 사용자가 고칠 수 있는 가정으로 만든 금액 범위입니다.">A cost range from values or editable assumptions.</p>
+          <h3 data-en="Cost: low / base / high" data-ko="금액: 저 / 기준 / 고">Cost: low / base / high</h3>
+          <p data-en="A cost range derived from extracted values or user-editable assumptions." data-ko="추출된 값이나 사용자가 수정할 수 있는 가정에서 도출한 금액 범위입니다.">A cost range from extracted values or editable assumptions.</p>
         </article>
         <article>
-          <h3 data-en="Time" data-ko="시간">Time</h3>
-          <p data-en="When the money moves: payment timing, recoupment, term, delays." data-ko="돈이 오가는 시점: 지급 시기, 회수, 계약 기간, 지연입니다.">When the money moves: timing, recoupment, term, delays.</p>
+          <h3 data-en="Timing" data-ko="시점">Timing</h3>
+          <p data-en="When each cash flow occurs: payment, recoupment, term, and delays." data-ko="각 현금흐름이 발생하는 시점: 지급, 회수, 계약 기간, 지연입니다.">When each cash flow occurs: payment, recoupment, term, and delays.</p>
         </article>
         <article>
           <h3 data-en="Confidence" data-ko="신뢰도">Confidence</h3>
-          <p data-en="How sure the reading is. Unclear data lowers confidence, not the money." data-ko="판독이 얼마나 확실한지. 불명확한 데이터는 금액이 아니라 신뢰도를 낮춥니다.">How sure the reading is; unclear data lowers confidence.</p>
+          <p data-en="How reliable the reading is; ambiguous input lowers confidence, not the cost estimate." data-ko="판독의 신뢰도입니다. 불명확한 입력은 금액이 아니라 신뢰도를 낮춥니다.">How reliable the reading is; ambiguous input lowers confidence.</p>
         </article>
       </div>
     </section>
 
     <section id="demo" class="band">
-      <h2 data-en="Demo" data-ko="데모">Demo</h2>
-      <p data-en="The demo is a responsive web app that runs on your machine (desktop and mobile browser). It stays on loopback, makes no outbound calls, and uses synthetic examples. Disclaimer and privacy notices appear in Korean and English, and the language can be switched in-app." data-ko="데모는 내 컴퓨터에서 도는 반응형 웹앱입니다(데스크톱·모바일 브라우저). 루프백에 머물고 외부로 나가지 않으며, 합성 예시만 사용합니다. 면책·개인정보 안내는 한국어와 영어로 함께 나오고, 앱 안에서 언어를 바꿀 수 있습니다.">The demo is a responsive web app that runs on your machine…</p>
+      <h2>Demo</h2>
+      <p data-en="The demonstration is a responsive web application served locally, in a desktop or mobile browser. It stays on loopback, makes no outbound requests, and operates only on synthetic examples. Disclaimer and privacy notices appear in both Korean and English, and the language can be switched within the application." data-ko="시연은 로컬에서 제공되는 반응형 웹 애플리케이션으로, 데스크톱이나 모바일 브라우저에서 실행됩니다. 루프백에 머물고 외부로 어떤 요청도 보내지 않으며, 합성 예시만 사용합니다. 면책·개인정보 고지는 한국어와 영어로 함께 표시되고, 애플리케이션 안에서 언어를 전환할 수 있습니다.">The demonstration is a responsive web application served locally…</p>
       <div class="run">
         <p class="run-title" data-en="Run it" data-ko="실행하기">Run it</p>
         <pre><code>git clone https://github.com/seonukkim/fink
 cd fink
-PYTHONPATH=src uv run --with fastapi --with uvicorn python -m fink.web.app
-# open http://127.0.0.1:8000  (loopback only)</code></pre>
+PYTHONPATH=src uv run --with fastapi --with uvicorn uvicorn fink.web.app:create_app --factory --host 127.0.0.1 --port 8000
+# wait for "Uvicorn running on http://127.0.0.1:8000", then open that address</code></pre>
       </div>
     </section>
 
     <section id="evaluation" class="band">
-      <h2 data-en="Evaluation" data-ko="평가">Evaluation</h2>
-      <p data-en="There are no real-contract results here, because no real contract was run through the system on this page. Instead, each pipeline step was checked on synthetic, sanitized examples: that OCR reads money, dates, and percentages; that retrieval returns the right official evidence; that the financial formulas compute correctly; and that runs stay offline with nothing leaked. These are correctness checks, not accuracy on real contracts, and the project claims no real-world performance. The score is computed by deterministic rules; the open models are used only for OCR, embedding, and explanation. Full check logs live in the repository."
-         data-ko="여기에는 실제 계약서로 낸 결과가 없습니다. 이 페이지에서는 실제 계약을 시스템에 넣어 돌리지 않았기 때문입니다. 대신 합성·정제된 예시로 파이프라인의 각 단계가 제대로 도는지 확인했습니다. OCR이 금액·날짜·비율을 읽는지, 검색이 맞는 공식 근거를 가져오는지, 금융 수식이 정확히 계산되는지, 실행이 오프라인을 유지하고 정보가 새지 않는지를 점검했습니다. 이는 정확도 측정이 아니라 동작 점검이며, 실제 성능은 주장하지 않습니다. 점수는 결정론적 규칙으로 계산하고, 공개 모델은 OCR·임베딩·설명에만 씁니다. 전체 점검 기록은 저장소에 있습니다.">There are no real-contract results here…</p>
+      <h2>Evaluation</h2>
+      <p data-en="This page reports no results on real contracts, because none were run through the system here. Each stage of the pipeline is instead verified on synthetic, sanitized examples: that OCR recovers amounts, dates, and percentages; that retrieval returns the correct official evidence; that the financial formulas compute as specified; and that every run stays offline, with no data leaving the device. These are correctness checks, not measurements of accuracy on real contracts, and the project claims no real-world performance. The priority score is computed by deterministic rules, while the open-source models are used only for OCR, embedding, and explanation. The complete verification logs are kept in the repository."
+         data-ko="이 페이지는 실제 계약서에 대한 결과를 보고하지 않습니다. 여기서는 실제 계약을 시스템에 투입하지 않았기 때문입니다. 대신 파이프라인의 각 단계를 합성·정제된 예시로 검증했습니다. OCR이 금액·날짜·비율을 복원하는지, 검색이 올바른 공식 근거를 반환하는지, 금융 수식이 명세대로 계산되는지, 그리고 모든 실행이 오프라인을 유지하며 어떤 데이터도 기기를 벗어나지 않는지를 확인했습니다. 이는 실제 계약서에 대한 정확도 측정이 아니라 정확성(correctness) 점검이며, 본 프로젝트는 실세계 성능을 주장하지 않습니다. 우선순위 점수는 결정론적 규칙으로 계산하고, 공개 모델은 OCR·임베딩·설명에만 사용합니다. 전체 검증 로그는 저장소에 보관되어 있습니다.">This page reports no results on real contracts…</p>
     </section>
 
     <section id="cite" class="band">
-      <h2 data-en="Citation" data-ko="인용">Citation</h2>
-      <p class="sub" data-en="Provisional citation for a work in progress — no published venue, DOI, or results." data-ko="진행 중인 작업의 잠정 인용입니다. 게재처, DOI, 결과는 아직 없습니다.">Provisional citation for a work in progress.</p>
+      <h2>Citation</h2>
+      <p class="sub" data-en="Provisional citation for work in progress; no published venue, DOI, or results yet." data-ko="진행 중인 연구에 대한 잠정 인용입니다. 게재처·DOI·결과는 아직 없습니다.">Provisional citation for work in progress.</p>
       <pre class="bibtex"><code>@misc{kim2026fink,
   author       = {Kim, Seonuk},
-  title        = {{FInk}: Evidence-Grounded Financial AI for Creator Contract Review},
+  title        = {{FInk}: AI-Assisted Financial Review of Creator Contracts},
   year         = {2026},
   note         = {UNIST IE412 AI for Finance (2026 Spring) final project. Work in progress.},
   howpublished = {\url{https://github.com/seonukkim/fink}}
@@ -128,7 +127,7 @@ PYTHONPATH=src uv run --with fastapi --with uvicorn python -m fink.web.app
   </main>
 
   <footer class="site-footer">
-    <p>FInk · UNIST IE412 AI for Finance · 2026 Spring · synthetic demo.</p>
+    <p>FInk · UNIST IE412 AI for Finance · 2026 Spring · synthetic demonstration.</p>
   </footer>
 </body>
 </html>

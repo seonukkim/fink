@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 This MIT license covers the FInk project's own source code and documentation.
-It does not cover the bundled ICML 2026 paper template under
-paper/template/icml2026/, which keeps its original license, or third-party
-models referenced for research, which keep their own open-source licenses.
-See NOTICE.md and DATA_LICENSE.md.
+Synthetic/sanitized data is under CC-BY-4.0 (see DATA_LICENSE.md). Third-party
+models referenced for research keep their own open-source licenses; their
+weights are not distributed here.

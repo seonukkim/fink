@@ -1,4 +1,6 @@
-# FInk — Financial review priority for creator contracts
+# FInk — AI-assisted financial review of creator contracts
+
+*Identifying cost-bearing clauses and what to check before signing.*
 
 FInk reads a creator's contract — from a phone photo, an image, a PDF, or pasted
 text — and shows which clauses could cost money, and what to ask before signing.
@@ -52,8 +54,10 @@ and never set the score. Everything runs on the machine, offline.
 ```bash
 git clone https://github.com/seonukkim/fink
 cd fink
-PYTHONPATH=src uv run --with fastapi --with uvicorn python -m fink.web.app
-# open http://127.0.0.1:8000  (loopback only; desktop + mobile, Korean / English)
+PYTHONPATH=src uv run --with fastapi --with uvicorn \
+  uvicorn fink.web.app:create_app --factory --host 127.0.0.1 --port 8000
+# wait for "Uvicorn running on http://127.0.0.1:8000", then open that address
+# (loopback only; desktop + mobile browser; Korean / English)
 ```
 
 ## Evaluation
@@ -100,7 +104,6 @@ enforced on every task. See [LOOP.md](LOOP.md) and
 - Code and docs: **MIT** (see `LICENSE`).
 - Synthetic / sanitized data: **CC-BY-4.0** (see `DATA_LICENSE.md`).
 - Third-party models keep their own open-source licenses (Apache-2.0 / MIT), and
-  weights are not distributed. The bundled ICML 2026 template keeps its original
-  license and is unmodified. See `NOTICE.md`.
+  weights are not distributed. See `NOTICE.md`.
 
 Private corpora, real contracts, and model weights are never committed.
