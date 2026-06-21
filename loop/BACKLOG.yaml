@@ -1287,3 +1287,247 @@ tasks:
   human_gate: MODEL_PROFILE_APPROVED
   status: DONE
   completed_at: '2026-06-21T13:52:12+00:00'
+- id: FINK-FIX-01
+  phase: FIX
+  priority: P0
+  depends_on: []
+  scope: S
+  allowed_paths:
+  - src/fink/web/
+  description: 'Replace the two-button KO/EN locale control in the local web app with
+    a SINGLE toggle button that flips Korean<->English (default Korean). Keep the
+    working data-active-locale mechanism and keep every string the web smoke test
+    pins (e.g. "EN generated", "계약상 금융 검토 우선도", "Contractual Financial Review Priority").'
+  acceptance_criteria:
+  - One toggle control switches the whole page KO<->EN; default is Korean.
+  - tests/web smoke + analyze tests still pass; test-pinned strings preserved.
+  machine_gates:
+  - web_smoke
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-02
+  phase: FIX
+  priority: P0
+  depends_on: []
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  description: 'Koreanize the local demo for a non-expert creator. The default
+    Korean view must use natural Korean contract/financial terms, not English jargon:
+    replace visible English section labels ("Four separate dimensions", "Four
+    dimensions and assumptions", FIM field labels), and remove the phrases "local-first"
+    and the coined word "브리프"/"Decision Brief" (use natural Korean such as "검토 결과"
+    or "분석 결과"). Korean is canonical; keep English only as a secondary aid and keep
+    the exact strings the web smoke test pins.'
+  acceptance_criteria:
+  - Default KO view contains no "local-first", no "브리프", and no untranslated English
+    section headings or field labels; terms read as natural Korean contract language.
+  - Web smoke/analyze tests still pass and all test-pinned strings remain present.
+  machine_gates:
+  - web_smoke
+  - legal_verdict_scan
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-03
+  phase: FIX
+  priority: P0
+  depends_on: []
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  - tests/web/
+  description: 'Fix the broken upload path: uploading an image or PDF and pressing
+    Analyze currently does nothing. Make ONE Analyze action run the local pipeline on
+    whatever the creator provided — pasted text OR an uploaded image/PDF — by routing
+    file input through the existing ingest+analyze pipeline into /api/analyze (or an
+    equivalent endpoint that accepts a file), so the creator only inputs and the
+    analysis runs automatically. Keep everything offline/loopback.'
+  acceptance_criteria:
+  - Uploading an image or PDF then pressing Analyze returns a populated result; pasted
+    text also works; a new test covers the file-upload analyze path.
+  - No external network calls; offline-only preserved.
+  machine_gates:
+  - web_smoke
+  - analyze_endpoint_test
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-04
+  phase: FIX
+  priority: P1
+  depends_on:
+  - FINK-FIX-03
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  - src/fink/finance/
+  description: 'Remove the manual FIM-assumptions-grid burden from the default flow.
+    The creator should get results from a file or pasted text ALONE, with no manual
+    numeric entry: auto-extract/estimate financial parameters from the contract text
+    and only show an OPTIONAL, collapsed "advanced assumptions" override for users who
+    want to adjust. Monetary stays low/base/high ranges; never invent a single number.'
+  acceptance_criteria:
+  - The default flow needs no manual numeric input; a result appears from file/text alone.
+  - Manual assumptions are optional/collapsed; monetary outputs stay ranges, never invented.
+  machine_gates:
+  - web_smoke
+  - no_invented_numbers
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-05
+  phase: FIX
+  priority: P1
+  depends_on:
+  - FINK-FIX-03
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  - data/corpus/
+  description: 'For each flagged item, add (1) a plain-Korean interpretation of the
+    financial term and (2) a concrete suggested action, both grounded in the EXISTING
+    corpus (knowledge cards + 52 checklist items) — use the data already built, do not
+    invent. The creator should understand what the term means and what to do about it.'
+  acceptance_criteria:
+  - Each finding includes a plain-Korean term interpretation and a concrete suggested
+    action sourced from the corpus checklist/cards; bilingual; no legal verdict.
+  machine_gates:
+  - legal_verdict_scan
+  - web_smoke
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-06
+  phase: FIX
+  priority: P1
+  depends_on:
+  - FINK-FIX-03
+  scope: M
+  allowed_paths:
+  - src/fink/web/
+  - tests/web/
+  description: 'Add a traffic-light (빨강/노랑/초록) visual signal for each output
+    dimension and an overall signal, computed by deterministic, documented thresholds,
+    and rendered as coloured indicators in the result. The tiers express REVIEW
+    URGENCY, not a legal/validity judgement.'
+  acceptance_criteria:
+  - Each dimension and the overall result carry a red/amber/green tier with documented
+    thresholds; the UI renders the colours; tiers are framed as review urgency only.
+  - No legal-verdict language; web/analyze tests pass.
+  machine_gates:
+  - web_smoke
+  - legal_verdict_scan
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-07
+  phase: FIX
+  priority: P1
+  depends_on: []
+  scope: M
+  allowed_paths:
+  - src/fink/signals/
+  - config/
+  - data/corpus/
+  - tests/
+  description: 'Add fraud-pattern REVIEW signals (course Theme 4, financial-AI) grounded
+    in the existing corpus/checklist: flag suspicious financial patterns such as
+    open-ended/undisclosed deductions, unilateral offset, circular recoupment, and
+    audit-right denial. These are review flags, NOT a fraud verdict — never assert
+    fraud/illegality/validity; stay UNVERIFIED until A0-A2 grounded.'
+  acceptance_criteria:
+  - At least 4 new fraud-pattern rules fire on synthetic examples and never assert
+    fraud or illegality; they remain UNVERIFIED without A0-A2 grounding.
+  - New unit tests cover the fraud-pattern rules; full gates stay green.
+  machine_gates:
+  - legal_verdict_scan
+  - authority_invariant
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-08
+  phase: FIX
+  priority: P1
+  depends_on: []
+  scope: M
+  allowed_paths:
+  - site/
+  description: 'Overhaul the public project page grid/layout (site/). Use a real grid
+    system: equal-height, aligned cards (CSS grid with stretch / equal rows) so the
+    "금액" card no longer looks detached; render the subtitle as a styled title block
+    rather than running prose; remove wasted right-hand whitespace (centered content
+    with a sensible max-width); add a red/amber/green traffic-light visual to the
+    Outputs/Evaluation sections; remove the words "브리프" and "local-first". Korean is
+    canonical. Keep site/test_public_page.py green (required strings + no forbidden
+    patterns).'
+  acceptance_criteria:
+  - Output cards are equal-height and aligned; the subtitle is a styled title block;
+    no large empty desktop gutter; a traffic-light visual is present.
+  - No "브리프" or "local-first"; python3 site/test_public_page.py prints SITE_PUBLIC_PAGE_OK.
+  machine_gates:
+  - site_public_page_ok
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-09
+  phase: FIX
+  priority: P2
+  depends_on:
+  - FINK-FIX-03
+  - FINK-FIX-05
+  scope: L
+  allowed_paths:
+  - src/fink/web/
+  - src/fink/model/
+  - configs/models/
+  - tests/web/
+  description: 'Add a Q&A assistant so the creator can ask natural-language questions
+    after analysis and get answers grounded in the current analysis + the glossary
+    corpus (the assistant interprets financial terms). Provide a deterministic, offline
+    templated answerer as the default, and an OPTIONAL local Hugging Face model adapter
+    that is used only if a local model is present/configured, with graceful fallback
+    when absent. No model weights committed; offline/loopback only; no legal verdict.'
+  acceptance_criteria:
+  - A question endpoint answers grounded in the current analysis + glossary; the offline
+    fallback works with no model present; optional local-model path is wired and tested.
+  - No weights tracked in git; offline preserved; no legal-verdict language.
+  machine_gates:
+  - web_smoke
+  - legal_verdict_scan
+  - model_license_floor
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
+- id: FINK-FIX-10
+  phase: FIX
+  priority: P2
+  depends_on:
+  - FINK-FIX-02
+  scope: S
+  allowed_paths:
+  - docs/
+  - README.md
+  description: 'Sync docs and README to the framing: a contract-verification financial-AI
+    tool for creators (계약 검증). Remove legal-leaning wording and the jargon "브리프"
+    and "local-first"; keep Korean-canonical, conservative (ranges not invented numbers,
+    no legal verdict) language consistent with the demo.'
+  acceptance_criteria:
+  - docs/README no longer use "브리프" or "local-first"; framing is creator
+    contract-verification financial-AI; gates stay green.
+  machine_gates:
+  - legal_verdict_scan
+  paper_sections: []
+  human_gate: null
+  status: READY
+  source: manual-postmidterm-ux-2026-06-22
