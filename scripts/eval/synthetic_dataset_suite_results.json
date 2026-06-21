@@ -1,0 +1,96 @@
+{
+  "acceptance_ids": [
+    "AC-EV-SYNTH",
+    "AC-EV-FROZEN"
+  ],
+  "cases": [
+    {
+      "acceptance_ids": [
+        "AC-EV-SYNTH"
+      ],
+      "expected": {
+        "all_gold_declares_synthetic": true,
+        "all_is_synthetic": true,
+        "all_public_export": true,
+        "required_dataset_refs": [
+          "DR-6",
+          "DR-7",
+          "DR-8",
+          "DR-11",
+          "DR-12",
+          "DR-13"
+        ]
+      },
+      "id": "synthetic_only_test",
+      "observed": {
+        "dataset_counts": {
+          "DR-11": 6,
+          "DR-12": 4,
+          "DR-13": 4,
+          "DR-6": 36,
+          "DR-7": 4,
+          "DR-8": 8
+        },
+        "issue_count": 0,
+        "issues": [],
+        "split_counts": {
+          "dev": 31,
+          "frozen_eval": 31
+        },
+        "total_examples": 62
+      },
+      "status": "PASS"
+    },
+    {
+      "acceptance_ids": [
+        "AC-EV-FROZEN"
+      ],
+      "expected": {
+        "dev_and_frozen_example_ids_disjoint": true,
+        "dev_and_frozen_group_ids_disjoint": true,
+        "frozen_split_locked": true,
+        "manifest_matches_recomputed_hashes": true,
+        "required_dataset_refs": [
+          "DR-6",
+          "DR-7",
+          "DR-8",
+          "DR-11",
+          "DR-12",
+          "DR-13"
+        ]
+      },
+      "id": "frozen_split_hash_test",
+      "observed": {
+        "combined_sha256": "75cdae6cc1d52e9f2ebc853ef5e65ca5ad3f6df3ff7604e6ae9045c5e2aec63b",
+        "frozen_file_hashes": {
+          "DR-11": "71f2620da57563daf37e6e4709df3e067d8909c1284c3ee26041201c51aecc50",
+          "DR-12": "8e792bd077f42c98b874ca3fa3e88fab15a2b5a6788971df26ecbddc15a0a61d",
+          "DR-13": "bc6723b3ef1681e9ef999e94df014a61360706e48db1dd52a05caa27fb76fd8c",
+          "DR-6": "c1a3c90273090c80c2ff71cd86545f39737332312929d3c406f6644bfa748cc8",
+          "DR-7": "46ffbaec50b765c4276de1449f9651ae3b269518460db29ca690e9bd74e70652",
+          "DR-8": "1e57476a26baac1bd0b8f8ad8992275c29d1b426adec03d08a17b510977fc52d"
+        },
+        "issue_count": 0,
+        "issues": [],
+        "manifest_path": "data/eval/frozen_eval_manifest.json"
+      },
+      "status": "PASS"
+    }
+  ],
+  "paper_sections_blocked_by_allowed_paths": [
+    "04_data_and_implementation.md",
+    "05_experiments.md"
+  ],
+  "registered_gates": [
+    "synthetic_only_test",
+    "frozen_split_hash_test"
+  ],
+  "suite": "synthetic_dataset_suite",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 2,
+    "total": 2
+  },
+  "task_id": "FINK-S5-01"
+}

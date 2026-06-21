@@ -1,0 +1,100 @@
+{
+  "combined_sha256": "75cdae6cc1d52e9f2ebc853ef5e65ca5ad3f6df3ff7604e6ae9045c5e2aec63b",
+  "created_utc": "2026-06-21T00:00:00Z",
+  "files": [
+    {
+      "dataset_ref": "DR-6",
+      "example_ids": [
+        "DR6-frozen_eval-F1-protective",
+        "DR6-frozen_eval-F1-risky",
+        "DR6-frozen_eval-F2-protective",
+        "DR6-frozen_eval-F2-risky",
+        "DR6-frozen_eval-F3-protective",
+        "DR6-frozen_eval-F3-risky",
+        "DR6-frozen_eval-F4-protective",
+        "DR6-frozen_eval-F4-risky",
+        "DR6-frozen_eval-F5-protective",
+        "DR6-frozen_eval-F5-risky",
+        "DR6-frozen_eval-F6-protective",
+        "DR6-frozen_eval-F6-risky",
+        "DR6-frozen_eval-F7-protective",
+        "DR6-frozen_eval-F7-risky",
+        "DR6-frozen_eval-F8-protective",
+        "DR6-frozen_eval-F8-risky",
+        "DR6-frozen_eval-F9-protective",
+        "DR6-frozen_eval-F9-risky"
+      ],
+      "path": "data/eval/frozen_eval/DR-6.jsonl",
+      "record_count": 18,
+      "sha256": "c1a3c90273090c80c2ff71cd86545f39737332312929d3c406f6644bfa748cc8"
+    },
+    {
+      "dataset_ref": "DR-7",
+      "example_ids": [
+        "DR7-frozen_eval-en-screen",
+        "DR7-frozen_eval-ko-low-light"
+      ],
+      "path": "data/eval/frozen_eval/DR-7.jsonl",
+      "record_count": 2,
+      "sha256": "46ffbaec50b765c4276de1449f9651ae3b269518460db29ca690e9bd74e70652"
+    },
+    {
+      "dataset_ref": "DR-8",
+      "example_ids": [
+        "DR8-frozen_eval-audit-access",
+        "DR8-frozen_eval-consideration",
+        "DR8-frozen_eval-deposit",
+        "DR8-frozen_eval-liquidated-damages"
+      ],
+      "path": "data/eval/frozen_eval/DR-8.jsonl",
+      "record_count": 4,
+      "sha256": "1e57476a26baac1bd0b8f8ad8992275c29d1b426adec03d08a17b510977fc52d"
+    },
+    {
+      "dataset_ref": "DR-11",
+      "example_ids": [
+        "DR11-frozen_eval-formatting-notice",
+        "DR11-frozen_eval-secondary-rights",
+        "DR11-frozen_eval-termination-penalty"
+      ],
+      "path": "data/eval/frozen_eval/DR-11.jsonl",
+      "record_count": 3,
+      "sha256": "71f2620da57563daf37e6e4709df3e067d8909c1284c3ee26041201c51aecc50"
+    },
+    {
+      "dataset_ref": "DR-12",
+      "example_ids": [
+        "DR12-frozen_eval-block-network",
+        "DR12-frozen_eval-interrupt-after-ocr"
+      ],
+      "path": "data/eval/frozen_eval/DR-12.jsonl",
+      "record_count": 2,
+      "sha256": "8e792bd077f42c98b874ca3fa3e88fab15a2b5a6788971df26ecbddc15a0a61d"
+    },
+    {
+      "dataset_ref": "DR-13",
+      "example_ids": [
+        "DR13-frozen_eval-image-long",
+        "DR13-frozen_eval-pdf-two-page"
+      ],
+      "path": "data/eval/frozen_eval/DR-13.jsonl",
+      "record_count": 2,
+      "sha256": "bc6723b3ef1681e9ef999e94df014a61360706e48db1dd52a05caa27fb76fd8c"
+    }
+  ],
+  "frozen_split_locked": true,
+  "immutability_policy": "Treat frozen_eval JSONL files as locked. Tune only on dev; any intentional frozen change must update this manifest in review.",
+  "no_real_contract_data": true,
+  "required_dataset_refs": [
+    "DR-6",
+    "DR-7",
+    "DR-8",
+    "DR-11",
+    "DR-12",
+    "DR-13"
+  ],
+  "schema_version": 1,
+  "split": "frozen_eval",
+  "synthetic_only": true,
+  "task_id": "FINK-S5-01"
+}
