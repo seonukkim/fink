@@ -981,8 +981,9 @@ tasks:
   - template_untouched_gate
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: docs/specs/08_IMPLEMENTATION_BACKLOG.yaml
+  completed_at: '2026-06-21T14:39:37+00:00'
 - id: FINK-S7-03
   phase: S7
   priority: P1

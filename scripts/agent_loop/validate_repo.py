@@ -33,6 +33,7 @@ from scripts.agent_loop._common import (
     tracked_files,
     untracked_files,
 )
+from scripts.check_paper_sync import check_paper_sync
 from scripts.copyright_audit import format_summary, run_audit
 from scripts.invariant_suite import (
     format_summary as format_invariant_summary,
@@ -525,6 +526,12 @@ def paper_ledgers() -> str:
     return "ledger headers"
 
 
+def paper_sync_checker() -> str:
+    report = check_paper_sync(REPO_ROOT)
+    require(report.ok, report.format_violations())
+    return report.summary()
+
+
 def ai_use_log() -> str:
     text = read_text(REPO_ROOT / "docs" / "ai-use-log.md")
     require("bootstrap" in text.lower(), "docs/ai-use-log.md missing bootstrap entry")
@@ -581,6 +588,10 @@ def template_hash_gate() -> str:
     current = icml_template_hashes()
     require(expected == current, "ICML template hash mismatch")
     return f"{len(current)} files"
+
+
+def template_untouched_gate() -> str:
+    return template_hash_gate()
 
 
 def parse_python() -> str:
@@ -649,10 +660,11 @@ def run_all(args: argparse.Namespace) -> None:
     gate("offline-network test when relevant", lambda: "not relevant to bootstrap scaffold")
     gate("responsive-page smoke test when relevant", lambda: "not relevant to bootstrap scaffold")
     gate("claim-evidence ledger validation", paper_ledgers)
+    gate("paper_sync_checker", paper_sync_checker)
     gate("AI-use-log update check", ai_use_log)
     gate("required-documentation check", required_docs)
     gate("allowed-path scope validation", allowed_path_scope)
-    gate("ICML template hash preservation", template_hash_gate)
+    gate("template_untouched_gate", template_untouched_gate)
 
 
 def doctor(args: argparse.Namespace) -> None:
