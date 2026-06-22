@@ -1791,8 +1791,9 @@ tasks:
   - model_license_floor
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-22T00:22:33+00:00'
 - id: FINK-HEALTH-01
   phase: P3
   priority: P2

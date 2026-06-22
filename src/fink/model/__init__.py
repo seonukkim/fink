@@ -14,6 +14,21 @@ from fink.model.risk_classifier import (
     merge_rule_and_model_signals,
     model_arm_offline_test,
 )
+from fink.model.runtime import (
+    LocalModelRuntime,
+    LocalModelRuntimeError,
+    RuntimeComponent,
+    RuntimeManifest,
+    RuntimeNetworkAttemptError,
+    RuntimeProfile,
+    build_install_plan,
+    load_runtime_manifest,
+    offline_runtime_environment,
+    resolve_fink_home,
+    run_demo,
+    run_doctor,
+    run_install,
+)
 
 __all__ = [
     "DEFAULT_ONNX_ARTIFACT_PATH",
@@ -26,6 +41,19 @@ __all__ = [
     "OnnxRiskClassifierProfile",
     "detect_hybrid_signals_from_clauses",
     "detect_model_signals_from_clauses",
+    "LocalModelRuntime",
+    "LocalModelRuntimeError",
+    "RuntimeComponent",
+    "RuntimeManifest",
+    "RuntimeNetworkAttemptError",
+    "RuntimeProfile",
+    "build_install_plan",
+    "load_runtime_manifest",
     "merge_rule_and_model_signals",
     "model_arm_offline_test",
+    "offline_runtime_environment",
+    "resolve_fink_home",
+    "run_demo",
+    "run_doctor",
+    "run_install",
 ]

@@ -1,0 +1,195 @@
+schema_version: 1
+task_id: FINK-MODEL-01
+manifest_id: fink_local_runtime_profiles_v1
+captured_at: "2026-06-22T00:00:00+09:00"
+source_records:
+  candidates: configs/models/candidates.yaml
+  selected_profiles: configs/models/selected_profiles.yaml
+  open_license_shortlist: configs/models/open_license_shortlist.yaml
+
+runtime_boundary:
+  remote_runtime_api_allowed: false
+  telemetry_allowed: false
+  runtime_download_allowed_on_analyze: false
+  no_weights_in_git: true
+  no_env_file_read: true
+  data_root_default: "${XDG_DATA_HOME:-$HOME/.local/share}/fink"
+  model_root_relative: "models"
+  deterministic_fallback:
+    enabled: true
+    implementation: src/fink/model/runtime.py
+    adapters:
+      - ocr
+      - embedding
+      - reranker
+      - optional_extractor
+      - optional_explanation_qa
+
+offline_environment_flags:
+  HF_HUB_OFFLINE: "1"
+  TRANSFORMERS_OFFLINE: "1"
+  HF_DATASETS_OFFLINE: "1"
+  HF_HUB_DISABLE_TELEMETRY: "1"
+  DO_NOT_TRACK: "1"
+  FINK_RUNTIME_REMOTE_API_ALLOWED: "false"
+  FINK_RUNTIME_OFFLINE: "true"
+  FINK_MODEL_DOWNLOAD_ALLOWED: "false"
+
+download_policy:
+  no_real_download_in_tests: true
+  requires_explicit_download_flag: true
+  public_ungated_models_do_not_require_token: true
+  resumable_downloads: true
+  max_download_size_gb: 20
+  safetensors_preferred: true
+  reject_pickle_by_default: true
+  approved_pickle_component_ids: []
+  safe_file_allow_patterns:
+    - "*.json"
+    - "*.txt"
+    - "*.md"
+    - "*.model"
+    - "*.safetensors"
+    - "tokenizer.*"
+    - "vocab.*"
+    - "merges.txt"
+    - "sentencepiece.bpe.model"
+  pickle_reject_patterns:
+    - "*.bin"
+    - "*.ckpt"
+    - "*.h5"
+    - "*.joblib"
+    - "*.pickle"
+    - "*.pkl"
+    - "*.pt"
+    - "*.pth"
+
+license_policy:
+  default_floor: public_open
+  accepted_licenses:
+    - apache-2.0
+    - mit
+    - bsd-2-clause
+    - bsd-3-clause
+    - isc
+    - cc0-1.0
+    - cc-by-4.0
+
+components:
+  - id: paddleocr_vl
+    repo_id: PaddlePaddle/PaddleOCR-VL
+    role: primary_document_ocr_layout
+    runtime_adapters:
+      - ocr
+      - optional_extractor
+    license: apache-2.0
+    exact_revision: baee27eebcbf26cdeab160116679d765f13a3f27
+    estimated_disk_size_bytes: 2156679874
+    public_ungated: true
+    gated: false
+    private: false
+    required: true
+    prefer_safetensors: true
+    allow_pickle: false
+  - id: qwen3_embedding_0_6b
+    repo_id: Qwen/Qwen3-Embedding-0.6B
+    role: primary_ko_en_embedding
+    runtime_adapters:
+      - embedding
+    license: apache-2.0
+    exact_revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    estimated_disk_size_bytes: 1210000000
+    public_ungated: true
+    gated: false
+    private: false
+    required: true
+    prefer_safetensors: true
+    allow_pickle: false
+  - id: qwen3_reranker_0_6b
+    repo_id: Qwen/Qwen3-Reranker-0.6B
+    role: primary_ko_en_reranker
+    runtime_adapters:
+      - reranker
+    license: apache-2.0
+    exact_revision: e61197ed45024b0ed8a2d74b80b4d909f1255473
+    estimated_disk_size_bytes: 1210000000
+    public_ungated: true
+    gated: false
+    private: false
+    required: true
+    prefer_safetensors: true
+    allow_pickle: false
+  - id: qwen3_4b
+    repo_id: Qwen/Qwen3-4B
+    role: primary_local_explanation
+    runtime_adapters:
+      - optional_explanation_qa
+    license: apache-2.0
+    exact_revision: 1cfa9a7208912126459214e8b04321603b3df60c
+    estimated_disk_size_bytes: 8060000000
+    public_ungated: true
+    gated: false
+    private: false
+    required: false
+    prefer_safetensors: true
+    allow_pickle: false
+  - id: qwen3_vl_4b
+    repo_id: Qwen/Qwen3-VL-4B-Instruct
+    role: difficult_image_vlm_fallback
+    runtime_adapters:
+      - optional_vl_fallback
+    license: apache-2.0
+    exact_revision: ebb281ec70b05090aa6165b016eac8ec08e71b17
+    estimated_disk_size_bytes: 8890000000
+    public_ungated: true
+    gated: false
+    private: false
+    required: false
+    prefer_safetensors: true
+    allow_pickle: false
+  - id: bge_m3
+    repo_id: BAAI/bge-m3
+    role: multilingual_retrieval_baseline
+    runtime_adapters:
+      - embedding
+      - evaluation_baseline
+    license: mit
+    exact_revision: 5617a9f61b028005a4858fdac845db406aefb181
+    estimated_disk_size_bytes: 4590000000
+    public_ungated: true
+    gated: false
+    private: false
+    required: false
+    prefer_safetensors: true
+    allow_pickle: false
+    security_note: "Repository also advertises pickle-bearing assets; installer rejects pickle patterns unless an approved component explicitly allows them."
+
+profiles:
+  - id: core
+    description: Minimal local retrieval profile with deterministic fallback.
+    component_ids:
+      - qwen3_embedding_0_6b
+  - id: standard
+    description: OCR, embedding, and reranker profile for local document analysis.
+    component_ids:
+      - paddleocr_vl
+      - qwen3_embedding_0_6b
+      - qwen3_reranker_0_6b
+  - id: full
+    description: Standard profile plus local explanation and Q&A component.
+    component_ids:
+      - paddleocr_vl
+      - qwen3_embedding_0_6b
+      - qwen3_reranker_0_6b
+      - qwen3_4b
+  - id: optional_vl_fallback
+    description: Standard profile plus optional visual-language fallback.
+    component_ids:
+      - paddleocr_vl
+      - qwen3_embedding_0_6b
+      - qwen3_reranker_0_6b
+      - qwen3_vl_4b
+  - id: evaluation_baseline
+    description: Public multilingual embedding baseline for synthetic evaluation.
+    component_ids:
+      - bge_m3
