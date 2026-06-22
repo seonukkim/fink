@@ -257,22 +257,17 @@ def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
 
 def _deterministic_reply(context: GroundedContext, question: str | None) -> str:
     is_ko = context.locale != "en"
-    note = context.professional_note or (
-        "이 분석은 결정을 돕기 위한 것이고 최종 법적 판단은 아니에요. 중요한 부분은 전문가 확인을 권해요."
-        if is_ko
-        else "This is decision support, not a final legal judgment; please have a professional confirm important points."
-    )
 
     if question and context.findings:
         match = _best_match(question, context.findings)
         if match is not None:
-            return f"{match.why} {note}".strip()
+            return _answer_for_question(match)
         thin = (
             "지금 분석 결과 안에서는 그 질문에 바로 연결되는 항목을 찾지 못했어요. "
             if is_ko
             else "I couldn't tie that question to a specific item in the current analysis. "
         )
-        return thin + (context.summary or note)
+        return (thin + (context.summary or "")).strip()
 
     # No question: an overall, grounded read.
     parts: list[str] = []
@@ -280,13 +275,21 @@ def _deterministic_reply(context: GroundedContext, question: str | None) -> str:
         parts.append(context.recommendation_action)
     if context.recommendation_cashflow:
         parts.append(context.recommendation_cashflow)
-    top = context.findings[:3]
-    for finding in top:
+    for finding in context.findings[:3]:
         parts.append(f"{finding.rank}. {finding.label} — {finding.why}")
-    if not top and context.summary:
+    if not parts and context.summary:
         parts.append(context.summary)
-    parts.append(note)
-    return " ".join(parts)
+    return " ".join(parts).strip()
+
+
+def _answer_for_question(match: FindingBrief) -> str:
+    """Context-fitted deterministic answer: the matched finding's rationale plus
+    one concrete question to raise. No framing and no disclaimer — the page keeps
+    a persistent not-legal-advice banner, so each reply stays tight."""
+    parts = [match.why.strip()]
+    if match.questions and match.questions[0].strip():
+        parts.append(match.questions[0].strip())
+    return " ".join(part for part in parts if part).strip()
 
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+|[가-힣]+")

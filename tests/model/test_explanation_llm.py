@@ -53,7 +53,9 @@ def test_fallback_overall_reply(monkeypatch):
     assert reply.used_model is False
     assert reply.decision_support is True
     assert "정산명세 보호장치 부재" in reply.text
-    assert "전문가" in reply.text  # professional-confirm cue is present
+    # The not-legal-advice disclaimer lives in the persistent page banner now,
+    # so it is not repeated inside each chat reply.
+    assert "전문가 확인을 권해요" not in reply.text
     assert "확인 팁:" not in reply.text
     assert "정산서가 언제, 어떤 형식으로" not in reply.text
     assert "EV-A2-2021-SETTLEMENT" in reply.citations
@@ -64,7 +66,7 @@ def test_fallback_question_match(monkeypatch):
     reply = generate_chat_reply(_context(), "공제 항목은 어떻게 되나요?")
     assert reply.used_model is False
     assert "공제" in reply.text
-    assert "전문가" in reply.text
+    assert "전문가 확인을 권해요" not in reply.text
     assert "확인 팁:" not in reply.text
     assert "수수료, 결제비용, 환불" not in reply.text
 

@@ -40,6 +40,17 @@
   "추렸어요". Verified `uv run pytest tests/web tests/model -q` green,
   `run_gates.sh` `GATES_OK`, and a live :8011 render (checklist/excerpt both
   `w650`, score 9/100 → "가볍게 확인" active, "제3조(정산)" not "조항 N").
+- Claude follow-up 2 (owner asked to drop the repeated disclaimer from chat
+  replies): removed the "이 분석은 … 전문가 확인을 권해요" note from every
+  deterministic reply path; the not-legal-advice disclaimer now lives only in the
+  always-visible page banner. A matched-question reply is the finding rationale
+  plus one concrete question to raise (no framing). The on-device LLM path is
+  unchanged and already omits the note; confirmed `chat_model_available()` is
+  true (`qwen2.5-1.5b-instruct-q4_k_m.gguf`) and a live `used_model=True` reply
+  to "정산 투명성·감사권이 뭐야?" returns a contextual answer in ~9.5s, so the
+  deterministic fallback only appears when the LLM is disabled. Updated the two
+  fallback tests to assert the disclaimer is absent. `pytest tests/web
+  tests/model -q` green, `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 
