@@ -517,3 +517,14 @@ h3.mini {
   .band h2 { font-size: 1.5rem; }
   main { padding-bottom: 40px; }
 }
+
+/* Pipeline figure */
+.pipefig { margin: 22px 0 6px; }
+.pipefig .figscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.pipe-svg { display: block; width: 100%; min-width: 720px; height: auto; }
+.figcap { margin: 12px 4px 0; font-size: 0.82rem; line-height: 1.5; color: var(--muted); }
+body.lang-en .pipefig-ko { display: none; }
+body.lang-ko .pipefig-en { display: none; }
+@media (min-width: 1040px) {
+  .pipefig { position: relative; left: 50%; transform: translateX(-50%); width: min(1160px, 94vw); }
+}
