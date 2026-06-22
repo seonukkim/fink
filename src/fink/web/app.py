@@ -2714,9 +2714,11 @@ footer {
   display: none;
 }
 @page {
-  /* margin:0 removes the browser-drawn header/footer chrome (date, page title,
-     URL, page number) from the saved PDF; the visual page margin is restored as
-     padding on the printable root below. */
+  /* margin:0 leaves the browser no margin box to draw its date/URL/page-number
+     header and footer into, so the saved PDF is bare. The real per-page margins
+     come instead from the print-sheet table below (repeating thead/tfoot for top
+     and bottom, cell padding for the sides), which applies on EVERY page — so
+     content keeps a consistent border and is never flush to or cut at the edge. */
   size: A4;
   margin: 0;
 }
@@ -2738,8 +2740,21 @@ footer {
   }
   .print-brief-root {
     display: block !important;
-    padding: 16mm;
     background: #fff;
+  }
+  .print-sheet {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .print-sheet-edge td {
+    height: 14mm;
+    padding: 0;
+    border: 0;
+  }
+  .print-sheet-cell {
+    padding: 0 14mm;
+    border: 0;
+    vertical-align: top;
   }
   .print-brief-document {
     color: #211d18;
@@ -5033,7 +5048,32 @@ _APP_JS = r"""(function () {
       })
     );
     article.appendChild(closing);
-    root.appendChild(article);
+    // Wrap the document in a one-cell table whose repeating <thead>/<tfoot>
+    // create a top and bottom margin on EVERY printed page, and whose cell
+    // padding gives the side margins. Combined with `@page { margin: 0 }` this
+    // keeps a consistent page margin (content is never flush to, or cut at, the
+    // paper edge) while leaving no @page margin box for the browser to draw its
+    // date/URL/page-number header and footer into.
+    var sheet = el("table", "print-sheet", null);
+    sheet.setAttribute("aria-hidden", "true");
+    var sheetHead = el("thead", "print-sheet-edge", null);
+    var sheetHeadRow = el("tr", null, null);
+    sheetHeadRow.appendChild(el("td", null, null));
+    sheetHead.appendChild(sheetHeadRow);
+    var sheetBody = el("tbody", null, null);
+    var sheetBodyRow = el("tr", null, null);
+    var sheetCell = el("td", "print-sheet-cell", null);
+    sheetCell.appendChild(article);
+    sheetBodyRow.appendChild(sheetCell);
+    sheetBody.appendChild(sheetBodyRow);
+    var sheetFoot = el("tfoot", "print-sheet-edge", null);
+    var sheetFootRow = el("tr", null, null);
+    sheetFootRow.appendChild(el("td", null, null));
+    sheetFoot.appendChild(sheetFootRow);
+    sheet.appendChild(sheetHead);
+    sheet.appendChild(sheetBody);
+    sheet.appendChild(sheetFoot);
+    root.appendChild(sheet);
     return root;
   }
 
