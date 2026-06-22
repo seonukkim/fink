@@ -158,7 +158,10 @@ def generate_chat_reply(context: GroundedContext, question: str | None = None) -
         if text:
             return ChatReply(
                 _sanitize(
-                    _collapse_repetition(_strip_llm_preamble(text)),
+                    _limit_sentences(
+                        _collapse_repetition(_strip_llm_preamble(text)),
+                        max_sentences=1,
+                    ),
                     reference_checkpoints=context.reference_checkpoints,
                 ),
                 used_model=True,
@@ -213,8 +216,8 @@ def _llm_reply(context: GroundedContext, question: str | None) -> str | None:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            max_tokens=320,
-            temperature=0.3,
+            max_tokens=128,
+            temperature=0.2,
             top_p=0.9,
             top_k=40,
             # Small models loop on a phrase without a repetition penalty.
@@ -243,8 +246,8 @@ def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
             lines.append(f"- {context.recommendation_action}")
         lines.append(f"[질문] {question}")
         lines.append(
-            "위 참고 자료를 바탕으로 질문에 2~3문장으로 자연스럽게 답하세요. "
-            "번호·목록·머리말·호칭 없이 핵심만 설명하고, 자료에 없는 금액·비율·법 조항은 "
+            "위 참고 자료를 바탕으로 질문에 한 문장으로 핵심만 자연스럽게 답하세요. "
+            "번호·목록·머리말·호칭·반복 없이, 자료에 없는 금액·비율·법 조항은 "
             "지어내지 마세요."
         )
         return "\n".join(lines)
@@ -259,8 +262,8 @@ def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
     if not context.findings and context.summary:
         lines.append(context.summary)
     lines.append(
-        "위 자료를 바탕으로 무엇을 먼저 확인하면 좋을지 2~3문장으로 자연스럽게 설명하세요. "
-        "번호·목록·머리말·호칭 없이 핵심부터 말하세요."
+        "위 자료를 바탕으로 무엇을 먼저 확인하면 좋을지 한 문장으로 자연스럽게 설명하세요. "
+        "번호·목록·머리말·호칭·반복 없이 핵심만 말하세요."
     )
     return "\n".join(lines)
 
@@ -383,13 +386,25 @@ def _collapse_repetition(text: str) -> str:
     kept: list[str] = []
     for part in parts:
         sentence = part.strip()
-        key = re.sub(r"\s+", "", sentence)
+        # Ignore whitespace and trailing punctuation so "…문서입니다." and
+        # "…문서입니다" count as the same looped sentence.
+        key = re.sub(r"[\s.!?]+", "", sentence)
         if not key or key in seen:
             continue
         seen.add(key)
         kept.append(sentence)
     collapsed = " ".join(kept).strip()
     return collapsed or (text or "").strip()
+
+
+def _limit_sentences(text: str, max_sentences: int = 2) -> str:
+    """Keep a reply to its first couple of sentences. A small model rambles when
+    given room, so a hard cap guarantees a tight, core answer."""
+
+    parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+|\n+", text or "") if p.strip()]
+    if not parts:
+        return (text or "").strip()
+    return " ".join(parts[:max_sentences]).strip()
 
 
 def _sanitize(text: str, *, reference_checkpoints: tuple[str, ...] = ()) -> str:

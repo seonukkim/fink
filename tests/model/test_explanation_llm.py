@@ -7,6 +7,7 @@ from fink.model.explanation_llm import (
     FindingBrief,
     GroundedContext,
     _collapse_repetition,
+    _limit_sentences,
     _sanitize,
     _strip_llm_preamble,
     chat_model_available,
@@ -130,6 +131,18 @@ def test_collapse_repetition_drops_looped_sentences():
     out = _collapse_repetition(looped)
     assert out.count("추가 금액은 시점에 따라 계산됩니다.") == 1
     assert "이 조항은 금액을 정의합니다." in out
+
+
+def test_collapse_repetition_ignores_trailing_punctuation():
+    # The looped final clause lacks a trailing period; it must still dedupe.
+    looped = "정산 명세서는 문서입니다. 추가 정보가 있습니다. 정산 명세서는 문서입니다"
+    out = _collapse_repetition(looped)
+    assert out.count("정산 명세서는 문서입니다") == 1
+
+
+def test_limit_sentences_keeps_only_first_sentence():
+    text = "첫째 문장입니다. 둘째 문장입니다. 셋째 문장입니다."
+    assert _limit_sentences(text, max_sentences=1) == "첫째 문장입니다."
 
 
 def test_sanitize_strips_leaked_internal_labels_and_markdown():

@@ -77,6 +77,15 @@
   owner hit were a stale uvicorn process serving pre-fix code — uvicorn does not
   hot-reload — not a code defect.) `pytest tests/model tests/web -q` green,
   `run_gates.sh` `GATES_OK`.
+- Claude follow-up 5 (owner: keep each answer to one sentence — two sentences
+  invite drift): the model branch now hard-caps the reply to a single sentence
+  (`_limit_sentences`), the dedup key ignores trailing punctuation so a
+  period-less looped sentence is also collapsed, the prompts ask for one-sentence
+  core-only answers, and the sampler uses `max_tokens=128`/`temperature=0.2`.
+  Chat answers are intentionally terse; the rich grounded detail stays in the
+  result cards. Verified via live `/api/chat`: every answer is a single clean
+  sentence. Added tests for the limiter and the punctuation-insensitive dedup;
+  `pytest tests/model tests/web -q` green, `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 
