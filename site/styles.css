@@ -524,3 +524,28 @@ h3.mini {
 .pipe-svg { display: block; width: 100%; min-width: 640px; height: auto; }
 body.lang-en .pipefig-ko { display: none; }
 body.lang-ko .pipefig-en { display: none; }
+
+/* Demo showcase — real app screenshots */
+.demoshow { margin: 24px 0 4px; }
+.demoshow .shots { display: flex; gap: 16px; }
+.demoshow .shots img {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid #efe2e8;
+  box-shadow: 0 10px 28px -12px rgba(33, 29, 24, 0.32);
+  background: #fff;
+}
+body.lang-en .demoshow-ko { display: none; }
+body.lang-ko .demoshow-en { display: none; }
+@media (max-width: 640px) {
+  .demoshow .shots {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+  }
+  .demoshow .shots img { flex: 0 0 64%; width: 64%; scroll-snap-align: center; }
+}
