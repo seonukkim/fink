@@ -1,11 +1,19 @@
-# FInk — AI-assisted financial review of creator contracts
+# FInk: Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts
 
-*Identifying cost-bearing clauses and what to check before signing.*
+*Contractual Financial Review Priority for creator contracts.*
 
-FInk reads a creator's contract — from a phone photo, an image, a PDF, or pasted
-text — and shows which clauses could cost money, and what to ask before signing.
-It reports four things separately: which clauses to review first, a low/base/high
-cost range, when the money moves, and how sure the reading is.
+FInk is a local-first creator-contract tool that triages cash-flow questions
+before signing. It highlights clause words that may affect settlement,
+deductions, recoupment, payment timing, IP revenue, exclusivity, termination
+exposure, or production costs; gates score-eligible signals on official
+evidence; and reports four outputs separately: review priority, low/base/high
+monetary exposure, time exposure, and evidence/OCR confidence.
+
+FInk은 창작자 계약서에서 서명 전 확인해야 할 현금흐름 질문을 먼저 추리는
+로컬 우선 도구입니다. 정산, 공제, 선급금 회수, 지급 시점, 2차 수익, 독점,
+해지·위약금, 제작비와 관련된 조항 표현을 표시하고, 공식 근거가 있는 신호만
+점수 산정에 사용하며, 검토 우선순위, 저/기준/고 금액 노출, 시간 노출,
+근거/OCR 신뢰도를 서로 분리해 보여줍니다.
 
 **UNIST · IE412 AI for Finance · 2026 Spring · Final Project.**
 
@@ -13,15 +21,17 @@ cost range, when the money moves, and how sure the reading is.
 > and not a verdict on fraud, illegality, validity, unfairness, or guaranteed
 > loss.
 
-- Project page: `fink.seonukkim.com` (Cloudflare deploy)
+- Project page source: [site/index.html](site/index.html)
 - Docs: [Model Card](docs/model-card.md) · [Privacy](docs/privacy.md) ·
   [Limitations](docs/limitations.md) · [Paper notes](docs/paper/)
 
 ## Why
 
 A creator gets a contract full of financial terms, but little time and no finance
-background. The clauses that matter most — recoupment, deductions, payment delay —
-are the easiest to miss. FInk turns the contract into a short, prioritized review.
+background. The clauses that matter most — recoupment, deductions, payment delay,
+IP revenue, exclusivity, termination exposure, and production-cost burden — are
+easy to miss. FInk turns the contract into a selective review list and
+cash-flow scenario brief.
 
 ## What it does — four separate outputs
 
@@ -40,14 +50,17 @@ The four are kept separate and never merged into one "total loss" number.
 photo / image / PDF / pasted clause
   → OCR (Korean + English)
   → clause segmentation
-  → evidence retrieval from official sources
-  → financial risk signals + cash-flow scenarios
+  → evidence-gated review signals
+  → cash-flow scenarios
   → review report
 ```
 
-The priority score is computed by deterministic rules, so it is reproducible.
-Open models (PaddleOCR-VL, Qwen3, BGE-M3) handle OCR, retrieval, and explanation,
-and never set the score. Everything runs on the machine, offline.
+Review priority is computed by deterministic rules, so the review order is
+reproducible. Optional local models may assist OCR, retrieval, or explanation
+only when they are privately installed and pass the offline health/smoke gate;
+they do not create evidence, set review-priority values, or invent financial
+amounts. Runtime analysis does not require a remote LLM, cloud RAG, external
+legal search, telemetry, cloud OCR, or runtime model download.
 
 ## Run the demo
 
@@ -73,13 +86,15 @@ No real contract was run through the system for these numbers. Each pipeline ste
 is checked on synthetic, sanitized examples — that OCR reads money, dates, and
 percentages; that retrieval returns the right official evidence; that the
 financial formulas compute correctly; and that runs stay offline with nothing
-leaked. These are correctness checks, not real-world accuracy. Full logs:
-`docs/paper/RESULT_LEDGER.csv` and `scripts/eval/`.
+leaked. These are measured fixture checks, not real-contract performance,
+predicted exposure-value, or deployment-performance claims. Full logs:
+[docs/paper/RESULT_LEDGER.csv](docs/paper/RESULT_LEDGER.csv) and `scripts/eval/`.
 
 ## Responsible use
 
-- No legal verdict: FInk gives review priority and scenarios, not legal
-  conclusions; only official (A0–A2) sources support the score.
+- No legal verdict: FInk gives review priority and cash-flow scenarios, not
+  legal conclusions; only official A0–A2 sources support score-eligible
+  review-priority signals.
 - No private material: no real contract, key, or model weight is committed.
 - No invented numbers: metrics show only when measured; missing inputs lower
   confidence.
@@ -99,7 +114,7 @@ enforced on every task. See [LOOP.md](LOOP.md) and
 ```bibtex
 @misc{kim2026fink,
   author       = {Kim, Seonuk},
-  title        = {{FInk}: Evidence-Grounded Financial AI for Creator Contract Review},
+  title        = {{FInk}: Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts},
   year         = {2026},
   note         = {UNIST IE412 AI for Finance (2026 Spring) final project. Work in progress.},
   howpublished = {\url{https://github.com/seonukkim/fink}}

@@ -18,6 +18,18 @@ def main() -> None:
             raise AssertionError(f"required page text missing: {snippet}")
     if 'data-public-safe="true"' not in html:
         raise AssertionError("public-safe attribute missing")
+    for snippet in (
+        "Selective, Evidence-Gated Cash-Flow Triage",
+        "uv sync --extra web",
+        "uv run fink-web",
+        "<mark>90일 이내</mark>",
+        "Highlighted words are review cues, not safety colors",
+    ):
+        if snippet not in normalized:
+            raise AssertionError(f"canonical page text missing: {snippet}")
+    for stale in ("PYTHONPATH=src", "PaddleOCR-VL", "Qwen3", "BGE-M3"):
+        if stale in normalized:
+            raise AssertionError(f"stale runtime/model claim present: {stale}")
 
     # Public-safety scans over the page assets.
     page_text = "\n".join(

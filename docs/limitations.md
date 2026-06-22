@@ -1,8 +1,10 @@
 # FInk Limitations
 
-FInk is a financial review-priority aid, not a lawyer or legal verdict engine.
-It must not present fraud probability, illegality probability, contract
-validity, unfairness, guaranteed loss, or legal conclusions.
+FInk is a selective, evidence-gated cash-flow triage aid for creator contracts.
+It reports Contractual Financial Review Priority, monetary exposure ranges, time
+exposure, and evidence/OCR confidence. It is not a lawyer or legal verdict
+engine, and it must not present fraud probability, illegality probability,
+contract validity, unfairness, guaranteed loss, or legal conclusions.
 
 Current limitations:
 
@@ -17,6 +19,10 @@ Current limitations:
 - Scoring weights are heuristic and must be sensitivity-analyzed before any
   result claim.
 - Evaluation results must be measured on synthetic or sanitized data and cannot
-  be generalized as established performance.
+  be generalized as established performance, real-contract behavior, predicted
+  exposure-value, or deployment behavior.
+- Public model records are optional candidate/profile metadata unless the
+  corresponding private local installation passes the offline health check in
+  the current environment.
 - HR-08 (the author's attestation that AI-assisted outputs were reviewed) is the
   single remaining human step before release.

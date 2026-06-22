@@ -1,6 +1,6 @@
 # FInk Master Specification
 
-**Working paper title:** FInk: Local-First Financial Risk Review for Creator Contracts
+**Working paper title:** FInk: Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts
 **Brand:** FInk (formerly ClauseGuard-Fin — same project)
 **Repository:** `fink` · **Package:** `fink_contracts`
 **Spec version:** 1.0.0 · **Spec date:** 2026-06-21
@@ -62,10 +62,11 @@ contract pages, images, PDFs, or pasted clauses and returns a prioritized,
 evidence-grounded, **uncertainty-aware financial review** so a creator can
 decide *which clauses to scrutinize and ask about before signing*.
 
-FInk reconstructs clauses (OCR), grounds review signals in **official Korean
-sources only**, explains the financially relevant clauses bilingually, and
-projects **low/base/high monetary exposure** and **time exposure** with the
-creator's own editable assumptions. It never renders a legal verdict.
+FInk reconstructs clauses (OCR), selectively highlights cash-flow-relevant words
+and clauses, gates score-eligible review signals on **official Korean sources
+only**, explains the financially relevant clauses bilingually, and projects
+**low/base/high monetary exposure** and **time exposure** with the creator's own
+editable assumptions. It never renders a legal verdict.
 
 The runtime **must not require a remote LLM, cloud RAG, or external legal
 search** (§5).

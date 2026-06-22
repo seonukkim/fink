@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="FInk is an AI-assisted financial review of creator contracts: it identifies the clauses worth a closer financial look and what to check before signing. Synthetic demo; not legal advice.">
+  <meta name="description" content="FInk is selective, evidence-gated cash-flow triage for creator contracts. Synthetic demo; Contractual Financial Review Priority, not legal advice.">
   <title>FInk | Contractual Financial Review Priority</title>
   <link rel="icon" href="assets/images/fink-icon-32.png" sizes="32x32">
   <link rel="stylesheet" href="styles.css">
@@ -34,11 +34,11 @@
       <p class="eyebrow">UNIST · IE412 · AI for Finance · 2026 Spring</p>
       <h1 class="title">F<span>I</span>nk</h1>
       <p class="lede"
-         data-en="AI-Assisted Review of Creator Contracts: Identifying Financial Clauses and What to Check Before Signing"
-         data-ko="AI 기반 창작자 계약서 검토: 금융 조항 식별 및 서명 전 확인 사항">AI-Assisted Review of Creator Contracts: Identifying Financial Clauses and What to Check Before Signing</p>
+         data-en="Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts"
+         data-ko="창작자 계약서를 위한 선택적·근거 기반 현금흐름 검토 우선순위">Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts</p>
       <p class="abstract"
-         data-en="Creator contracts govern real financial outcomes — royalties, settlement timing, deductions, minimum-guarantee recoupment, and the assignment of intellectual-property rights — yet they are often signed under time pressure and without financial expertise. FInk takes a contract as a photo, PDF, or pasted text, identifies the clauses that bear on the creator's finances, and reports four results separately: the order in which clauses warrant review, a low/base/high cost range, the timing of each cash flow, and the confidence of the reading. It runs entirely on the user's machine, grounds every finding in official-source evidence, and issues no legal conclusion."
-         data-ko="창작자 계약은 로열티, 정산 시점, 공제, 최소보장(MG) 회수, 저작권 귀속처럼 실제 재무 결과를 좌우하는 조항으로 이루어지지만, 정작 시간에 쫓기고 재무 지식이 없는 상태에서 체결되곤 합니다. FInk은 사진·PDF·텍스트로 입력한 계약서에서 창작자의 재무에 영향을 주는 조항을 식별하고, 네 가지 결과를 분리해 제시합니다. 조항을 검토할 우선순위, 저·기준·고 금액 범위, 각 현금흐름의 시점, 그리고 판독의 신뢰도입니다. 분석은 전적으로 사용자 기기에서 이루어지고, 모든 결과는 공식 출처 근거에 기반하며, 어떠한 법률적 결론도 내리지 않습니다.">Creator contracts govern real financial outcomes…</p>
+         data-en="FInk is a local-first creator-contract tool that highlights clause words affecting settlements, deductions, recoupment, payment timing, IP revenue, exclusivity, termination exposure, and production costs. It gates score-eligible signals on official evidence and keeps four outputs separate: review priority, low/base/high monetary exposure, time exposure, and evidence/OCR confidence."
+         data-ko="FInk은 창작자 계약서에서 정산, 공제, 선급금 회수, 지급 시점, 2차 수익, 독점, 해지·위약금, 제작비에 영향을 줄 수 있는 조항 표현을 표시하는 로컬 우선 도구입니다. 공식 근거가 있는 신호만 점수 산정에 사용하며, 검토 우선순위, 저/기준/고 금액 노출, 시간 노출, 근거/OCR 신뢰도를 서로 분리해 보여줍니다.">FInk is a local-first creator-contract tool…</p>
       <div class="links">
         <a class="btn primary" href="https://github.com/seonukkim/fink">GitHub</a>
         <a class="btn" href="#demo">Demo</a>
@@ -59,8 +59,8 @@
 
     <section id="how" class="band">
       <h2>How it works</h2>
-      <p data-en="FInk processes the document entirely on the device. Photographs and scans are read by OCR; the text is segmented into clauses; and each clause is matched against evidence from official sources. Deterministic financial rules then construct low, base, and high cash-flow scenarios. Because the priority score is produced by rules rather than a model, it is reproducible. Open-source models (PaddleOCR-VL, Qwen3, BGE-M3) perform OCR, retrieval, and explanation, but never set the score."
-         data-ko="FInk은 문서를 전적으로 기기 안에서 처리합니다. 사진과 스캔은 OCR로 판독하고, 본문을 조항 단위로 분할한 뒤, 각 조항을 공식 출처의 근거와 대조합니다. 이어서 결정론적 금융 규칙이 저·기준·고 현금흐름 시나리오를 구성합니다. 우선순위 점수는 모델이 아니라 규칙으로 산출되므로 재현할 수 있습니다. 공개 모델(PaddleOCR-VL, Qwen3, BGE-M3)은 OCR·검색·설명을 담당할 뿐, 점수를 정하지 않습니다.">FInk processes the document entirely on the device…</p>
+      <p data-en="FInk processes the document entirely on the device. Photographs and scans are read by OCR; the text is segmented into clauses; and each clause is matched against official-source evidence. Deterministic financial rules construct low, base, and high cash-flow scenarios and a reproducible review order. Optional local models may assist OCR, retrieval, or explanation only when privately installed and health-checked; they never create evidence, set review priority, or invent amounts."
+         data-ko="FInk은 문서를 전적으로 기기 안에서 처리합니다. 사진과 스캔은 OCR로 판독하고, 본문을 조항 단위로 분할한 뒤, 각 조항을 공식 출처 근거와 대조합니다. 결정론적 금융 규칙이 저·기준·고 현금흐름 시나리오와 재현 가능한 검토 순서를 만듭니다. 선택적 로컬 모델은 사적으로 설치되고 상태 점검을 통과한 경우에만 OCR·검색·설명을 도울 수 있으며, 근거를 만들거나 검토 우선순위를 정하거나 금액을 만들어 내지 않습니다.">FInk processes the document entirely on the device…</p>
 
       <ol class="flow" aria-label="FInk pipeline">
         <li><span class="step-n">1</span><span class="step-t" data-en="Input — photo · image · PDF · pasted clause" data-ko="입력 — 사진 · 이미지 · PDF · 붙여넣은 조항">Input — photo · image · PDF · pasted clause</span></li>
@@ -107,7 +107,8 @@
         </div>
         <pre><code id="run-cmd">git clone https://github.com/seonukkim/fink
 cd fink
-PYTHONPATH=src uv run --with fastapi --with uvicorn uvicorn fink.web.app:create_app --factory --host 127.0.0.1 --port 8000
+uv sync --extra web
+uv run fink-web --host 127.0.0.1 --port 8000
 # wait for "Uvicorn running on http://127.0.0.1:8000", then open that address</code></pre>
         <p class="run-foot">
           <span data-en="Full usage, sample contracts, and source:" data-ko="자세한 사용법·예시 계약서·소스 코드:">Full usage, sample contracts, and source:</span>
@@ -118,12 +119,12 @@ PYTHONPATH=src uv run --with fastapi --with uvicorn uvicorn fink.web.app:create_
 
     <section id="evaluation" class="band">
       <h2>Evaluation</h2>
-      <p data-en="The score is computed by deterministic rules, and the open-source models are used only for OCR, embedding, and explanation. The example below shows how a single clause is evaluated across the four outputs. It is illustrative and synthetic: no real contract is used, monetary figures stay blank until you supply assumptions, and official-source grounding is reported as UNVERIFIED until confirmed."
-         data-ko="점수는 결정론적 규칙으로 계산하며, 공개 모델은 OCR·임베딩·설명에만 사용합니다. 아래 예시는 하나의 조항이 네 가지 출력에서 어떻게 평가되는지 보여 줍니다. 합성된 설명용 예시이며, 실제 계약은 사용하지 않습니다. 금액은 가정을 입력하기 전까지 비워 두고, 공식 출처 근거는 확인 전까지 UNVERIFIED로 표시합니다.">The score is computed by deterministic rules…</p>
+      <p data-en="The example below mirrors the app's report shape. Highlighted words are review cues, not safety colors; /100 is not the primary story. The app keeps review priority, monetary range, timing, and confidence separate. This clause is synthetic: no real contract is used, monetary figures stay blank until assumptions are supplied, and official-source grounding remains UNVERIFIED until confirmed."
+         data-ko="아래 예시는 실제 앱 리포트의 형태를 반영합니다. 표시된 단어는 검토 단서일 뿐, 색이 안전/위험을 뜻하지 않습니다. /100 숫자가 핵심이 아니며, 앱은 검토 우선순위, 금액 범위, 시점, 신뢰도를 분리해 보여줍니다. 이 조항은 합성 예시입니다. 실제 계약은 사용하지 않고, 금액은 가정을 입력하기 전까지 비워 두며, 공식 출처 근거는 확인 전까지 UNVERIFIED로 표시합니다.">The example below mirrors the app's report shape…</p>
 
       <figure class="example">
         <figcaption data-en="Synthetic example clause" data-ko="합성 예시 조항">Synthetic example clause</figcaption>
-        <p class="clause" lang="ko">정산은 매 분기 종료일로부터 90일 이내에 지급하며, 회사는 ‘일반 경비’를 공제할 수 있다.</p>
+        <p class="clause" lang="ko"><mark>정산</mark>은 매 분기 종료일로부터 <mark>90일 이내</mark>에 지급하며, 회사는 <mark>‘일반 경비’</mark>를 공제할 수 있다.</p>
         <p class="clause-gloss" data-en="“Settlement is paid within 90 days of each quarter's end, and the company may deduct ‘general expenses.’”" data-ko="(영문 풀이) 정산은 매 분기 종료일로부터 90일 이내에 지급하며, 회사는 ‘일반 경비’를 공제할 수 있다.">“Settlement is paid within 90 days of each quarter's end, and the company may deduct ‘general expenses.’”</p>
         <div class="table-wrap">
           <table>
@@ -136,7 +137,7 @@ PYTHONPATH=src uv run --with fastapi --with uvicorn uvicorn fink.web.app:create_
             <tbody>
               <tr>
                 <td data-en="Review priority" data-ko="검토 우선순위">Review priority</td>
-                <td data-en="High — flagged for delayed settlement and an open-ended deduction; placed near the top of the review list." data-ko="높음 — 정산 지연과 개방형 공제로 표시되어 검토 목록 상단에 배치됩니다.">High — flagged for delayed settlement and an open-ended deduction; near the top of the review list.</td>
+                <td data-en="First-review group — the highlighted payment timing and deduction phrase are placed near the top of the review list." data-ko="우선 검토 그룹 — 표시된 지급 시점과 공제 표현이 검토 목록 상단에 배치됩니다.">First-review group — the highlighted payment timing and deduction phrase are placed near the top of the review list.</td>
               </tr>
               <tr>
                 <td data-en="Cost (low / base / high)" data-ko="금액 (낮음 / 적정 / 높음)">Cost (low / base / high)</td>
@@ -160,7 +161,7 @@ PYTHONPATH=src uv run --with fastapi --with uvicorn uvicorn fink.web.app:create_
       <h2>Citation</h2>
       <pre class="bibtex"><code>@misc{kim2026fink,
   author       = {Kim, Seonuk},
-  title        = {{FInk}: AI-Assisted Financial Review of Creator Contracts},
+  title        = {{FInk}: Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts},
   year         = {2026},
   note         = {UNIST IE412 AI for Finance (2026 Spring) final project. Work in progress.},
   howpublished = {\url{https://github.com/seonukkim/fink}}

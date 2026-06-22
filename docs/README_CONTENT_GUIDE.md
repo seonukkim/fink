@@ -1,23 +1,24 @@
 # README Content Guide
 
 Maintenance notes for `README.md`. The goal is a clean, academic project README
-that frames FInk as an **IE412 AI for Finance** project and never overstates
-completion or makes legal-verdict claims.
+that frames FInk as an **IE412 AI for Finance** project and keeps the canonical
+cash-flow triage boundary intact.
 
 ## Chosen title rationale
 
-- **Title (exact, single):** `FInk: Evidence-Grounded Financial AI for Creator
-  Contract Review`.
-- **No subtitle.** The descriptive phrase lives in the one-paragraph summary, not
-  in a second heading.
+- **Title (exact, single):** `FInk: Selective, Evidence-Gated Cash-Flow Triage
+  for Creator Contracts`.
+- **Short subtitle:** `Contractual Financial Review Priority for creator
+  contracts.`
 - **"FInk" = "Finance" + "Ink".** Financial intelligence for contracts, comics,
   webtoons, and creator work. The **"k"** is an intentional part of the name and
   is not expanded.
 - **Avoided** by design: "Local-First" in the title; "Inked Creator" /
   "Inked Creator Contracts"; the long "Creator Contract Risk Review and Cash-Flow
   Analysis" title/subtitle; and any legal-chatbot framing.
-- **Framing:** Financial AI, not legal AI. The README leads with financial
-  signals, payout implications, and cash-flow scenarios.
+- **Framing:** selective, evidence-gated cash-flow triage, not legal AI. The
+  README leads with review-priority signals, payout implications, and cash-flow
+  scenarios.
 
 ## README section map
 
@@ -26,9 +27,9 @@ completion or makes legal-verdict claims.
 2. **Overview** — audience, why a creator contract is a financial document, which
    clauses matter (royalties, settlement, deductions, MG recoupment, payment
    delay, IP, exclusivity, production cost).
-3. **Financial AI framing** — IE412 ties: decision-focused evaluation, LLMs for
-   financial-document analysis, risk-detection methodology adapted into financial
-   triage; explicit "does not determine fraud".
+3. **Cash-flow triage framing** — IE412 ties: decision-focused evaluation,
+   financial-document analysis, and risk-detection methodology adapted into
+   review-priority triage; explicit "does not determine fraud".
 4. **Core output** — the four separated outputs.
 5. **Workflow** — the input → report pipeline.
 6. **Architecture** — frontend, FastAPI app, OCR/PDF, retrieval, deterministic
@@ -41,9 +42,11 @@ completion or makes legal-verdict claims.
    approves, single `main`, no auto push.
 10. **Environment setup** — WSL2/Linux, `~/fai/fink`, `~/fai/fink-private`,
     `source "$HOME/fai/fink-env.sh"`, `uv sync`, `uv run pytest`, doctor/gates.
-11. **Hugging Face and local models** — token path, never printed/committed,
-    open-license-only, gated/unknown/custom/noncommercial/research-only rejected,
-    download requires approval, weights outside Git.
+11. **Hugging Face and local models** — optional/when-installed only; token path
+    never printed/committed; open-license-only; gated/unknown/custom/
+    noncommercial/research-only rejected; download requires approval; weights
+    outside Git; no model is claimed active without a passing offline health
+    check.
 12. **Development commands** — only commands that exist.
 13. **Repository structure** — annotated tree.
 14. **Evaluation** — planned metrics only.
@@ -80,11 +83,13 @@ placeholder rather than leaving a broken image link.
 
 ## Missing assets or links
 
-- **Project Page** — planned, not deployed; shown as text, not a link.
-- **Demo** — planned (local run only); shown as text, not a link.
+- **Project Page** — source lives at `site/index.html`; deployment is not
+  required or claimed by the README.
+- **Demo** — local run only through `uv sync --extra web` and `uv run fink-web`.
 - **Paper** — links to draft notes under `docs/paper/`; there is no compiled
   paper artifact to link yet.
-- **Domain `fink.seonukkim.com`** — planned, not deployed; never linked as live.
+- **Domain `fink.seonukkim.com`** — do not claim deployment unless a later task
+  records deployment evidence; the loop itself must not push or deploy.
 - All other README links are repo-relative and verified to resolve.
 
 ## TODO update rules
@@ -109,8 +114,8 @@ placeholder rather than leaving a broken image link.
 ## What needs manual review
 
 - That prose framing stays **financial**, not legal-advisory.
-- That no measured result, metric, screenshot, deployed URL, or completed feature
-  is implied before it exists.
+- That no unmeasured result, real-contract performance, predicted exposure-value,
+  deployed URL, or completed feature is implied before it exists.
 - That the disclaimer text is present and unmodified.
 - The provisional citation (no invented venue/DOI/status/URL).
 

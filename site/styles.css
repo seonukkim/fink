@@ -7,8 +7,10 @@
   --pink-pale: #fff1f7;
   --pink-line: #f4d4e2;
   --navy: #17324d;
+  --cue-bg: #fff4c7;
+  --cue-line: #b88a16;
   --maxw: 880px;
-  --radius: 10px;
+  --radius: 8px;
   color-scheme: light;
   font-size: 17px;
 }
@@ -57,7 +59,7 @@ body {
 .wordmark {
   font-weight: 800;
   font-size: 1.25rem;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ink);
   text-decoration: none;
 }
@@ -110,23 +112,23 @@ main {
 .eyebrow {
   margin: 0 0 14px;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   font-size: 0.74rem;
   font-weight: 700;
   color: var(--pink-deep);
 }
 .title {
   margin: 0;
-  font-size: clamp(3.4rem, 12vw, 6rem);
+  font-size: 5rem;
   line-height: 0.96;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   font-weight: 800;
   color: var(--ink);
 }
 .title span { color: var(--pink); }
 .lede {
   margin: 18px 0 0;
-  font-size: clamp(1.3rem, 4vw, 1.7rem);
+  font-size: 1.55rem;
   font-weight: 600;
   color: var(--navy);
   max-width: 46ch;
@@ -180,8 +182,8 @@ main {
 }
 .band h2 {
   margin: 0 0 6px;
-  font-size: clamp(1.5rem, 5vw, 1.95rem);
-  letter-spacing: -0.02em;
+  font-size: 1.85rem;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .band h2::after {
@@ -396,7 +398,7 @@ th, td {
 th {
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   color: var(--pink-deep);
   background: #fff;
 }
@@ -447,7 +449,7 @@ h3.mini {
   background: var(--pink-pale);
   font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--pink-deep);
 }
@@ -456,6 +458,13 @@ h3.mini {
   padding: 16px 16px 4px;
   font-weight: 600;
   color: var(--ink);
+}
+.example .clause mark {
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--cue-line);
+  background: var(--cue-bg);
+  color: inherit;
 }
 .example .clause-gloss {
   margin: 0;
@@ -490,5 +499,8 @@ h3.mini {
 @media (max-width: 600px) {
   .nav { display: none; }
   .hero { padding-top: 40px; }
+  .title { font-size: 3.4rem; }
+  .lede { font-size: 1.3rem; }
+  .band h2 { font-size: 1.5rem; }
   main { padding-bottom: 40px; }
 }

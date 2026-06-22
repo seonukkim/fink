@@ -47,6 +47,10 @@ config hashes, measured extrema, and actual failure-analysis cases. The paper
 does not claim any arm is superior beyond the measured synthetic-only rows; when
 a baseline arm shares or wins a measured metric, the artifact records that fact.
 
+The experiment evaluates review-priority ordering under the canonical claim
+boundary. It does not train DFL, estimate predicted exposure values, evaluate
+legal validity, or claim real-contract performance.
+
 ## FINK-COST-01 Cost-Sensitive Verification
 
 The FINK-COST-01 suite adds a cost-sensitive verification layer under
@@ -68,6 +72,19 @@ currency decision cost. The frozen split then applies that fixed threshold.
 The suite computes `EV-MISSED-EXPOSURE-COST`,
 `EV-VERIFICATION-EFFORT-COST`, `EV-TOTAL-DECISION-COST`,
 `EV-FALSE-TRIGGER-RATE`, and `EV-TRIGGER-RECALL`.
+
+The cost-sensitive values reported in `06_results.md` are copied only from
+measured `RESULT_LEDGER.csv` rows. They are fixture-derived review-action costs,
+not legal damages, guaranteed losses, or deployment cost forecasts
+(`CLM-S7-RESULT-SCOPE`).
+
+## Optional Model Benchmarks
+
+Model-profile benchmark summaries in the model card are synthetic/sanitized and
+metadata-only unless a private local installation passes the offline health
+check. They may support boundary checks for OCR, retrieval consistency, and
+explanation behavior, but they do not make a real-contract model-performance claim
+or assert that the optional profile is active by default.
 
 ## Reporting Rule
 

@@ -10,7 +10,10 @@ This note covers the discussion part of the course report
 The measured values in `06_results.md` are limited to synthetic/sanitized local
 fixtures. They support implementation and evaluation sanity checks, not
 generalized deployment performance, validated scoring weights, or a legal
-conclusion (`CLM-S7-RESULT-SCOPE`).
+conclusion (`CLM-S7-RESULT-SCOPE`). FINK-EXP-01 oracle fixture weights and
+FINK-COST-01 fixture-derived review costs are evaluation labels only; they are
+not predicted exposure-value outputs, real-contract performance claims, legal
+damages, or guaranteed losses.
 
 ## Human-Gate Disposition
 

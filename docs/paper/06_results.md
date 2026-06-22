@@ -38,6 +38,34 @@ The ablation table reports measured fixture rows only and does not claim that
 any arm is generally optimal beyond this measured synthetic result
 (`CLM-S7-EXP-ABLATION-ARMS`).
 
+## Production-Path Factorial
+
+FINK-EXP-01 measures the same frozen synthetic fixtures under authority-gate and
+ranking-factor arms. Oracle Exposure Capture uses hidden fixture oracle weights
+only; it is not a predicted exposure-value claim or real-contract performance
+claim.
+
+| Authority gate | Ranking factor | EV-OEC@1 | EV-OEC@3 | EV-BSWR | EV-USFR |
+|----------------|----------------|---------:|---------:|--------:|--------:|
+| off | severity baseline | 0.688228 (`CLM-FINK-EXP-AUTHOFF-SEV-OEC1`) | 0.931018 (`CLM-FINK-EXP-AUTHOFF-SEV-OEC3`) | 0.500000 (`CLM-FINK-EXP-AUTHOFF-SEV-BSWR`) | 0.141732 (`CLM-FINK-EXP-AUTHOFF-SEV-USFR`) |
+| off | exposure aware | 0.811142 (`CLM-FINK-EXP-AUTHOFF-EXP-OEC1`) | 0.995014 (`CLM-FINK-EXP-AUTHOFF-EXP-OEC3`) | 0.500000 (`CLM-FINK-EXP-AUTHOFF-EXP-BSWR`) | 0.141732 (`CLM-FINK-EXP-AUTHOFF-EXP-USFR`) |
+| on | severity baseline | 0.411366 (`CLM-FINK-EXP-AUTHON-SEV-OEC1`) | 0.552915 (`CLM-FINK-EXP-AUTHON-SEV-OEC3`) | 0.453125 (`CLM-FINK-EXP-AUTHON-SEV-BSWR`) | 0.000000 (`CLM-FINK-EXP-AUTHON-SEV-USFR`) |
+| on | exposure aware | 0.534279 (`CLM-FINK-EXP-AUTHON-EXP-OEC1`) | 0.616911 (`CLM-FINK-EXP-AUTHON-EXP-OEC3`) | 0.453125 (`CLM-FINK-EXP-AUTHON-EXP-BSWR`) | 0.000000 (`CLM-FINK-EXP-AUTHON-EXP-USFR`) |
+
+## Cost-Sensitive Verification
+
+FINK-COST-01 evaluates the verification trigger as a costed review action on
+synthetic frozen fixtures. Currency values come from explicit fixture fields;
+missing currency inputs are not filled in.
+
+| Metric | Value | Claim |
+|--------|------:|-------|
+| EV-MISSED-EXPOSURE-COST | 600000.000000 | `CLM-FINK-COST-MISSED` |
+| EV-VERIFICATION-EFFORT-COST | 90000.000000 | `CLM-FINK-COST-EFFORT` |
+| EV-TOTAL-DECISION-COST | 690000.000000 | `CLM-FINK-COST-TOTAL` |
+| EV-FALSE-TRIGGER-RATE | 0.333333 | `CLM-FINK-COST-FALSE-TRIGGER` |
+| EV-TRIGGER-RECALL | 0.666667 | `CLM-FINK-COST-TRIGGER-RECALL` |
+
 ## Formula and Runtime Gates
 
 | Metric | Value | Claim |

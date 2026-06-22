@@ -20,6 +20,11 @@ runtime services. Runtime measurements are reported only from the local
 synthetic gate artifacts (`CLM-S7-RES-EV-OFFLINE`,
 `CLM-S7-RES-EV-PRIV`, `CLM-S7-RES-EV-LAT`, `CLM-S7-RES-EV-MEM`).
 
+Model-profile records are implementation metadata unless a private local
+installation passes the offline health/smoke gate in the current environment.
+No public paper section should claim an active model from metadata, shortlist,
+or dry-run records alone.
+
 ## Evaluation Artifacts
 
 The measured result ledger is sourced from the S5 JSON artifacts under

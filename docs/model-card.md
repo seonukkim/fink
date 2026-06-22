@@ -1,10 +1,23 @@
 # FInk Model Card
 
-Status: scaffold.
+Status: public metadata and optional local-profile records. This file does not
+claim that any model is active in the runtime.
 
 FInk does not require a remote runtime model. Any future local model may explain
 retrieved evidence but must not create legal evidence, directly set production
-risk scores, or fabricate financial impact.
+review-priority values, or fabricate financial impact.
+
+Active-runtime rule:
+
+- Public Git may record candidate IDs, licenses, exact revisions, optional
+  profiles, dry-run sizes, and synthetic benchmark summaries.
+- A model is considered active only when its private weights are installed
+  outside the repository and the current environment passes the offline
+  health/smoke gate for that profile.
+- Metadata/config load, shortlist acceptance, selected-profile metadata, and
+  synthetic benchmark rows are not by themselves runtime activation claims.
+- If no installed profile passes the health gate, FInk must fall back to
+  deterministic/local components and must not describe the model as in use.
 
 Model research policy:
 
@@ -450,8 +463,9 @@ Benchmark data boundary:
   passages, PDFs, ZIPs, model weights, Hugging Face token values, or `.fink`
   artifacts.
 - The local LLM benchmark explains retrieved evidence but does not create legal
-  evidence, does not set production risk scores, does not invent financial
-  values, and does not state a legal, fraud, validity, unfairness, or
+  evidence, does not set production risk scores or production review-priority
+  values, does not invent financial values, and does not state a legal, fraud,
+  validity, unfairness, or
   guaranteed-loss verdict.
 - The benchmark is a public-safe boundary harness over retrieved records, not a
   production explanation-quality claim, real-contract performance claim, or
@@ -476,7 +490,7 @@ Synthetic benchmark summary:
 | Mean synthetic quality score | 1.000 |
 | Hallucinated evidence IDs | 0 |
 | LLM-created evidence records | 0 |
-| Production risk score writes | 0 |
+| Production risk score writes / review-priority writes | 0 |
 | Invented financial values | 0 |
 | Forbidden verdict phrase violations | 0 |
 | Remote runtime API calls | 0 / not required |
@@ -506,19 +520,19 @@ a synthetic/sanitized fixture set with 3 clause-review cases and 6 required
 retrieved evidence citations. The gate recorded 6/6 citation coverage, 3/3
 boundary-statement coverage, 3/3 quality-passed cases at threshold 0.80, mean
 synthetic quality 1.000, 0 hallucinated evidence IDs, 0 LLM-created evidence
-records, 0 production risk score writes, 0 invented financial values, and 0
+records, 0 production review-priority writes, 0 invented financial values, and 0
 forbidden verdict phrase violations. State that this is a synthetic-only
 boundary check, not a real-contract explanation-quality claim.
 
 Paper note for `08_responsible_ai.md`: state that the local explanation layer is
 a narrative layer over retrieved records only. It may explain retrieved evidence,
-but it must not create legal evidence, set production risk scores, invent
+but it must not create legal evidence, set production review-priority values, invent
 financial values, or state legal/fraud/validity/unfairness/guaranteed-loss
 verdicts. Scoring and evidence creation remain outside the local LLM boundary,
 and public benchmark records contain only synthetic/sanitized inputs plus pinned
 metadata for `Qwen/Qwen3-4B`.
 
-## Selected Local Profile Report
+## Optional Local Profile Metadata
 
 Structured selected-profile record: `configs/models/selected_profiles.yaml`.
 Machine gate: `selected_profile_report`.
@@ -526,17 +540,18 @@ Machine gate: `selected_profile_report`.
 Captured for task `FINK-MR-10` at `2026-06-21T22:43:17+09:00` from
 `BASE_COMMIT=b71d5327bc29223899a8f29e9bf4ef27da21787f`.
 
-FINK-MR-10 selects `core_local_offline_v1` as the public-safe local profile for
+FINK-MR-10 records `core_local_offline_v1` as optional public-safe metadata for
 retrieval, reranking, and explanation-boundary model research, with
-`ocr_local_document_profile_v1` recorded as its selected OCR companion profile.
-Together they define `desktop_local_full_selected_v1` for the desktop-local full
-research path. The report is a metadata/config record only: public Git records
-model IDs, licenses, exact revisions, source configs, selected profiles, and
-synthetic benchmark summaries. It does not record model weights, private model
-paths, token values, real contract text, private corpus passages, PDFs, ZIPs, or
-`.fink` artifacts.
+`ocr_local_document_profile_v1` recorded as its optional OCR companion profile.
+Together they define `desktop_local_full_selected_v1` as a private-installation
+plan for the desktop-local full research path. The report is a metadata/config
+record only: public Git records model IDs, licenses, exact revisions, source
+configs, optional profiles, and synthetic benchmark summaries. It does not
+record model weights, private model paths, token values, real contract text,
+private corpus passages, PDFs, ZIPs, or `.fink` artifacts, and it does not claim
+that those models are currently active.
 
-Selected profile components:
+Optional profile components:
 
 | Profile | Role | Candidate | HF repo | License | Exact revision | Source config | Benchmark coverage |
 |---------|------|-----------|---------|---------|----------------|---------------|--------------------|
@@ -555,6 +570,8 @@ Profile configuration boundary:
   legal search, telemetry, cloud OCR, or runtime model download is required.
 - Weights, if privately installed later, stay under `$PRIVATE_ROOT/models` or
   the Hugging Face cache outside the Git repository.
+- Runtime use additionally requires a passing offline health/smoke check in the
+  current environment. Without that passing check, the profile remains metadata.
 - Offline profile flags are
   `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`,
   `HF_DATASETS_OFFLINE=1`, `HF_HUB_DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`,
@@ -568,7 +585,7 @@ Accepted but not selected for the default profile:
 | `bge_m3` | `BAAI/bge-m3` | `mit` | `5617a9f61b028005a4858fdac845db406aefb181` | accepted public-open retrieval baseline, not default selected |
 | `qwen3_8b` | `Qwen/Qwen3-8B` | `apache-2.0` | `b968826d9c46dd6066d109eabc6255188de91218` | accepted public-open optional explanation candidate, not default selected |
 
-Benchmark summary for the selected profile:
+Synthetic benchmark summary for the optional profile metadata:
 
 | Task | Fixture | Gate | Selected model IDs | Public result summary | Boundary |
 |------|---------|------|--------------------|-----------------------|----------|
@@ -578,34 +595,38 @@ Benchmark summary for the selected profile:
 
 Model-card conclusion:
 
-- `core_local_offline_v1` is the selected local profile for the public model
-  report, and `ocr_local_document_profile_v1` is the selected OCR companion
-  profile for the desktop-local full research path.
+- `core_local_offline_v1` and `ocr_local_document_profile_v1` are optional
+  local-profile metadata records for a private desktop-local full research path.
 - The combined `desktop_local_full_selected_v1` profile contains 5 components
   and an estimated total private storage footprint of 21,526,679,874 decimal
-  bytes if all selected weights are installed outside Git.
+  bytes if all optional weights are installed outside Git.
+- No model is claimed active from this public report alone. Runtime activation
+  requires private installation outside the repository plus a passing offline
+  health/smoke check in the current environment.
 - Public Git remains metadata-only and contains no model weights or private
   runtime paths.
 - The local explanation model may explain retrieved records only. It must not
-  create legal evidence, set production risk scores, invent financial values, or
+  create legal evidence, set production review-priority values, invent financial values, or
   make fraud, illegality, contract-validity, unfairness, or guaranteed-loss
   verdicts.
 
-Paper note for `04_data_and_implementation.md`: report that FINK-MR-10 selected
-`core_local_offline_v1` as the metadata-only local retrieval/reranking/
-explanation profile and `ocr_local_document_profile_v1` as the metadata-only
-OCR companion profile, together forming `desktop_local_full_selected_v1`.
-The selected open-allowlisted, public, ungated models are pinned to exact
-revisions: `paddleocr_vl`, `qwen3_vl_4b`, `qwen3_embedding_0_6b`,
-`qwen3_reranker_0_6b`, and `qwen3_4b`. State that weights remain outside
-public Git, runtime analysis remains local-first/offline, and the selected
-profile is configured through `configs/models/selected_profiles.yaml` plus the
-prior shortlist and dry-run records.
+Paper note for `04_data_and_implementation.md`: report that FINK-MR-10 recorded
+`core_local_offline_v1` as metadata-only local retrieval/reranking/explanation
+profile metadata and `ocr_local_document_profile_v1` as metadata-only OCR
+companion profile metadata, together forming the optional
+`desktop_local_full_selected_v1` private-installation plan. The open-allowlisted,
+public, ungated model candidates are pinned to exact revisions:
+`paddleocr_vl`, `qwen3_vl_4b`, `qwen3_embedding_0_6b`,
+`qwen3_reranker_0_6b`, and `qwen3_4b`. State that weights remain outside public
+Git, runtime analysis remains local-first/offline, and no model is claimed
+active unless the private local installation passes the offline health/smoke
+gate in the current environment.
 
-Paper note for `05_experiments.md`: report the selected-profile benchmark
+Paper note for `05_experiments.md`: report the optional-profile benchmark
 summary as synthetic/sanitized only: MR-07 recorded 41/41 exact normalized OCR
 financial-term matches, MR-08 recorded 8/8 KO/EN canonical-ID matches with
 `EV-KOEN=1.000` and 0 English evidence-label violations, and MR-09 recorded
 6/6 citation coverage, 3/3 boundary-statement coverage, 3/3 quality-passed
 cases, and 0 boundary violations. Do not generalize these figures to
-real-contract OCR, retrieval, or explanation quality.
+real-contract OCR, retrieval, or explanation quality, and do not describe the
+models as runtime-active without a passing health check.

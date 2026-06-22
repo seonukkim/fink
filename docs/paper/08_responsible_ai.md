@@ -1,10 +1,11 @@
 # Responsible AI
 
-FInk is framed as a local-first Contractual Financial Review Priority system,
-not as legal advice or as a fraud, legality, validity, unfairness, or guaranteed-
-loss verdict. Its output separates review priority, monetary exposure range,
-time exposure, and evidence/OCR confidence so that no single number is presented
-as a definitive conclusion (`CLM-S7-FRAME-REVIEW`).
+FInk is framed as a local-first, selective, evidence-gated cash-flow triage
+system for creator contracts. It reports Contractual Financial Review Priority,
+not legal advice or a fraud, legality, validity, unfairness, or guaranteed-loss
+verdict. Its output separates review priority, monetary exposure range, time
+exposure, and evidence/OCR confidence so that no single number is presented as a
+definitive conclusion (`CLM-S7-FRAME-REVIEW`).
 
 Authority gating is a hard boundary. Only A0-A2 official records may ground a
 score-eligible signal; B/C practice references can explain terms and motivate
@@ -34,6 +35,13 @@ thresholds, bands, and any model weights remain design heuristics unless future
 work validates them; this paper therefore uses DFL-inspired wording and does not
 claim end-to-end decision-focused training or validated financial-loss
 prediction (`CLM-S7-RESULT-SCOPE`, `CLM-S7-METHOD-DFL`).
+
+FINK-EXP-01 and FINK-COST-01 keep the same boundary. Oracle fixture weights and
+fixture-derived review costs are evaluation labels, not predicted exposure-value,
+real-loss, legal-damage, or real-performance claims. Optional local model
+profiles remain metadata unless privately installed weights pass the offline
+health check; the model layer may explain retrieved records only and must not
+create evidence or set review-priority values.
 
 The FINK-S7-03 gate snapshot records HR-08 as a human academic-integrity
 attestation: the author, not the system, is responsible for personally reviewing

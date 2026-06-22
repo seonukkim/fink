@@ -16,9 +16,9 @@
 
 - Tooling: Claude Opus 4.8 (max).
 - Scope: documentation only. Rewrote `README.md` into an academic project README
-  (title "FInk: Evidence-Grounded Financial AI for Creator Contract Review"),
-  added `docs/README_CONTENT_GUIDE.md`, and this log entry. No product feature,
-  model download, or private corpus import.
+  under the then-current title, added `docs/README_CONTENT_GUIDE.md`, and this
+  log entry. No product feature, model download, or private corpus import. The
+  FINK-DOC-01 entry below records the later canonical title synchronization.
 - Evidence-checked: hero image and all relative links verified to exist; TODO
   boxes set from `loop/BACKLOG.yaml` (all 54 tasks READY except the committed
   agent-loop infrastructure); licensing marked pending (empty license files); no
@@ -68,6 +68,23 @@
   added.
 - Verification: packaging/CLI regressions added under `tests/web/`; final gate
   commands for this task are recorded in the Codex result.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
+## 2026-06-22 — Documentation and project-page claim synchronization
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: FINK-DOC-01 documentation/page synchronization only. Updated public
+  docs, project-page copy, paper notes, claim/result ledgers, citation notes,
+  and site tests to the canonical title "FInk: Selective, Evidence-Gated
+  Cash-Flow Triage for Creator Contracts." No product feature, deployment,
+  model download, private corpus import, remote runtime API, or paper-template
+  change was added.
+- Claim boundary: model references are optional/when-installed only; measured
+  result rows remain synthetic/sanitized fixture checks; no DFL-training,
+  predicted exposure-value, real-contract performance,
+  legal/fraud/validity/unfairness, or guaranteed-loss claim was added.
 - Privacy: no `.env`, Hugging Face token value, private books, contracts, model
   weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
   committed.
