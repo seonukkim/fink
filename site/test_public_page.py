@@ -23,7 +23,7 @@ def main() -> None:
         "uv sync --extra web",
         "uv run fink-web",
         "<mark>90일 이내</mark>",
-        "Highlighted words are review cues, not safety colors",
+        "do not signal safe or risky",
     ):
         if snippet not in normalized:
             raise AssertionError(f"canonical page text missing: {snippet}")
