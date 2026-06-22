@@ -514,6 +514,67 @@ def _analysis_payload_from_raw_request(
     return _analysis_payload_from_request(body)
 
 
+def _chat_payload_from_raw_request(
+    raw: bytes, content_type: str | None
+) -> dict[str, Any]:
+    try:
+        body = json.loads(raw.decode("utf-8")) if raw else {}
+    except UnicodeDecodeError as exc:
+        raise _ingest_validation_error("chat request body must be JSON") from exc
+    except ValueError as exc:
+        raise _ingest_validation_error("chat request body must be JSON") from exc
+    if not isinstance(body, dict):
+        raise _ingest_validation_error("chat request body must be a JSON object")
+    paste_text = body.get("paste_text")
+    if not isinstance(paste_text, str) or not paste_text.strip():
+        raise _ingest_validation_error("paste_text must be a nonblank string")
+    question = body.get("question")
+    if question is not None and not isinstance(question, str):
+        raise _ingest_validation_error("question must be a string")
+    locale = _resolve_api_locale(body)
+    from fink.web.chat import chat_reply_for_request
+
+    return chat_reply_for_request(
+        paste_text=paste_text,
+        question=question,
+        locale=locale,
+    )
+
+
+def _chat_response(raw: bytes, content_type: str | None) -> tuple[int, dict[str, Any]]:
+    try:
+        payload = _chat_payload_from_raw_request(raw, content_type)
+    except AnalyzeRequestError as exc:
+        return exc.status_code, exc.to_payload()
+    except LocaleValidationError:
+        return 422, _structured_locale_error()
+    except _local_analysis_client_errors() as exc:
+        return 400, _structured_local_error(
+            code="input_invalid",
+            message_ko="입력을 분석할 수 없습니다.",
+            message_en=f"Could not analyze the input: {exc}",
+            action_ko="붙여넣은 계약 내용을 확인하고 다시 시도하세요.",
+            action_en="Check the pasted contract text and try again.",
+        )
+    except _local_analysis_setup_errors() as exc:
+        return 503, _structured_local_error(
+            code="setup_incomplete",
+            message_ko="로컬 설정 또는 공식 출처 색인을 불러오지 못했습니다.",
+            message_en=f"A local config or official-source index could not be loaded: {exc}",
+            action_ko="설치를 확인하거나 저장소를 다시 클론한 뒤 다시 시도하세요.",
+            action_en="Check your install or re-clone the repository, then retry.",
+        )
+    except Exception:
+        return 500, _structured_local_error(
+            code="internal_local_error",
+            message_ko="기기 내 대화 응답 생성 중 오류가 발생했습니다.",
+            message_en="An unexpected error occurred while generating the local reply.",
+            action_ko="입력을 줄여 다시 시도하거나 설치 상태를 확인하세요.",
+            action_en="Try a smaller input or check your install.",
+        )
+    return 200, payload
+
+
 def _resolve_api_locale(body: dict[str, Any]) -> UILocale:
     if "locale" not in body or body.get("locale") is None:
         return UILocale.KO
@@ -946,6 +1007,14 @@ def _create_fastapi_app(settings: WebBindSettings) -> Any:
     analyze_route.__annotations__["request"] = Request
     app.post("/api/analyze")(analyze_route)
 
+    async def chat_route(request: Request) -> JSONResponse:
+        raw = await request.body()
+        status, payload = _chat_response(raw, request.headers.get("content-type"))
+        return JSONResponse(payload, status_code=status)
+
+    chat_route.__annotations__["request"] = Request
+    app.post("/api/chat")(chat_route)
+
     @app.get("/healthz")
     def healthz() -> JSONResponse:
         return JSONResponse(_health_payload(settings))
@@ -972,6 +1041,9 @@ class LocalASGIApp:
 
         if method == "POST" and path == "/api/analyze":
             await self._handle_analyze(scope, receive, send)
+            return
+        if method == "POST" and path == "/api/chat":
+            await self._handle_chat(scope, receive, send)
             return
         if method != "GET":
             await _send_response(send, 405, b"Method not allowed", "text/plain; charset=utf-8")
@@ -1051,6 +1123,11 @@ class LocalASGIApp:
             ))
             return
         await _send_json(send, 200, payload)
+
+    async def _handle_chat(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        body = await _read_request_body(receive)
+        status, payload = _chat_response(body, _header_value(scope, "content-type"))
+        await _send_json(send, status, payload)
 
 
 async def _read_request_body(receive: Any) -> bytes:
