@@ -1,5 +1,25 @@
 # AI Use Log
 
+## 2026-06-22 — Chat demo owner-feedback polish
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: `src/fink/web/app.py` chat shell/CSS/JS design-token updates,
+  `tests/web/` pinned assertions, `LOOP.md`, and paper implementation notes.
+  The chat demo now uses a full-viewport column with only the thread scrolling,
+  a fixed bottom composer, the FInk wordmark and updated creator title, the pink
+  project-page palette, a three-step review-effort meter, consistent bubble max
+  widths, a hidden initial result placeholder, and a browser-print review brief
+  instead of Markdown download logic.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web -q` passed;
+  `python3 scripts/web_a11y_contrast_check.py` passed; the rendered shell
+  contains no inline `fetch(` or `https://`; `UV_CACHE_DIR=/tmp/uv-cache uv run
+  python3 -c "import fink.web.app"` passed. Plain `/bin/python3 -c "import
+  fink.web.app"` still fails in this sandbox because the checkout uses a `src/`
+  layout and the package is not installed into the bare interpreter.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed. No paper-template file was touched.
+
 ## 2026-06-21 — Agent-loop bootstrap
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

@@ -82,15 +82,19 @@ LAN_CONFIRMATION_TEXT = "I understand this is a trusted-LAN-only local server."
 _BLOCKED_BIND_HOSTS = frozenset({"0.0.0.0", "::", ""})
 
 WEB_DESIGN_TOKENS = {
-    "ink": "#151a22",
-    "muted": "#4a5565",
-    "line": "#d4dbe5",
-    "line_soft": "#e6ebf2",
+    "ink": "#1f2937",
+    "muted": "#6b7280",
+    "line": "#f4d4e2",
+    "line_soft": "#f8e1ec",
     "panel": "#ffffff",
-    "canvas": "#eef2f7",
-    "accent": "#006d77",
-    "accent_strong": "#014f56",
-    "accent_tint": "#f1f8f9",
+    "canvas": "#fff7fb",
+    "pink": "#e83e8c",
+    "pink_deep": "#b91c5c",
+    "pink_pale": "#fff1f7",
+    "pink_line": "#f4d4e2",
+    "accent": "#b91c5c",
+    "accent_strong": "#b91c5c",
+    "accent_tint": "#fff1f7",
     "warn_bg": "#fff3cd",
     "warn_ink": "#5a4100",
     "focus_ring": "#0b57d0",
@@ -104,10 +108,10 @@ WEB_CONTRAST_CHECKS = (
     ("body text on canvas", "ink", "canvas", 4.5),
     ("muted text on panel", "muted", "panel", 4.5),
     ("muted text on canvas", "muted", "canvas", 4.5),
-    ("primary button text", "panel", "accent", 4.5),
-    ("secondary button text", "accent_strong", "panel", 4.5),
-    ("link text on panel", "accent_strong", "panel", 4.5),
-    ("badge text on accent tint", "accent_strong", "accent_tint", 4.5),
+    ("primary button text", "panel", "pink_deep", 4.5),
+    ("secondary button text", "pink_deep", "panel", 4.5),
+    ("link text on panel", "pink_deep", "panel", 4.5),
+    ("badge text on pink pale", "pink_deep", "pink_pale", 4.5),
     ("warning text on warning background", "warn_ink", "warn_bg", 4.5),
     ("danger action text", "danger", "panel", 4.5),
     ("focus ring on panel", "focus_ring", "panel", 3.0),
@@ -222,8 +226,11 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
   <a class="skip-link" href="#workspace">Skip to workspace</a>
   <header class="chat-topbar">
     <div class="chat-title">
-      <h1>창작자 특화 금융 계약 검토</h1>
-      <p class="subtitle">Creator-focused financial contract review</p>
+      <p class="wordmark" aria-label="FInk">F<span>I</span>nk</p>
+      <div>
+        <h1>창작자를 위한 금융 계약 검토</h1>
+        <p class="subtitle">Financial Contract Review for Creators</p>
+      </div>
     </div>
     <div class="chat-topbar-actions">
       <nav class="locale-toggle" aria-label="Locale" data-locale-toggle="true">
@@ -321,6 +328,8 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
         "or missing OCR text return a local error. Nothing is transmitted.",
     )}
   </div>
+  <section id="print-brief" class="print-brief-root" data-print-brief-root="true"
+    aria-hidden="true"></section>
   <script src="/app.js"></script>
 </body>
 </html>
@@ -1244,6 +1253,10 @@ def _css() -> str:
   --line-soft: {tokens["line_soft"]};
   --panel: {tokens["panel"]};
   --canvas: {tokens["canvas"]};
+  --pink: {tokens["pink"]};
+  --pink-deep: {tokens["pink_deep"]};
+  --pink-pale: {tokens["pink_pale"]};
+  --pink-line: {tokens["pink_line"]};
   --accent: {tokens["accent"]};
   --accent-strong: {tokens["accent_strong"]};
   --accent-tint: {tokens["accent_tint"]};
@@ -1259,14 +1272,18 @@ def _css() -> str:
   --space-3: 1.5rem;
   --space-4: 2rem;
   --radius: 8px;
-  --shadow: 0 1px 2px rgba(21, 26, 34, .06), 0 6px 18px rgba(21, 26, 34, .05);
+  --shadow: 0 1px 2px rgba(31, 41, 55, .06), 0 6px 18px rgba(185, 28, 92, .06);
   --reading-measure: 66ch;
+  --bubble-max: 44rem;
+  --bubble-padding: .85rem 1rem;
 }}
 """ + """
 * { box-sizing: border-box; }
 html {
   scroll-padding: calc(var(--space-4) + 44px);
   background: var(--canvas);
+  height: 100%;
+  overflow: hidden;
 }
 body {
   margin: 0;
@@ -1275,12 +1292,17 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.6;
   overflow-wrap: anywhere;
-  /* Messenger content should follow the conversation height. The page itself
-     scrolls when needed, so there is no reserved empty pane after the thread. */
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  height: auto;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+@supports (height: 100dvh) {
+  body {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
 }
 img, svg, video, canvas {
   max-width: 100%;
@@ -1370,7 +1392,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   display: grid;
   gap: .5rem;
   padding: .75rem clamp(1rem, 4vw, 2rem);
-  background: #e8f3f4;
+  background: var(--accent-tint);
   border-bottom: 1px solid var(--line);
 }
 .banner {
@@ -1785,7 +1807,7 @@ footer {
 .action-row { margin-top: var(--space-2); }
 .result-pane[hidden] { display: none; }
 .result-pane:not([hidden]) {
-  border-top: 4px solid var(--accent);
+  border-top: 0;
 }
 .nl-summary {
   max-width: var(--reading-measure);
@@ -1896,6 +1918,79 @@ footer {
   border-color: var(--line);
   background: #fff;
   color: var(--ink);
+}
+.review-effort-signal {
+  display: grid;
+  gap: .55rem;
+  padding: .75rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #fff;
+}
+.review-effort-label {
+  display: flex;
+  gap: .45rem;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 800;
+}
+.review-effort-current {
+  color: var(--ink);
+}
+.effort-meter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .4rem;
+}
+.effort-segment {
+  position: relative;
+  min-height: 3rem;
+  padding: .55rem .5rem .5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+}
+.effort-segment::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: .28rem;
+  border-radius: 7px 7px 0 0;
+  background: var(--effort-color);
+  opacity: .4;
+}
+.effort-segment[data-effort-level="light"] {
+  --effort-color: #2f7d5b;
+  --effort-bg: #effaf4;
+  --effort-text: #166534;
+}
+.effort-segment[data-effort-level="careful"] {
+  --effort-color: #b7791f;
+  --effort-bg: #fff8e6;
+  --effort-text: #7a4f00;
+}
+.effort-segment[data-effort-level="professional"] {
+  --effort-color: #b91c5c;
+  --effort-bg: #fff1f7;
+  --effort-text: #b91c5c;
+}
+.effort-segment[data-active="true"] {
+  border-color: var(--effort-color);
+  background: var(--effort-bg);
+  color: var(--effort-text);
+  box-shadow: inset 0 0 0 2px var(--effort-color);
+}
+.effort-segment[data-active="true"]::before {
+  opacity: 1;
 }
 .glance-concern {
   display: grid;
@@ -2262,58 +2357,131 @@ footer {
     box-shadow: none;
   }
 }
+.print-brief-root {
+  display: none;
+}
+@page {
+  size: A4;
+  margin: 16mm;
+}
 @media print {
-  body,
-  .topbar,
-  footer,
-  .card,
-  .integrated-judgment-card,
-  .tool-details,
-  .source-highlights,
-  .finding-card,
-  .scenario-inputs,
-  .assumptions-panel,
-  .page-card,
-  .source-highlight-card,
-  .source-card {
-    color: #000;
+  html,
+  body {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
     background: #fff;
-    box-shadow: none;
   }
-  .skip-link,
-  .locale-toggle,
-  #analyze-btn,
-  #contract-file,
-  .reader-jump-links,
-  .reader-back-link,
-  .review-brief-launcher,
-  .review-brief-actions {
+  body {
+    display: block;
+    color: #111827;
+    font: 11pt/1.55 Georgia, "Times New Roman", serif;
+  }
+  body > :not(.print-brief-root) {
     display: none !important;
   }
-  details,
-  details > summary,
-  details:not([open]) > *:not(summary) {
-    display: block;
+  .print-brief-root {
+    display: block !important;
   }
-  a {
-    color: #000;
-    text-decoration: underline;
+  .print-brief-document {
+    color: #111827;
+    background: #fff;
   }
-  .badge,
-  .glance-chip,
-  .source-badge,
-  .unverified-badge,
-  .model-suggestion-origin {
-    color: #000;
-    background: transparent;
-    border: 1px solid #000;
+  .print-brief-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: .65rem;
+    border-bottom: 2px solid #b91c5c;
+    margin-bottom: 1rem;
+  }
+  .print-wordmark {
+    margin: 0;
+    font: 900 20pt/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0;
+  }
+  .print-wordmark span {
+    color: #b91c5c;
+  }
+  .print-date {
+    margin: .1rem 0 0;
+    color: #4b5563;
+    font: 700 9.5pt/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: right;
+  }
+  .print-brief-title {
+    margin: 0 0 .35rem;
+    color: #111827;
+    font: 800 18pt/1.25 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .print-brief-disclaimer {
+    margin: 0 0 1rem;
+    padding: .65rem .8rem;
+    border: 1px solid #f4d4e2;
+    border-left: 4px solid #b91c5c;
+    background: #fff1f7;
+    color: #1f2937;
+    font: 9.5pt/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .print-brief-summary {
+    display: grid;
+    gap: .45rem;
+    margin: 0 0 1rem;
+    padding: .85rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+  }
+  .print-brief-summary h2,
+  .print-findings h2,
+  .print-brief-closing h2 {
+    margin: 0;
+    color: #b91c5c;
+    font: 800 12pt/1.35 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .print-summary-line {
+    margin: 0;
     font-weight: 700;
   }
-  mark,
-  .source-highlight {
-    color: #000;
-    background: transparent;
-    font-weight: 700;
+  .print-effort-pill {
+    display: inline-block;
+    width: fit-content;
+    margin: 0;
+    padding: .22rem .48rem;
+    border: 1px solid #f4d4e2;
+    border-radius: 999px;
+    color: #b91c5c;
+    background: #fff1f7;
+    font: 800 9.5pt/1.3 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .print-findings {
+    display: grid;
+    gap: .75rem;
+    margin: 0 0 1rem;
+  }
+  .print-finding {
+    break-inside: avoid;
+    padding-top: .7rem;
+    border-top: 1px solid #e5e7eb;
+  }
+  .print-finding h3 {
+    margin: 0 0 .35rem;
+    font: 800 11.5pt/1.35 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .print-finding p {
+    margin: .22rem 0;
+  }
+  .print-finding strong {
+    color: #111827;
+  }
+  .print-brief-closing {
+    break-inside: avoid;
+    margin-top: 1rem;
+    padding-top: .65rem;
+    border-top: 2px solid #f4d4e2;
+  }
+  .print-brief-closing p {
+    margin: .35rem 0 0;
   }
 }
 /* ----------------------------------------------------------------------------
@@ -2333,6 +2501,7 @@ footer {
   border: 0;
 }
 .chat-topbar {
+  flex: 0 0 auto;
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -2341,6 +2510,23 @@ footer {
   padding: .75rem clamp(1rem, 4vw, 2rem);
   background: var(--panel);
   border-bottom: 1px solid var(--line);
+}
+.chat-title {
+  display: flex;
+  gap: .85rem;
+  align-items: center;
+  min-width: min(100%, 20rem);
+}
+.wordmark {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.wordmark span {
+  color: var(--pink-deep);
 }
 .chat-title h1 {
   margin: 0;
@@ -2372,17 +2558,19 @@ footer {
   background: transparent;
 }
 .chat-privacy {
+  flex: 0 0 auto;
   margin: 0;
   padding: .55rem clamp(1rem, 4vw, 2rem);
   background: var(--accent-tint);
   border-bottom: 1px solid var(--line-soft);
-  color: var(--muted);
+  color: var(--ink);
   font-size: .85rem;
 }
 .notice-panel {
+  flex: 0 0 auto;
   margin: 0;
   padding: var(--space-2) clamp(1rem, 4vw, 2rem);
-  background: #e8f3f4;
+  background: var(--accent-tint);
   border-bottom: 1px solid var(--line);
 }
 .notice-panel[hidden] {
@@ -2395,16 +2583,17 @@ footer {
   padding-left: 1.15rem;
 }
 .chat {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: visible;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-2) clamp(.75rem, 4vw, 2rem);
 }
 .thread {
   display: grid;
   gap: var(--space-2);
   width: 100%;
-  max-width: 760px;
+  max-width: calc(var(--bubble-max) + 2rem);
   margin: 0 auto;
   padding: 0;
   list-style: none;
@@ -2413,6 +2602,10 @@ footer {
   display: flex;
   width: 100%;
 }
+.msg[hidden],
+[data-result-message][hidden] {
+  display: none !important;
+}
 .msg.bot {
   justify-content: flex-start;
 }
@@ -2420,17 +2613,22 @@ footer {
   justify-content: flex-end;
 }
 .bubble {
-  max-width: min(100%, 46rem);
-  padding: .75rem 1rem;
+  max-width: min(100%, var(--bubble-max));
+  padding: var(--bubble-padding);
   border-radius: 16px;
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: var(--shadow);
 }
 .msg.bot .bubble {
+  width: min(100%, var(--bubble-max));
+}
+.msg.bot .bubble {
   border-top-left-radius: 4px;
 }
 .msg.user .bubble {
+  width: auto;
+  max-width: min(100%, var(--bubble-max));
   border-top-right-radius: 4px;
   border-color: var(--accent);
   background: var(--accent-tint);
@@ -2446,7 +2644,7 @@ footer {
   animation-delay: calc(var(--result-index, 0) * 70ms);
 }
 .result-sequence-msg .bubble {
-  max-width: min(100%, 40rem);
+  max-width: min(100%, var(--bubble-max));
 }
 @keyframes fink-result-message-in {
   from {
@@ -2603,7 +2801,14 @@ footer {
   }
 }
 .bubble-result {
-  max-width: min(100%, 40rem);
+  max-width: min(100%, var(--bubble-max));
+}
+.result-msg[hidden] .bubble {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .file-chip {
   display: inline-flex;
@@ -2641,32 +2846,13 @@ footer {
 .review-brief-button {
   width: fit-content;
 }
-.review-brief-panel {
-  display: grid;
-  gap: var(--space-1);
-  max-width: var(--reading-measure);
-}
-.review-brief-panel h3 {
-  margin: 0;
-}
-.review-brief-body {
-  margin: 0;
-  padding: var(--space-2);
-  border: 1px solid var(--line-soft);
-  border-radius: 8px;
-  background: #fbfcfe;
-  color: var(--ink);
-  font-family: inherit;
-  font-size: .95rem;
-  line-height: 1.65;
-  overflow-x: auto;
-  white-space: pre-wrap;
-}
 .composer {
+  flex: 0 0 auto;
   display: flex;
   gap: .5rem;
   align-items: flex-end;
   padding: .65rem clamp(.75rem, 4vw, 2rem);
+  padding-bottom: max(.65rem, env(safe-area-inset-bottom));
   background: var(--panel);
   border-top: 1px solid var(--line);
 }
@@ -2713,6 +2899,22 @@ footer {
   font-size: .95rem;
 }
 @media (max-width: 480px) {
+  .chat-title {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .wordmark {
+    font-size: 1.2rem;
+    padding-top: .12rem;
+  }
+  .effort-meter {
+    gap: .3rem;
+  }
+  .effort-segment {
+    min-height: 3.35rem;
+    padding-inline: .35rem;
+    font-size: .72rem;
+  }
   .send-button .send-label {
     position: absolute;
     width: 1px;
@@ -3229,28 +3431,80 @@ _APP_JS = r"""(function () {
     return "";
   }
 
-  function reviewEffortLevel(payload, findingCount) {
+  function reviewEffortKey(payload, findingCount) {
     var pathway = recommendationPathway(payload).toLowerCase();
     if (pathway.indexOf("clarification") !== -1) {
-      return { ko: "가볍게 확인", en: "Light check" };
+      return "light";
     }
     if (pathway.indexOf("negotiation") !== -1) {
-      return { ko: "꼼꼼히 확인", en: "Careful check" };
+      return "careful";
     }
     if (pathway.indexOf("professional") !== -1 || pathway.indexOf("dispute") !== -1) {
-      return { ko: "전문가 확인 권장", en: "Professional check recommended" };
+      return "professional";
     }
     if (findingCount <= 1) {
-      return { ko: "가볍게 확인", en: "Light check" };
+      return "light";
     }
     if (findingCount <= 3) {
+      return "careful";
+    }
+    return "professional";
+  }
+
+  function reviewEffortLevel(key) {
+    if (key === "professional") {
+      return { ko: "전문가 확인 권장", en: "Professional check recommended" };
+    }
+    if (key === "careful") {
       return { ko: "꼼꼼히 확인", en: "Careful check" };
     }
-    return { ko: "전문가 확인 권장", en: "Professional check recommended" };
+    return { ko: "가볍게 확인", en: "Light check" };
+  }
+
+  function reviewEffortLevels() {
+    return [
+      { key: "light", label: reviewEffortLevel("light") },
+      { key: "careful", label: reviewEffortLevel("careful") },
+      { key: "professional", label: reviewEffortLevel("professional") }
+    ];
+  }
+
+  function reviewEffortSignal(payload, findingCount) {
+    var active = reviewEffortKey(payload, findingCount);
+    var activeLabel = reviewEffortLevel(active);
+    var section = el("section", "review-effort-signal", null);
+    section.setAttribute("data-review-effort-signal", "true");
+    section.setAttribute("data-review-effort-level", active);
+    section.setAttribute("aria-label", "검토 권장 수준 / Review effort");
+
+    var label = el("p", "review-effort-label", null);
+    label.appendChild(
+      bilingual("span", null, {
+        ko: "검토 권장 수준",
+        en: "Review effort"
+      })
+    );
+    label.appendChild(bilingual("strong", "review-effort-current", activeLabel));
+    section.appendChild(label);
+
+    var meter = el("div", "effort-meter", null);
+    meter.setAttribute("aria-hidden", "true");
+    reviewEffortLevels().forEach(function (level) {
+      var segment = bilingual("span", "effort-segment", level.label);
+      segment.setAttribute("data-effort-level", level.key);
+      segment.setAttribute("data-active", level.key === active ? "true" : "false");
+      meter.appendChild(segment);
+    });
+    section.appendChild(meter);
+    return section;
+  }
+
+  function reviewEffortPair(payload, findingCount) {
+    return reviewEffortLevel(reviewEffortKey(payload, findingCount));
   }
 
   function reviewEffortChipPair(payload, findingCount) {
-    var level = reviewEffortLevel(payload, findingCount);
+    var level = reviewEffortPair(payload, findingCount);
     return {
       ko: "검토 권장 수준: " + level.ko,
       en: "Review effort: " + level.en
@@ -3287,10 +3541,6 @@ _APP_JS = r"""(function () {
     } catch (error) {
       return date.toISOString().slice(0, 10);
     }
-  }
-
-  function reviewBriefFilename() {
-    return "fink-review-brief-" + new Date().toISOString().slice(0, 10) + ".md";
   }
 
   function briefEvidenceLine(finding, locale) {
@@ -3330,77 +3580,154 @@ _APP_JS = r"""(function () {
     return localizedFor(fallbackPair, locale);
   }
 
-  function buildReviewBriefText(payload, locale) {
-    locale = normalizeLocale(locale);
-    var isEnglish = locale === "en";
-    var findings = (payload && payload.findings) || [];
-    var findingCount = findings.length;
-    var lines = [
-      isEnglish ? "# FInk Review Brief" : "# FInk 검토 의견서",
-      "",
-      (isEnglish ? "Date: " : "작성일: ") + formatBriefDate(locale),
-      "",
-      isEnglish
-        ? "This review brief organizes points to support a signing decision and is not legal advice."
-        : "이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.",
-      "",
-      isEnglish ? "## Overall" : "## 전체 정리",
-      "- " + localizedFor(recommendationActionPair(payload), locale),
-      "- " + localizedFor(reviewEffortChipPair(payload, findingCount), locale),
-      "- " + localizedFor(itemCountPair(findingCount), locale),
-      "",
-      isEnglish ? "## Findings" : "## 확인할 항목"
-    ];
-
-    if (findings.length === 0) {
-      lines.push(
-        isEnglish
-          ? "No individual finding is listed. Still confirm payment, term, and termination terms."
-          : "개별 확인 항목이 없습니다. 지급, 기간, 해지 조건은 직접 확인하세요."
-      );
-    }
-
-    findings.forEach(function (finding, index) {
-      lines.push((index + 1) + ". " + briefFindingTitle(finding, index, locale));
-      lines.push(
-        "   - " + (isEnglish ? "Clause: " : "조항: ") + briefClauseLabel(finding, index, locale)
-      );
-      lines.push(
-        "   - " +
-          (isEnglish ? "Why it matters: " : "왜 중요한지: ") +
-          briefField(finding && finding.why_it_matters, locale, {
-            ko: "서명 전 확인할 현금흐름 조건입니다.",
-            en: "This is a cash-flow term to confirm before signing."
-          })
-      );
-      lines.push(
-        "   - " +
-          (isEnglish ? "Question to confirm or negotiate: " : "확인·협상 질문: ") +
-          briefField(finding && finding.question_to_ask, locale, {
-            ko: "이 조건을 계약서에 어떻게 명확히 적을 수 있나요?",
-            en: "How can this term be written clearly in the contract?"
-          })
-      );
-      lines.push(
-        "   - " + (isEnglish ? "Evidence: " : "근거: ") + briefEvidenceLine(finding, locale)
-      );
-    });
-
-    lines.push(
-      "",
-      isEnglish ? "## Closing" : "## 마무리",
-      isEnglish
-        ? "Confirm important decisions with a professional."
-        : "중요한 결정 전에는 전문가 확인을 권합니다."
-    );
-    return lines.join("\n") + "\n";
+  function briefFindingTitlePair(finding, index) {
+    return {
+      ko: briefFindingTitle(finding, index, "ko"),
+      en: briefFindingTitle(finding, index, "en")
+    };
   }
 
-  function buildReviewBriefPair(payload) {
+  function briefClauseLabelPair(finding, index) {
     return {
-      ko: buildReviewBriefText(payload, "ko"),
-      en: buildReviewBriefText(payload, "en")
+      ko: briefClauseLabel(finding, index, "ko"),
+      en: briefClauseLabel(finding, index, "en")
     };
+  }
+
+  function briefFieldPair(pair, fallbackPair) {
+    return {
+      ko: briefField(pair, "ko", fallbackPair),
+      en: briefField(pair, "en", fallbackPair)
+    };
+  }
+
+  function briefEvidencePair(finding) {
+    return {
+      ko: briefEvidenceLine(finding, "ko"),
+      en: briefEvidenceLine(finding, "en")
+    };
+  }
+
+  function printBriefRoot() {
+    var root = document.querySelector("[data-print-brief-root]");
+    if (!root) {
+      root = el("section", "print-brief-root", null);
+      root.id = "print-brief";
+      root.setAttribute("data-print-brief-root", "true");
+      root.setAttribute("aria-hidden", "true");
+      document.body.appendChild(root);
+    }
+    return root;
+  }
+
+  function appendPrintLine(container, labelPair, valuePair) {
+    var line = el("p", null, null);
+    line.appendChild(bilingual("strong", null, labelPair));
+    line.appendChild(document.createTextNode(" "));
+    line.appendChild(bilingual("span", null, valuePair));
+    container.appendChild(line);
+  }
+
+  function renderPrintableBrief(payload) {
+    var root = printBriefRoot();
+    clearNode(root);
+    root.setAttribute("aria-hidden", "true");
+
+    var findings = (payload && payload.findings) || [];
+    var findingCount = findings.length;
+    var article = el("article", "print-brief-document", null);
+    article.setAttribute("data-print-brief-document", "true");
+
+    var header = el("header", "print-brief-header", null);
+    var wordmark = el("p", "print-wordmark", null);
+    wordmark.setAttribute("aria-label", "FInk");
+    wordmark.innerHTML = "F<span>I</span>nk";
+    header.appendChild(wordmark);
+    header.appendChild(
+      bilingual("p", "print-date", {
+        ko: "작성일: " + formatBriefDate("ko"),
+        en: "Date: " + formatBriefDate("en")
+      })
+    );
+    article.appendChild(header);
+
+    article.appendChild(
+      bilingual("h1", "print-brief-title", {
+        ko: "FInk 검토 의견서",
+        en: "FInk Review Brief"
+      })
+    );
+    article.appendChild(
+      bilingual("p", "print-brief-disclaimer", {
+        ko: "이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.",
+        en: "This review brief organizes points to support a signing decision and is not legal advice."
+      })
+    );
+
+    var summary = el("section", "print-brief-summary", null);
+    summary.appendChild(bilingual("h2", null, { ko: "전체 정리", en: "Overall" }));
+    summary.appendChild(
+      bilingual("p", "print-summary-line", recommendationActionPair(payload))
+    );
+    summary.appendChild(
+      bilingual("p", "print-effort-pill", reviewEffortChipPair(payload, findingCount))
+    );
+    summary.appendChild(bilingual("p", "print-summary-line", itemCountPair(findingCount)));
+    article.appendChild(summary);
+
+    var findingsSection = el("section", "print-findings", null);
+    findingsSection.appendChild(
+      bilingual("h2", null, {
+        ko: "확인할 항목",
+        en: "Findings"
+      })
+    );
+    if (findings.length === 0) {
+      findingsSection.appendChild(
+        bilingual("p", null, {
+          ko: "개별 확인 항목이 없습니다. 지급, 기간, 해지 조건은 직접 확인하세요.",
+          en: "No individual finding is listed. Still confirm payment, term, and termination terms."
+        })
+      );
+    }
+    findings.forEach(function (finding, index) {
+      var item = el("section", "print-finding", null);
+      var title = el("h3", null, String(index + 1) + ". ");
+      title.appendChild(bilingual("span", null, briefFindingTitlePair(finding, index)));
+      item.appendChild(title);
+      appendPrintLine(item, { ko: "조항:", en: "Clause:" }, briefClauseLabelPair(finding, index));
+      appendPrintLine(
+        item,
+        { ko: "왜 중요한지:", en: "Why it matters:" },
+        briefFieldPair(finding && finding.why_it_matters, {
+          ko: "서명 전 확인할 현금흐름 조건입니다.",
+          en: "This is a cash-flow term to confirm before signing."
+        })
+      );
+      appendPrintLine(
+        item,
+        { ko: "확인·협상 질문:", en: "Question to confirm or negotiate:" },
+        briefFieldPair(finding && finding.question_to_ask, {
+          ko: "이 조건을 계약서에 어떻게 명확히 적을 수 있나요?",
+          en: "How can this term be written clearly in the contract?"
+        })
+      );
+      appendPrintLine(item, { ko: "근거:", en: "Evidence:" }, briefEvidencePair(finding));
+      findingsSection.appendChild(item);
+    });
+    article.appendChild(findingsSection);
+
+    var closing = el("section", "print-brief-closing", null);
+    closing.appendChild(bilingual("h2", null, { ko: "마무리", en: "Closing" }));
+    closing.appendChild(
+      bilingual("p", null, {
+        ko: "중요한 결정 전에는 전문가 확인을 권합니다.",
+        en: "Confirm important decisions with a professional."
+      })
+    );
+    article.appendChild(closing);
+    root.appendChild(article);
+    return root;
   }
 
   function renderReviewBriefAction(container) {
@@ -3427,87 +3754,6 @@ _APP_JS = r"""(function () {
     lastReviewBriefItem = null;
   }
 
-  function reviewBriefBodyNode(panel) {
-    if (!panel) {
-      return null;
-    }
-    return (
-      panel.querySelector('[data-review-brief-body="' + activeLocale() + '"]') ||
-      panel.querySelector("[data-review-brief-body]")
-    );
-  }
-
-  function activeReviewBriefText(panel) {
-    var body = reviewBriefBodyNode(panel);
-    return body ? text(body.textContent) : "";
-  }
-
-  function briefStatusMessage(pair) {
-    var regions = document.querySelectorAll("[data-review-brief-status-region]");
-    regions.forEach(function (region) {
-      clearNode(region);
-      region.appendChild(bilingual("span", null, pair));
-    });
-    statusMessage(pair);
-  }
-
-  function renderReviewBriefPanel(payload) {
-    var brief = buildReviewBriefPair(payload);
-    var panel = el("section", "review-brief-panel", null);
-    panel.setAttribute("data-review-brief-panel", "true");
-    panel.setAttribute("aria-labelledby", "review-brief-heading");
-    var heading = bilingual("h3", null, {
-      ko: "검토 의견서",
-      en: "Review brief"
-    });
-    heading.id = "review-brief-heading";
-    panel.appendChild(heading);
-
-    var actions = el("div", "action-row review-brief-actions", null);
-    actions.setAttribute("role", "group");
-    actions.setAttribute("aria-label", "의견서 작업 / Review brief actions");
-
-    var copy = el("button", "secondary", null);
-    copy.type = "button";
-    copy.setAttribute("data-copy-review-brief", "true");
-    copy.setAttribute("aria-label", "의견서 복사 / Copy review brief");
-    copy.appendChild(bilingual("span", null, { ko: "복사", en: "Copy" }));
-    actions.appendChild(copy);
-
-    var download = el("button", "secondary", null);
-    download.type = "button";
-    download.setAttribute("data-download-review-brief", "markdown");
-    download.setAttribute("data-export-filename", reviewBriefFilename());
-    download.setAttribute("aria-label", "의견서 Markdown 다운로드 / Download review brief Markdown");
-    download.appendChild(
-      bilingual("span", null, {
-        ko: "다운로드 (.md)",
-        en: "Download (.md)"
-      })
-    );
-    actions.appendChild(download);
-    panel.appendChild(actions);
-
-    var ko = el("pre", "review-brief-body", brief.ko);
-    ko.setAttribute("lang", "ko");
-    ko.setAttribute("data-locale-text", "ko");
-    ko.setAttribute("data-review-brief-body", "ko");
-    panel.appendChild(ko);
-
-    var en = el("pre", "review-brief-body", brief.en);
-    en.setAttribute("lang", "en");
-    en.setAttribute("data-locale-text", "en");
-    en.setAttribute("data-review-brief-body", "en");
-    panel.appendChild(en);
-
-    var status = el("p", "sr-only", "");
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    status.setAttribute("data-review-brief-status-region", "true");
-    panel.appendChild(status);
-    return panel;
-  }
-
   function showReviewBrief() {
     if (!lastResultPayload) {
       appendBotMessage({
@@ -3520,21 +3766,16 @@ _APP_JS = r"""(function () {
       });
       return;
     }
-    var thread = threadElement();
-    if (!thread) {
-      return;
-    }
     removeReviewBriefBubble();
-    var item = el("li", "msg bot review-brief-msg", null);
-    item.setAttribute("data-message-role", "bot");
-    item.setAttribute("data-review-brief-message", "true");
-    var bubble = el("div", "bubble review-brief-bubble", null);
-    bubble.appendChild(renderReviewBriefPanel(lastResultPayload));
-    item.appendChild(bubble);
-    thread.appendChild(item);
-    lastReviewBriefItem = item;
+    renderPrintableBrief(lastResultPayload);
     setLocale(activeLocale());
-    scrollThreadToLatest(item);
+    statusMessage({
+      ko: "브라우저 인쇄 창에서 PDF로 저장할 수 있습니다.",
+      en: "Use the browser print dialog to save as PDF."
+    });
+    window.setTimeout(function () {
+      window.print();
+    }, 0);
   }
 
   function renderIntegratedJudgmentCard(container, payload) {
@@ -3553,11 +3794,9 @@ _APP_JS = r"""(function () {
     );
     card.appendChild(heading);
     card.appendChild(bilingual("p", "glance-action", recommendationActionPair(payload)));
+    card.appendChild(reviewEffortSignal(payload, findingCount));
 
     var cues = el("p", "glance-cues", null);
-    cues.appendChild(
-      bilingual("span", "glance-chip", reviewEffortChipPair(payload, findingCount))
-    );
     cues.appendChild(bilingual("span", "glance-chip glance-count", itemCountPair(findingCount)));
     card.appendChild(cues);
 
@@ -3672,6 +3911,14 @@ _APP_JS = r"""(function () {
 
   function scrollThreadToLatest(node) {
     var target = node || (threadElement() && threadElement().lastElementChild);
+    var scroller = document.querySelector(".chat");
+    if (scroller && scroller.scrollTo) {
+      scroller.scrollTo({
+        top: scroller.scrollHeight,
+        behavior: prefersReducedMotion() ? "auto" : "smooth"
+      });
+      return;
+    }
     if (target && target.scrollIntoView) {
       target.scrollIntoView(scrollOptions("end"));
     }
@@ -4408,72 +4655,6 @@ _APP_JS = r"""(function () {
     });
   }
 
-  function writeClipboardText(value, done) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(value).then(done).catch(function () {
-        fallbackCopy(value);
-        done();
-      });
-      return;
-    }
-    fallbackCopy(value);
-    done();
-  }
-
-  function copyReviewBrief(button) {
-    var panel = button.closest("[data-review-brief-panel]");
-    var value = activeReviewBriefText(panel);
-    if (!value) {
-      return;
-    }
-    writeClipboardText(value, function () {
-      briefStatusMessage({
-        ko: "의견서를 복사했습니다.",
-        en: "Review brief copied."
-      });
-    });
-  }
-
-  function downloadReviewBrief(button) {
-    var panel = button.closest("[data-review-brief-panel]");
-    var value = activeReviewBriefText(panel);
-    if (!value) {
-      return;
-    }
-    var filename = button.getAttribute("data-export-filename") || reviewBriefFilename();
-    var blob = new Blob([value], { type: "text/markdown;charset=utf-8" });
-    var link = document.createElement("a");
-    link.download = filename;
-    link.href = URL.createObjectURL(blob);
-    document.body.appendChild(link);
-    link.click();
-    window.setTimeout(function () {
-      URL.revokeObjectURL(link.href);
-      document.body.removeChild(link);
-    }, 0);
-    briefStatusMessage({
-      ko: "의견서 파일을 만들었습니다.",
-      en: "Review brief download created."
-    });
-  }
-
-  function fallbackCopy(value) {
-    var box = document.createElement("textarea");
-    box.value = value;
-    box.setAttribute("readonly", "readonly");
-    box.style.position = "fixed";
-    box.style.left = "-9999px";
-    document.body.appendChild(box);
-    box.select();
-    try {
-      document.execCommand("copy");
-    } catch (error) {
-      return;
-    } finally {
-      document.body.removeChild(box);
-    }
-  }
-
   function autoGrowComposer() {
     var box = document.getElementById("paste-box");
     if (!box) {
@@ -4565,16 +4746,6 @@ _APP_JS = r"""(function () {
       if (makeBriefButton) {
         event.preventDefault();
         showReviewBrief();
-      }
-      var copyBriefButton = target.closest("[data-copy-review-brief]");
-      if (copyBriefButton) {
-        event.preventDefault();
-        copyReviewBrief(copyBriefButton);
-      }
-      var downloadBriefButton = target.closest("[data-download-review-brief]");
-      if (downloadBriefButton) {
-        event.preventDefault();
-        downloadReviewBrief(downloadBriefButton);
       }
     });
     document.addEventListener("change", function (event) {

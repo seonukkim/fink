@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T20:36:41+09:00`
+- Generated: `2026-06-22T21:05:36+09:00`
 - Current branch: `main`
-- Base commit: `d78924c2d66dfa271712bb6b8167ecd37d9908eb`
+- Base commit: `f5c489cbdd1a9c4f50262120731bdcd60a351382`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -18,8 +18,10 @@
 - Fixes: quieted optional PaddleOCR-VL upload OCR logs, cached the local
   PaddleOCR-VL backend across upload calls, added image/PDF pending and
   friendly OCR-failure chat bubbles, replaced the dense creator result report
-  with a single-column messenger-style result sequence, and kept the work
-  local-only with no paper-template changes.
+  with a single-column messenger-style result sequence, polished the chat demo
+  shell per owner feedback with a fixed bottom composer, pink theme, effort
+  meter, and browser-print PDF brief, and kept the work local-only with no
+  paper-template changes.
 
 ## Human Gates
 

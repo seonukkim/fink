@@ -81,9 +81,10 @@ class WebA11yValidationTests(unittest.TestCase):
             "color: CanvasText",
             "outline: 3px solid Highlight",
             "@media print",
-            "details:not([open]) > *:not(summary)",
-            "text-decoration: underline",
-            "font-weight: 700",
+            "body > :not(.print-brief-root)",
+            ".print-brief-document",
+            ".print-wordmark span",
+            "border-bottom: 2px solid #b91c5c",
         ):
             self.assertIn(expected, markup)
         self.assertNotIn("position: sticky", markup)
@@ -92,6 +93,7 @@ class WebA11yValidationTests(unittest.TestCase):
         self.assertIn("function prefersReducedMotion()", script)
         self.assertIn('matchMedia("(prefers-reduced-motion: reduce)")', script)
         self.assertIn('behavior: prefersReducedMotion() ? "auto" : "smooth"', script)
+        self.assertIn("scroller.scrollTo", script)
         self.assertIn('scrollIntoView(scrollOptions("end"))', script)
         self.assertIn("@keyframes fink-result-message-in", markup)
         self.assertIn(".result-sequence-msg", markup)
