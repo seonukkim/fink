@@ -7,11 +7,12 @@ from dataclasses import dataclass, replace
 from email.parser import BytesParser
 from email.policy import default
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from fink.ingest import EphemeralIngestSession, IngestLimits, IngestedDocument
 from fink.ocr import LocalOCRConfig, LocalOCREngine, OCRBackendUnavailable, OCRError
-from fink.schemas import TextSource, UILocale, ValidationStatus
+from fink.schemas import OCRPage, TextSource, UILocale, ValidationStatus
 from fink.web.analyze import analysis_result_to_payload, run_local_analysis
 
 DEFAULT_UPLOAD_LIMITS = IngestLimits()
@@ -24,7 +25,8 @@ PDF_MIME_TYPES = frozenset({"application/pdf"})
 IMAGE_MIME_TYPES = frozenset(
     {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 )
-_PADDLE_VL_BACKEND: Any | None = None
+_PADDLE_OCR_BACKEND: Any | None = None
+_PADDLE_OCR_BACKEND_LOCK = Lock()
 
 
 @dataclass(frozen=True)
@@ -204,6 +206,7 @@ def _analyze_upload(
         with EphemeralIngestSession(
             upload_root=root / "sessions",
             limits=DEFAULT_UPLOAD_LIMITS,
+            ocr_engine=_UploadOCREngine(),
             ui_locale=ui_locale,
         ) as session:
             if upload_kind == "pdf":
@@ -340,14 +343,14 @@ def _base_content_type(content_type: str | None) -> str:
 def _recognize_uploaded_image(stored_path: Path) -> Any | None:
     """Recognize one uploaded image into an OCRPage, or None if no backend works.
 
-    The PaddleOCR-VL backend (the ``ocr`` extra) is preferred when installed; its
-    recovered text flows through the shared OCRPage schema path so downstream
-    extraction and gates are identical. If that runtime is unavailable, FInk
-    falls back to a local Tesseract binary, and finally returns None so the
-    caller can show the honest "OCR not installed" message.
+    The lightweight PaddleOCR PP-OCR backend (the ``ocr`` extra) is preferred
+    when installed; its recovered text flows through the shared OCRPage schema
+    path so downstream extraction and gates are identical. If that runtime is
+    unavailable or cannot read text, FInk falls back to a local Tesseract binary,
+    and finally returns None so the caller can show the honest OCR message.
     """
 
-    paddle_text = _paddle_vl_recognize_text(stored_path)
+    paddle_text = _paddle_ocr_recognize_text(stored_path)
     if paddle_text is not None and paddle_text.strip():
         return LocalOCREngine().recognize_image(
             stored_path, page_index=0, text_hint=paddle_text
@@ -360,8 +363,51 @@ def _recognize_uploaded_image(stored_path: Path) -> Any | None:
     return None
 
 
-def _paddle_vl_recognize_text(stored_path: Path) -> str | None:
-    """Return PaddleOCR-VL text for an image, or None when the runtime is absent.
+class _UploadOCREngine(LocalOCREngine):
+    """Upload-scoped OCR engine that prefers PP-OCR for image rasters."""
+
+    def recognize_image(
+        self,
+        image_path: str | Path,
+        *,
+        page_index: int = 0,
+        rotation_deg: int = 0,
+        text_hint: str | None = None,
+        width_px: int | None = None,
+        height_px: int | None = None,
+    ) -> OCRPage:
+        if text_hint is not None:
+            return super().recognize_image(
+                image_path,
+                page_index=page_index,
+                rotation_deg=rotation_deg,
+                text_hint=text_hint,
+                width_px=width_px,
+                height_px=height_px,
+            )
+
+        paddle_text = _paddle_ocr_recognize_text(Path(image_path))
+        if paddle_text is not None:
+            return super().recognize_image(
+                image_path,
+                page_index=page_index,
+                rotation_deg=rotation_deg,
+                text_hint=paddle_text,
+                width_px=width_px,
+                height_px=height_px,
+            )
+
+        return super().recognize_image(
+            image_path,
+            page_index=page_index,
+            rotation_deg=rotation_deg,
+            width_px=width_px,
+            height_px=height_px,
+        )
+
+
+def _paddle_ocr_recognize_text(stored_path: Path) -> str | None:
+    """Return PP-OCR text for an image, or None when the runtime is absent.
 
     Import is deferred and guarded so the ``ocr`` extra stays optional: a minimal
     install without paddle simply skips this backend.
@@ -371,23 +417,26 @@ def _paddle_vl_recognize_text(stored_path: Path) -> str | None:
         from fink.ocr.paddle_vl import (
             PaddleOCRDependencyError,
             PaddleOCRRuntimeError,
-            PaddleVLOCRBackend,
+            PaddlePPOCRBackend,
         )
     except Exception:
         return None
     try:
-        return _cached_paddle_vl_backend(PaddleVLOCRBackend).recognize_image_text(stored_path)
+        return _cached_paddle_ocr_backend(PaddlePPOCRBackend).recognize_image_text(stored_path)
     except PaddleOCRDependencyError:
         return None
     except PaddleOCRRuntimeError:
         return None
 
 
-def _cached_paddle_vl_backend(backend_cls: Any) -> Any:
-    global _PADDLE_VL_BACKEND
-    if _PADDLE_VL_BACKEND is None:
-        _PADDLE_VL_BACKEND = backend_cls()
-    return _PADDLE_VL_BACKEND
+def _cached_paddle_ocr_backend(backend_cls: Any) -> Any:
+    global _PADDLE_OCR_BACKEND
+    if _PADDLE_OCR_BACKEND is not None:
+        return _PADDLE_OCR_BACKEND
+    with _PADDLE_OCR_BACKEND_LOCK:
+        if _PADDLE_OCR_BACKEND is None:
+            _PADDLE_OCR_BACKEND = backend_cls()
+    return _PADDLE_OCR_BACKEND
 
 
 def _local_ocr_is_available() -> bool:
@@ -508,10 +557,10 @@ def _ocr_not_installed_error() -> AnalyzeRequestError:
         message_en="Image OCR is not installed on this device.",
         action_ko=(
             "`uv sync --extra ocr`로 로컬 OCR을 설치한 뒤 다시 시도하세요. "
-            "PaddleOCR-VL은 처음 사용할 때 자동으로 내려받습니다."
+            "기본 PP-OCR 모델은 처음 사용할 때 자동으로 내려받습니다."
         ),
         action_en=(
             "Run `uv sync --extra ocr` to install local OCR, then try again. "
-            "PaddleOCR-VL auto-downloads on first use."
+            "Default PP-OCR models auto-download on first use."
         ),
     )

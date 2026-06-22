@@ -22,7 +22,7 @@ def _load_module(name: str) -> Any:
 
 WEB = _load_module("fink.web")
 UPLOAD = _load_module("fink.web.upload")
-PADDLE_VL = _load_module("fink.ocr.paddle_vl")
+PADDLE_OCR = _load_module("fink.ocr.paddle_vl")
 
 SAMPLE_KO = (
     "제3조(정산) 정산은 매 분기 종료일로부터 90일 이내에 지급한다.\n"
@@ -175,10 +175,10 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
         self.assertEqual(payload["validation_status"], "rejected_ocr_unavailable")
         self.assertIn("이미지 OCR이 이 기기에 설치되어 있지 않습니다.", payload["error"])
         self.assertIn("uv sync --extra ocr", payload["next_action"])
-        self.assertIn("PaddleOCR-VL", payload["next_action"])
+        self.assertIn("PP-OCR", payload["next_action"])
         self.assertNotIn("scan.png", repr(payload))
 
-    def test_paddle_vl_backend_is_cached_across_upload_ocr_calls(self) -> None:
+    def test_paddle_ppocr_backend_is_cached_across_upload_ocr_calls(self) -> None:
         class FakePaddleBackend:
             instances = 0
 
@@ -188,18 +188,44 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
             def recognize_image_text(self, stored_path: Path) -> str:
                 return f"recognized {stored_path.name}"
 
-        previous_backend = UPLOAD._PADDLE_VL_BACKEND
-        UPLOAD._PADDLE_VL_BACKEND = None
+        previous_backend = UPLOAD._PADDLE_OCR_BACKEND
+        UPLOAD._PADDLE_OCR_BACKEND = None
         try:
-            with patch.object(PADDLE_VL, "PaddleVLOCRBackend", FakePaddleBackend):
-                first = UPLOAD._paddle_vl_recognize_text(Path("first.png"))
-                second = UPLOAD._paddle_vl_recognize_text(Path("second.png"))
+            with patch.object(PADDLE_OCR, "PaddlePPOCRBackend", FakePaddleBackend):
+                first = UPLOAD._paddle_ocr_recognize_text(Path("first.png"))
+                second = UPLOAD._paddle_ocr_recognize_text(Path("second.png"))
         finally:
-            UPLOAD._PADDLE_VL_BACKEND = previous_backend
+            UPLOAD._PADDLE_OCR_BACKEND = previous_backend
 
         self.assertEqual(first, "recognized first.png")
         self.assertEqual(second, "recognized second.png")
         self.assertEqual(FakePaddleBackend.instances, 1)
+
+    def test_paddle_ppocr_list_output_is_joined_in_reading_order(self) -> None:
+        outputs = [
+            [
+                ([[12, 42], [60, 42], [60, 54], [12, 54]], ("second line", 0.91)),
+                ([[80, 10], [120, 10], [120, 20], [80, 20]], ("right top", 0.93)),
+                ([[10, 10], [70, 10], [70, 20], [10, 20]], ("left top", 0.94)),
+            ]
+        ]
+
+        text = PADDLE_OCR._text_from_outputs(outputs)
+
+        self.assertEqual(text, "left top\nright top\nsecond line")
+
+    def test_paddle_ppocr_dict_output_uses_rec_texts_and_polys(self) -> None:
+        outputs = {
+            "rec_texts": ["bottom", "top"],
+            "rec_polys": [
+                [[10, 40], [80, 40], [80, 50], [10, 50]],
+                [[10, 8], [50, 8], [50, 18], [10, 18]],
+            ],
+        }
+
+        text = PADDLE_OCR._text_from_outputs(outputs)
+
+        self.assertEqual(text, "top\nbottom")
 
     def test_both_paste_and_file_returns_clear_validation_state(self) -> None:
         body, headers = _multipart_body(

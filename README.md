@@ -60,7 +60,8 @@ reproducible. Optional local models may assist OCR, retrieval, or explanation
 only when they are privately installed and pass the offline health/smoke gate;
 they do not create evidence, set review-priority values, or invent financial
 amounts. Runtime analysis does not require a remote LLM, cloud RAG, external
-legal search, telemetry, cloud OCR, or runtime model download.
+legal search, telemetry, or cloud OCR; after optional OCR/model assets are
+fetched once, analysis stays local.
 
 ## Run the demo
 
@@ -77,7 +78,7 @@ uv run fink-web --host 127.0.0.1 --port 8000
 
 ```bash
 FINK_MODEL_DOWNLOAD_ALLOWED=true uv run fink-models download   # embedding, reranker, on-device chat LLM
-uv sync --extra ocr                                            # image/scanned-PDF OCR (PaddleOCR-VL)
+uv sync --extra ocr                                            # image/scanned-PDF OCR (PP-OCR)
 ```
 
 The default bind is loopback. To expose the demo to a trusted device on the same

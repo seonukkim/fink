@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T23:01:20+09:00`
+- Generated: `2026-06-22T23:20:35+09:00`
 - Current branch: `main`
-- Base commit: `3653b3d4d4de50f22370a0ec65e1ba4ae6c11405`
+- Base commit: `2824cf958497f0cb13241655bae0ee23e2e20636`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -15,8 +15,11 @@
 - Clean tree gate: enforced at task start by `loop_once.sh`.
 - Machine gates: `bash scripts/agent_loop/run_gates.sh`.
 - Paper-sync status: scaffold ledgers present; no measured results claimed.
-- Fixes: quieted optional PaddleOCR-VL upload OCR logs, cached the local
-  PaddleOCR-VL backend across upload calls, added image/PDF pending and
+- Fixes: switched the default upload image/scanned-PDF OCR path from optional
+  PaddleOCR-VL to lightweight standard PaddleOCR PP-OCR with Korean
+  configuration, kept the VL class as an optional non-default backend, updated
+  OCR install/model guidance, quieted optional PaddleOCR-VL upload OCR logs,
+  cached the local PaddleOCR-VL backend across upload calls, added image/PDF pending and
   friendly OCR-failure chat bubbles, replaced the dense creator result report
   with a single-column messenger-style result sequence, polished the chat demo
   shell per owner feedback with a fixed bottom composer, pink theme, effort
@@ -69,3 +72,17 @@ bash scripts/agent_loop/run_backlog.sh --max-tasks 100
 # stop the loop after the current task
 touch loop/STOP
 ```
+
+## Latest Verification
+
+- `UV_CACHE_DIR=/tmp/uv-cache uv run --no-project --with pytest pytest tests -q`
+  passed.
+- `PYTHONPATH=src python3 -c "import fink.ocr.paddle_vl; import
+  fink.web.upload"` passed.
+- `bash scripts/agent_loop/run_gates.sh` ended with `GATES_OK`.
+- The exact `uv run pytest tests -q` command was attempted, but this sandbox's
+  default uv cache path is read-only. Retrying with `UV_CACHE_DIR=/tmp/uv-cache`
+  reached the editable build and then failed because the offline sandbox could
+  not fetch `setuptools>=68`. The bare `python3 -c "import fink.ocr.paddle_vl;
+  import fink.web.upload"` command was also attempted and failed because the
+  package is not installed on system `sys.path`.

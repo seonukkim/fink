@@ -20,11 +20,14 @@ runtime services. Runtime measurements are reported only from the local
 synthetic gate artifacts (`CLM-S7-RES-EV-OFFLINE`,
 `CLM-S7-RES-EV-PRIV`, `CLM-S7-RES-EV-LAT`, `CLM-S7-RES-EV-MEM`).
 
-For image and scanned-PDF uploads, the optional PaddleOCR-VL path remains an
-on-device runtime path: startup/inference logging is quieted, the local pipeline
-is reused across requests, and user-facing OCR failures are presented as short
-retry guidance rather than technical logs. This is a usability/privacy boundary
-note only and does not add a new OCR accuracy claim.
+For image and scanned-PDF uploads, the default optional OCR path is standard
+PaddleOCR PP-OCR with the Korean configuration, which reads Korean plus
+Latin/digit text and uses small CPU-friendly detection/recognition models. The
+local pipeline is reused across requests, first-use model fetches are cached,
+and user-facing OCR failures are presented as short retry guidance rather than
+technical logs. The larger PaddleOCR-VL profile is optional research metadata,
+not the default upload OCR runtime. This is a usability/privacy boundary note
+only and does not add a new OCR accuracy claim.
 
 The chat demo UI follows the same local-first boundary. The browser shell keeps
 request code confined to the local app script, presents review output as

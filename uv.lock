@@ -596,7 +596,7 @@ chat = [
     { name = "llama-cpp-python" },
 ]
 ocr = [
-    { name = "paddleocr", extra = ["doc-parser"] },
+    { name = "paddleocr" },
     { name = "paddlepaddle" },
 ]
 web = [
@@ -616,7 +616,7 @@ requires-dist = [
     { name = "fastapi", marker = "extra == 'web'", specifier = ">=0.115" },
     { name = "huggingface-hub", marker = "extra == 'chat'", specifier = ">=0.23" },
     { name = "llama-cpp-python", marker = "extra == 'chat'", specifier = ">=0.2.79" },
-    { name = "paddleocr", extras = ["doc-parser"], marker = "extra == 'ocr'", specifier = ">=3.4.0" },
+    { name = "paddleocr", marker = "extra == 'ocr'", specifier = ">=3.4.0" },
     { name = "paddlepaddle", marker = "extra == 'ocr'", specifier = ">=3.0" },
     { name = "python-multipart", marker = "extra == 'web'", specifier = ">=0.0.9" },
     { name = "pyyaml", specifier = ">=6" },

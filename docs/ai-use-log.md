@@ -238,6 +238,27 @@
   committed. Download targets remain outside the repository, and root
   `models/` paths stay ignored.
 
+## 2026-06-22 — Lightweight PP-OCR default upload OCR
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: Switched the default uploaded image and scanned-PDF raster OCR path
+  from optional PaddleOCR-VL to standard PaddleOCR PP-OCR with `lang="korean"`,
+  keeping the same local-only OCR extra and preserving the optional VL class as
+  a non-default backend. The PP-OCR parser handles both legacy
+  `[box, (text, score)]` outputs and newer `rec_texts`/`rec_polys` dict outputs,
+  and the upload path still falls back to local Tesseract when present.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-project --with pytest
+  pytest tests -q` passed; `PYTHONPATH=src python3 -c "import
+  fink.ocr.paddle_vl; import fink.web.upload"` passed; `bash
+  scripts/agent_loop/run_gates.sh` ended with `GATES_OK`. The exact
+  `uv run pytest tests -q` command was attempted but the default uv cache path
+  is read-only in this sandbox; retrying with `UV_CACHE_DIR=/tmp/uv-cache`
+  reached the editable build and then failed because the sandbox could not fetch
+  `setuptools>=68`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed. No paper-template file was touched.
+
 ## 2026-06-22 — Quiet image/scanned-PDF OCR upload UX
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

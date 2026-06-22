@@ -180,9 +180,9 @@ def model_specs() -> tuple[ModelSpec, ...]:
             present=path_present(chat_target),
         ),
         ModelSpec(
-            id="paddleocr_vl",
+            id="paddle_ppocr",
             alias="ocr",
-            repo="PaddlePaddle/PaddleOCR-VL",
+            repo="PaddleOCR PP-OCR Korean",
             revision=None,
             filename=None,
             license=PUBLIC_MODEL_LICENSE,
@@ -364,7 +364,7 @@ def is_under(child: Path, parent: Path) -> bool:
 
 
 def ocr_guidance() -> str:
-    return "OCR: run `uv sync --extra ocr`; PaddleOCR-VL auto-downloads on first use."
+    return "OCR: run `uv sync --extra ocr`; default PP-OCR models auto-download on first use."
 
 
 if __name__ == "__main__":

@@ -101,10 +101,16 @@ runtime API. Shell network access was blocked in this sandbox by name-resolution
 failure; future refreshes should use the approved cached Hugging Face token via
 `scripts/model_research/run_with_hf_auth.sh`.
 
+Default upload OCR is standard PaddleOCR PP-OCR with the Korean configuration
+(`lang="korean"`), installed through `uv sync --extra ocr`. Its small
+detection/recognition models auto-download on first use and run locally after
+they are cached. The larger PaddleOCR-VL and Qwen-VL rows below are optional
+research/profile candidates, not the default OCR runtime.
+
 | Role | Candidate | HF repo | License | Gated | Pinned revision | Size |
 |------|-----------|---------|---------|-------|-----------------|------|
-| OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | false | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2.16 GB |
-| OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | false | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8.89 GB |
+| Optional OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | false | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2.16 GB |
+| Optional OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | false | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8.89 GB |
 | Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `apache-2.0` | false | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | 1.21 GB |
 | Embedding baseline | `bge_m3` | `BAAI/bge-m3` | `mit` | false | `5617a9f61b028005a4858fdac845db406aefb181` | 4.59 GB |
 | Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `apache-2.0` | false | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | 1.21 GB |
@@ -145,8 +151,8 @@ load a model, write into `$PRIVATE_ROOT/models`, or place weights in public Git.
 
 | Role | Candidate | Exact revision | Estimated disk size |
 |------|-----------|----------------|---------------------|
-| OCR/layout | `paddleocr_vl` | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2,156,679,874 bytes |
-| OCR fallback | `qwen3_vl_4b` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8,890,000,000 bytes |
+| Optional OCR/layout | `paddleocr_vl` | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2,156,679,874 bytes |
+| Optional OCR fallback | `qwen3_vl_4b` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8,890,000,000 bytes |
 | Embedding | `qwen3_embedding_0_6b` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | 1,210,000,000 bytes |
 | Embedding baseline | `bge_m3` | `5617a9f61b028005a4858fdac845db406aefb181` | 4,590,000,000 bytes |
 | Reranker | `qwen3_reranker_0_6b` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | 1,210,000,000 bytes |
@@ -183,8 +189,8 @@ research-only licenses are rejected by default.
 
 | Role | Candidate | HF repo | License | Exact revision | Size | Shortlist decision |
 |------|-----------|---------|---------|----------------|------|--------------------|
-| OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2.156679874 GB | accepted_public_open |
-| OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8.89 GB | accepted_public_open |
+| Optional OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | 2.156679874 GB | accepted_public_open |
+| Optional OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | 8.89 GB | accepted_public_open |
 | Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `apache-2.0` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | 1.21 GB | accepted_public_open |
 | Embedding baseline | `bge_m3` | `BAAI/bge-m3` | `mit` | `5617a9f61b028005a4858fdac845db406aefb181` | 4.59 GB | accepted_public_open |
 | Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `apache-2.0` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | 1.21 GB | accepted_public_open |
@@ -327,12 +333,12 @@ Benchmark data boundary:
   guaranteed-loss verdict; FInk remains a Contractual Financial Review Priority
   aid.
 
-Exact OCR model revisions recorded for reproducibility:
+Exact optional OCR candidate revisions recorded for reproducibility:
 
 | Role | Candidate | HF repo | License | Exact revision | Weight status |
 |------|-----------|---------|---------|----------------|---------------|
-| OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | not loaded in public repo |
-| OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | not loaded in public repo |
+| Optional OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | not loaded in public repo |
+| Optional OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | not loaded in public repo |
 
 Synthetic benchmark summary:
 
@@ -362,8 +368,8 @@ Coverage notes:
 Paper note for `05_experiments.md`: report that FINK-MR-07 benchmarked
 OCR-to-financial-term extraction on `ocr_financial_terms_synthetic_v1`, a
 synthetic/sanitized fixture set with 41 gold items across money, percentages,
-dates, durations, and article numbers. The public summary records the exact OCR
-candidate revisions (`PaddlePaddle/PaddleOCR-VL` at
+dates, durations, and article numbers. The public summary records the exact
+optional OCR candidate revisions (`PaddlePaddle/PaddleOCR-VL` at
 `baee27eebcbf26cdeab160116679d765f13a3f27` and
 `Qwen/Qwen3-VL-4B-Instruct` at
 `ebb281ec70b05090aa6165b016eac8ec08e71b17`) while keeping weights and private
@@ -555,8 +561,8 @@ Optional profile components:
 
 | Profile | Role | Candidate | HF repo | License | Exact revision | Source config | Benchmark coverage |
 |---------|------|-----------|---------|---------|----------------|---------------|--------------------|
-| `ocr_local_document_profile_v1` | OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | `configs/models/open_license_shortlist.yaml` | FINK-MR-07 |
-| `ocr_local_document_profile_v1` | OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | `configs/models/open_license_shortlist.yaml` | FINK-MR-07 |
+| `ocr_local_document_profile_v1` | Optional OCR/layout | `paddleocr_vl` | `PaddlePaddle/PaddleOCR-VL` | `apache-2.0` | `baee27eebcbf26cdeab160116679d765f13a3f27` | `configs/models/open_license_shortlist.yaml` | FINK-MR-07 |
+| `ocr_local_document_profile_v1` | Optional OCR fallback | `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `apache-2.0` | `ebb281ec70b05090aa6165b016eac8ec08e71b17` | `configs/models/open_license_shortlist.yaml` | FINK-MR-07 |
 | `core_local_offline_v1` | Embedding | `qwen3_embedding_0_6b` | `Qwen/Qwen3-Embedding-0.6B` | `apache-2.0` | `97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | `configs/models/open_license_shortlist.yaml` | FINK-MR-06, FINK-MR-08 |
 | `core_local_offline_v1` | Reranker | `qwen3_reranker_0_6b` | `Qwen/Qwen3-Reranker-0.6B` | `apache-2.0` | `e61197ed45024b0ed8a2d74b80b4d909f1255473` | `configs/models/open_license_shortlist.yaml` | FINK-MR-06, FINK-MR-08 |
 | `core_local_offline_v1` | Explanation | `qwen3_4b` | `Qwen/Qwen3-4B` | `apache-2.0` | `1cfa9a7208912126459214e8b04321603b3df60c` | `configs/models/open_license_shortlist.yaml` | FINK-MR-06, FINK-MR-09 |
