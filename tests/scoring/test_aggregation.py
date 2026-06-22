@@ -177,6 +177,31 @@ class AggregationTests(unittest.TestCase):
             self.assertGreaterEqual(result.category_scores[category], 0.0)
             self.assertLessEqual(result.category_scores[category], 100.0)
 
+    def test_saturating_score_and_priority_stay_bounded_under_degenerate_config(self) -> None:
+        engine = _load_module("fink.scoring.engine")
+
+        # Saturating transform: an arbitrarily large accumulation never exceeds
+        # 100, and a non-positive saturation scale (malformed config) is treated
+        # as fully saturated rather than dividing by zero.
+        self.assertLessEqual(engine._saturating_category_score(1e9, 1.5), 100.0)
+        self.assertEqual(engine._saturating_category_score(5.0, 0.0), 100.0)
+        self.assertEqual(engine._saturating_category_score(0.0, 0.0), 0.0)
+
+        # Weighted priority: a zero weight total must fall back to an equal-weight
+        # mean instead of dividing by zero, and the result stays within [0, 100].
+        config = SCORING.load_scoring_config()
+        all_max = {category: 100.0 for category in engine.SORTED_FINANCIAL_CATEGORIES}
+        zero_weights = replace(
+            config,
+            w_by_category={
+                category: 0.0 for category in engine.SORTED_FINANCIAL_CATEGORIES
+            },
+        )
+        priority = engine._weighted_priority(all_max, zero_weights)
+        self.assertGreaterEqual(priority, 0)
+        self.assertLessEqual(priority, 100)
+        self.assertEqual(priority, 100)
+
     def test_sc_agg_t3_low_confidence_lowers_d4_not_floored_priority(self) -> None:
         config = SCORING.load_scoring_config()
         low_confidence_signal = _signal(

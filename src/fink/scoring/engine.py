@@ -966,7 +966,20 @@ def _category_scores_from_contributions(
 
 
 def _saturating_category_score(total_contribution: float, k_value: float) -> float:
-    score = 100.0 * (1.0 - math.exp(-(max(0.0, total_contribution) / k_value)))
+    """Bounded, saturating category score: ``100 * (1 - exp(-ΣC / k))``.
+
+    The exponential maps the non-negative accumulation ``ΣC ∈ [0, ∞)`` into
+    ``[0, 100)`` by construction (diminishing marginal risk), so a category can
+    never exceed 100 no matter how many signals fire. ``k`` is the saturation
+    scale (at ``ΣC = k`` the score is ``100·(1 − 1/e) ≈ 63.2``). A non-positive
+    ``k`` is degenerate config; we treat any positive accumulation as fully
+    saturated so the bound still holds.
+    """
+
+    total = max(0.0, total_contribution)
+    if k_value <= 0.0:
+        return 100.0 if total > 0.0 else 0.0
+    score = 100.0 * (1.0 - math.exp(-(total / k_value)))
     return _clamp(score, 0.0, 100.0)
 
 
@@ -974,11 +987,25 @@ def _weighted_priority(
     category_scores: Mapping[RiskCategory, float],
     config: ScoringConfig,
 ) -> int:
-    weighted_sum = sum(
-        config.w_by_category[category] * category_scores[category]
-        for category in SORTED_FINANCIAL_CATEGORIES
-    )
-    weight_total = sum(config.w_by_category[category] for category in SORTED_FINANCIAL_CATEGORIES)
+    """Document Review-Priority Score: a weight-normalized convex combination of
+    the per-category scores, ``round(Σ w_F·S_F / Σ w_F)``.
+
+    Because every ``S_F ∈ [0, 100]`` and the weights are non-negative with a
+    positive total, the normalized sum is a convex combination and therefore
+    inherits the ``[0, 100]`` range — the priority is bounded by construction,
+    not merely clamped. Negative weights are floored at 0 and a non-positive
+    weight total falls back to an equal-weight mean so a malformed config can
+    never divide by zero or break the bound.
+    """
+
+    weights = [max(0.0, config.w_by_category[category]) for category in SORTED_FINANCIAL_CATEGORIES]
+    scores = [category_scores[category] for category in SORTED_FINANCIAL_CATEGORIES]
+    weight_total = sum(weights)
+    if weight_total <= 0.0:
+        weighted_sum = sum(scores)
+        weight_total = float(len(scores)) or 1.0
+    else:
+        weighted_sum = sum(weight * score for weight, score in zip(weights, scores))
     return int(_clamp(round(weighted_sum / weight_total), 0, 100))
 
 

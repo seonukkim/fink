@@ -86,6 +86,20 @@
   result cards. Verified via live `/api/chat`: every answer is a single clean
   sentence. Added tests for the limiter and the punctuation-insensitive dedup;
   `pytest tests/model tests/web -q` green, `run_gates.sh` `GATES_OK`.
+- Claude follow-up 6 (owner: the 위험 지수 needs a real financial-AI rationale and
+  a guaranteed bound, not just an under-100 clamp): documented the design rationale
+  and references in `docs/specs/03_SCORING_AND_FINANCIAL_IMPACT.md` §3A — the
+  per-signal `severity × likelihood × evidence-credibility` form (ISO 31000 /
+  IEC 60812 FMEA / GRADE), the saturating exponential as bounded/diminishing-
+  marginal utility (Pratt 1964), and the weight-normalized convex combination as
+  MCDA/SAW under MAUT (Fishburn 1967; Keeney & Raiffa 1976), with a structural
+  proof that the score lies in [0, 100] regardless of signal count/severity. Also
+  hardened `scoring/engine.py` so the two degenerate-config cases (`k_F ≤ 0`,
+  `Σ w_F ≤ 0`) cannot divide by zero or break the bound, and added
+  `test_saturating_score_and_priority_stay_bounded_under_degenerate_config`. No
+  weight/threshold value changed (constants remain versioned heuristics per
+  INV-9); only documentation, defensive guards, and a test were added.
+  `pytest tests/scoring tests/finance -q` green, `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 

@@ -100,6 +100,111 @@ making low confidence the honest default until A0 verification (HR-01).
 
 ---
 
+## 3A. Design rationale and references (why this formula)
+
+The Review-Priority Score is a **bounded composite risk index**, not an ad-hoc
+"under-100" clamp. Each layer follows an established risk- and decision-modeling
+construct, which is what makes the number defensible from a financial-AI
+standpoint. The constants remain versioned heuristics for sensitivity analysis
+(INV-9); the **structure** below is the part that is principled.
+
+### Why `severity × likelihood × evidence-credibility` per signal
+
+`contribution(s) = severity_weight · severity_raw · authority_factor · conf_used`
+is the classical **risk = consequence × likelihood** decomposition, extended with
+an explicit **evidence-credibility** factor:
+
+- **Consequence × likelihood** is the core of quantitative risk assessment
+  (ISO 31000:2018; ISO/IEC 31010). `severity_raw` is the consequence magnitude;
+  `conf_used` is the likelihood/strength that the risky pattern is really present.
+- The product form mirrors the **FMEA Risk Priority Number** `RPN = S · O · D`
+  (IEC 60812:2018), where our `authority_factor` plays the role of a
+  detection/credibility weight: a flag grounded in a higher-authority source is
+  more *trustworthy*, so it carries more weight (A0 = 1.00 > A1 = 0.90 >
+  A2 = 0.80). B/C/D/M/R sources contribute **exactly 0** (INV-1 authority gate).
+- Weighting evidence by source authority is the same idea as **evidence-grading
+  systems** such as GRADE (Guyatt et al., 2008): conclusions inherit the quality
+  of their evidence; non-authoritative material informs questions, not the score.
+- `conf_floor = 0.5` encodes a **precautionary** stance: poor OCR/extraction
+  confidence must not *hide* a detected exposure (the floor applies only to the
+  contribution; the true confidence is surfaced separately in D4). Not letting
+  measurement noise suppress a flagged financial risk is standard conservative
+  risk practice.
+
+### Why the saturating exponential `S_F = 100·(1 − e^(−ΣC/k_F))`
+
+A category score must (a) be bounded and (b) reflect **diminishing marginal
+risk** — the fifth weak red flag in one category adds less new decision-relevant
+risk than the first. A concave, monotonic, saturating transform encodes exactly
+this:
+
+- It is the **exponential / bounded-utility** form (Pratt, 1964): a constant-rate
+  approach to a ceiling. It maps the non-negative accumulation `ΣC ∈ [0, ∞)` into
+  `[0, 100)` **by construction**, so no category can be dominated by sheer count
+  of signals.
+- `k_F` is the saturation scale: at `ΣC = k_F`, `S_F = 100·(1 − 1/e) ≈ 63.2`.
+  This is the standard exponential-CDF characteristic scale and is the knob the
+  sensitivity analysis (spec 05) varies.
+
+### Why the normalized weighted sum `P = Σ w_F·S_F / Σ w_F`
+
+Combining the nine category scores into one priority is a **multi-criteria
+decision-analysis (MCDA)** aggregation:
+
+- It is **Simple Additive Weighting / the weighted-sum model** (Fishburn, 1967)
+  under **multi-attribute utility theory** (Keeney & Raiffa, 1976) — the most
+  widely used, most transparent MCDA aggregator, and the standard backbone of
+  composite financial scorecards.
+- Dividing by `Σ w_F` makes `P` a **convex combination** of the `S_F`, so `P`
+  inherits their `[0, 100]` range. Financial-first weighting (F1–F9 only; the
+  non-financial X-dimensions never contribute) is the default but is itself
+  sensitivity-analyzed.
+
+### Bound guarantee — why `P` can never exceed 100
+
+This is structural, not a clamp:
+
+1. For each category, `ΣC ≥ 0` and `k_F > 0` ⇒ `e^(−ΣC/k_F) ∈ (0, 1]` ⇒
+   `S_F = 100·(1 − e^(−ΣC/k_F)) ∈ [0, 100)`.
+2. `P = (Σ w_F·S_F) / (Σ w_F)` with `w_F ≥ 0` and `Σ w_F > 0` is a convex
+   combination of the `S_F`, so `min_F S_F ≤ P ≤ max_F S_F < 100`.
+3. Therefore `P ∈ [0, 100)` before the final `round`+clamp, i.e. `P ∈ {0,…,100}`
+   — **independent of the number or severity of signals**. The `SC-AGG-T2`
+   self-test and `test_sc_agg_t2_scores_are_bounded_with_saturation` confirm this
+   empirically with 500 maximum-severity A0 signals. The engine additionally
+   guards the two degenerate-config cases (`k_F ≤ 0`, `Σ w_F ≤ 0`), covered by
+   `test_saturating_score_and_priority_stay_bounded_under_degenerate_config`, so
+   the bound holds even under a malformed config.
+
+### What is deliberately *not* claimed (financial-AI honesty)
+
+- `P` is **ordinal / relative review-priority**, not a probability of fraud,
+  loss, or invalidity (INV-2). It ranks "look here first," nothing more.
+- Only **A0–A2** authoritative grounding can move the score; the system is
+  conservative by construction and cannot inflate risk from non-authoritative
+  sources.
+- Every weight, factor, and threshold is a **versioned design heuristic**
+  (INV-9), disclosed in `config/scoring_config.yaml` and subject to the spec-05
+  sensitivity analysis — never presented as an empirically validated constant.
+
+### References
+
+- ISO 31000:2018 — *Risk management — Guidelines.*
+- ISO/IEC 31010:2019 — *Risk management — Risk assessment techniques.*
+- IEC 60812:2018 — *Failure modes and effects analysis (FMEA/FMECA)* (Risk
+  Priority Number = Severity × Occurrence × Detection).
+- Pratt, J. W. (1964). "Risk Aversion in the Small and in the Large."
+  *Econometrica* 32(1/2), 122–136. (exponential / bounded utility)
+- Keeney, R. L., & Raiffa, H. (1976). *Decisions with Multiple Objectives:
+  Preferences and Value Tradeoffs.* Wiley. (multi-attribute utility theory)
+- Fishburn, P. C. (1967). "Additive Utilities with Incomplete Product Sets."
+  *Operations Research* 15(3), 537–542. (simple additive weighting)
+- Guyatt, G. H., et al. (2008). "GRADE: an emerging consensus on rating quality
+  of evidence and strength of recommendations." *BMJ* 336, 924–926. (evidence
+  grading → authority-tier weighting)
+
+---
+
 ## 4. Calibration, thresholds, ablations (plan; results in spec 05)
 
 - **Calibration plan.** The priority is ordinal, so calibration is reported two
