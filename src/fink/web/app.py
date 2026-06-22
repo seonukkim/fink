@@ -2225,6 +2225,11 @@ footer {
   font-weight: 700;
   font-size: .85rem;
 }
+.glance-list-clauses {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: .82rem;
+}
 .glance-caution {
   margin-top: 16px;
 }
@@ -2382,30 +2387,10 @@ footer {
   border-radius: 13px;
   background: var(--card);
 }
-.finding-group {
-  display: grid;
-  gap: 0;
-  padding: 24px 26px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: var(--card);
-}
-.finding-group-clause {
-  margin-bottom: 14px;
-}
-.finding-line--grouped {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-.finding-group-divider {
-  margin: 16px 0;
-  border: 0;
-  border-top: 1px solid var(--line);
-}
-.finding-group .result-source-quote {
-  margin-top: 16px;
+.finding-clause-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .finding-line-head {
   display: flex;
@@ -4096,24 +4081,102 @@ _APP_JS = r"""(function () {
     return wrap;
   }
 
-  function renderFindingLine(record, grouped) {
-    var finding = record.finding;
-    var section = el("section", grouped ? "finding-line finding-line--grouped" : "finding-line", null);
+  function renderSourceExcerpt(source) {
+    var quote = el("blockquote", null, null);
+    quote.setAttribute("data-exact-excerpt", "true");
+    quote.className = "result-source-quote";
+    renderLocalizedSourceSegments(quote, source);
+    return quote;
+  }
+
+  function findingItemKey(finding) {
+    // Group key is the item (the finding title), so the same kind of issue
+    // across several clauses merges into one item.
+    var title = finding && finding.title;
+    var label = title && (title.ko || title.en || "");
+    return text(label).replace(/\s+/g, " ").trim().toLowerCase();
+  }
+
+  function groupRecordsByItem(records) {
+    var groups = [];
+    var indexByKey = {};
+    records.forEach(function (record) {
+      var key = findingItemKey(record.finding);
+      if (key && Object.prototype.hasOwnProperty.call(indexByKey, key)) {
+        groups[indexByKey[key]].push(record);
+      } else {
+        if (key) {
+          indexByKey[key] = groups.length;
+        }
+        groups.push([record]);
+      }
+    });
+    return groups;
+  }
+
+  function groupFindingsByItem(findings) {
+    // Merge raw findings by item (title) for the summary overview, collecting
+    // the distinct clauses each item covers.
+    var order = [];
+    var byKey = {};
+    (findings || []).forEach(function (finding, index) {
+      var key = findingItemKey(finding) || ("__" + index);
+      if (!Object.prototype.hasOwnProperty.call(byKey, key)) {
+        byKey[key] = { finding: finding, clauses: [], clauseSeen: {} };
+        order.push(key);
+      }
+      var pair = clauseReferencePair(finding, index);
+      if (pair && pair.ko && !Object.prototype.hasOwnProperty.call(byKey[key].clauseSeen, pair.ko)) {
+        byKey[key].clauseSeen[pair.ko] = true;
+        byKey[key].clauses.push(pair);
+      }
+    });
+    return order.map(function (key) {
+      return byKey[key];
+    });
+  }
+
+  function renderClauseRefs(records) {
+    // The clauses this item applies to (제N조 …), one pill per distinct clause.
+    var seen = {};
+    var pairs = [];
+    records.forEach(function (record) {
+      var pair = clauseReferencePair(record.finding, record.originalIndex);
+      if (pair && pair.ko && !Object.prototype.hasOwnProperty.call(seen, pair.ko)) {
+        seen[pair.ko] = true;
+        pairs.push(pair);
+      }
+    });
+    if (!pairs.length) {
+      return null;
+    }
+    var wrap = el("div", "finding-clause-refs", null);
+    wrap.setAttribute("data-finding-clauses", "true");
+    pairs.forEach(function (pair) {
+      wrap.appendChild(bilingual("span", "finding-line-clause", pair));
+    });
+    return wrap;
+  }
+
+  function renderFindingLine(record, displayRank) {
+    // `record` may be a single record or an array of records that share a title
+    // (the same item across clauses); they render as one merged item.
+    var group = Array.isArray(record) ? record : [record];
+    var primary = group[0];
+    var finding = primary.finding;
+    var rank = displayRank != null ? displayRank : primary.priorityRank;
+    var section = el("section", "finding-line", null);
     section.setAttribute("data-finding-line", "true");
-    section.setAttribute("data-finding-rank", String(record.priorityRank));
+    section.setAttribute("data-finding-rank", String(rank));
     var head = el("div", "finding-line-head", null);
-    var badge = el("span", "finding-number-badge", String(record.priorityRank));
+    var badge = el("span", "finding-number-badge", String(rank));
     badge.setAttribute("aria-hidden", "true");
     head.appendChild(badge);
     head.appendChild(bilingual("p", "finding-line-title", finding.title));
     section.appendChild(head);
-    // In a group the clause tag and the source excerpt are shown once for the
-    // whole group, so each member only renders its own body here.
-    if (!grouped) {
-      var clausePair = clauseReferencePair(finding, record.originalIndex);
-      if (clausePair) {
-        section.appendChild(bilingual("p", "finding-line-clause", clausePair));
-      }
+    var clauseRefs = renderClauseRefs(group);
+    if (clauseRefs) {
+      section.appendChild(clauseRefs);
     }
     section.appendChild(bilingual("p", "finding-line-why", finding.why_it_matters));
     var question = el("p", "finding-line-question", null);
@@ -4129,63 +4192,20 @@ _APP_JS = r"""(function () {
     if (checklist) {
       section.appendChild(checklist);
     }
-    if (!grouped && finding.source && finding.source.exact_excerpt) {
-      section.appendChild(renderSourceExcerpt(finding.source));
-    }
+    var seenExcerpt = {};
+    group.forEach(function (member) {
+      var source = member.finding.source;
+      if (!source || !source.exact_excerpt) {
+        return;
+      }
+      var key = text(source.exact_excerpt).replace(/\s+/g, " ").trim();
+      if (Object.prototype.hasOwnProperty.call(seenExcerpt, key)) {
+        return;
+      }
+      seenExcerpt[key] = true;
+      section.appendChild(renderSourceExcerpt(source));
+    });
     return section;
-  }
-
-  function renderSourceExcerpt(source) {
-    var quote = el("blockquote", null, null);
-    quote.setAttribute("data-exact-excerpt", "true");
-    quote.className = "result-source-quote";
-    renderLocalizedSourceSegments(quote, source);
-    return quote;
-  }
-
-  function clauseGroupKey(finding) {
-    var source = finding && finding.source;
-    var excerpt = source && (source.exact_excerpt || "");
-    return text(excerpt).replace(/\s+/g, " ").trim();
-  }
-
-  function groupRecordsByClause(records) {
-    // Findings that cite the same clause excerpt are shown in one card,
-    // separated by dividers; order follows the first member's priority.
-    var groups = [];
-    var indexByKey = {};
-    records.forEach(function (record) {
-      var key = clauseGroupKey(record.finding);
-      if (key && Object.prototype.hasOwnProperty.call(indexByKey, key)) {
-        groups[indexByKey[key]].push(record);
-      } else {
-        if (key) {
-          indexByKey[key] = groups.length;
-        }
-        groups.push([record]);
-      }
-    });
-    return groups;
-  }
-
-  function renderFindingGroup(group) {
-    var wrap = el("section", "finding-group", null);
-    wrap.setAttribute("data-finding-group", "true");
-    var clausePair = clauseReferencePair(group[0].finding, group[0].originalIndex);
-    if (clausePair) {
-      wrap.appendChild(bilingual("p", "finding-line-clause finding-group-clause", clausePair));
-    }
-    group.forEach(function (record, index) {
-      if (index > 0) {
-        wrap.appendChild(el("hr", "finding-group-divider", null));
-      }
-      wrap.appendChild(renderFindingLine(record, true));
-    });
-    var firstSource = group[0].finding.source;
-    if (firstSource && firstSource.exact_excerpt) {
-      wrap.appendChild(renderSourceExcerpt(firstSource));
-    }
-    return wrap;
   }
 
   function renderFindings(appendBubble, payload) {
@@ -4195,12 +4215,8 @@ _APP_JS = r"""(function () {
     }
     var records = findingRecords(findings);
     var sorted = sortedFindingRecords(records, "priority");
-    groupRecordsByClause(sorted).forEach(function (group) {
-      if (group.length === 1) {
-        appendBubble("finding-bubble", renderFindingLine(group[0], false));
-        return;
-      }
-      appendBubble("finding-bubble", renderFindingGroup(group));
+    groupRecordsByItem(sorted).forEach(function (group, index) {
+      appendBubble("finding-bubble", renderFindingLine(group, index + 1));
     });
   }
 
@@ -5139,16 +5155,27 @@ _APP_JS = r"""(function () {
       );
     }
     card.appendChild(concern);
-    if (findings.length > 1) {
+    var glanceItemsData = groupFindingsByItem(findings);
+    if (glanceItemsData.length > 1) {
       var glanceList = el("section", "glance-list", null);
       glanceList.setAttribute("data-glance-list", "true");
       glanceList.appendChild(
         bilingual("p", "glance-list-label", { ko: "확인할 항목", en: "Items to check" })
       );
       var glanceItems = el("ol", "glance-list-items", null);
-      findings.forEach(function (item) {
+      glanceItemsData.forEach(function (item) {
         var entry = el("li", null, null);
-        entry.appendChild(bilingual("span", null, item.title));
+        entry.appendChild(bilingual("span", "glance-list-title", item.finding.title));
+        if (item.clauses.length) {
+          var clausesKo = item.clauses.map(function (pair) { return pair.ko; }).join(" · ");
+          var clausesEn = item.clauses.map(function (pair) { return pair.en; }).join(" · ");
+          entry.appendChild(
+            bilingual("span", "glance-list-clauses", {
+              ko: " — " + clausesKo,
+              en: " — " + clausesEn
+            })
+          );
+        }
         glanceItems.appendChild(entry);
       });
       glanceList.appendChild(glanceItems);

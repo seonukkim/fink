@@ -119,6 +119,13 @@
   (1 divider) + one standalone card for 제5조, all three findings preserved.
   Updated the three test pins for the new `renderFindingLine(record, grouped)`
   signature. `pytest tests/web -q` green, `run_gates.sh` `GATES_OK`.
+- Claude follow-up 9 (owner: I grouped by the wrong key — they wanted items
+  merged, not clauses): corrected the grouping to merge by finding title (the
+  item type) and list the clauses each item covers as pills
+  (`groupRecordsByItem` / `renderClauseRefs`); merged items are renumbered
+  sequentially. The summary "확인할 항목" list is now deduped by title with the
+  covered clauses appended (`groupFindingsByItem`). Owner confirmed the item
+  grouping looks right. `pytest tests/web -q` green, `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 

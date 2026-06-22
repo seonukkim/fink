@@ -179,7 +179,7 @@ class ReportUITests(unittest.TestCase):
             ),
         )
         self.assertIn("function resultOpeningPair(payload)", script)
-        self.assertIn("function renderFindingLine(record, grouped)", script)
+        self.assertIn("function renderFindingLine(record, displayRank)", script)
         self.assertIn("function renderDimensionChips(appendBubble, payload)", script)
         self.assertIn('section.setAttribute("data-finding-line", "true")', script)
         self.assertIn('row.setAttribute("data-result-dimension-chips", "true")', script)
