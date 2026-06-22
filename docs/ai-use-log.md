@@ -64,6 +64,19 @@
   (`qwen2.5-1.5b-instruct`): the looping question now returns one coherent answer
   and openers/preambles are gone. Added unit tests for all three post-processors;
   `pytest tests/model tests/web -q` green, `run_gates.sh` `GATES_OK`.
+- Claude follow-up 4 (owner still saw the model dumping numbered lists / echoing
+  "물어볼 말:" / "N번 항목:"): root cause was feeding the 1.5B model the entire
+  structured context (all findings, their clarification questions, clause text,
+  and reference checkpoints), which it regurgitates. For a question the prompt now
+  narrows to the single best-matching concern only (label + rationale; no list,
+  clause text, or checkpoints); the no-question read is likewise compact.
+  Hardened `_sanitize` to strip the "N번 항목:" label variant and a trailing
+  honorific/sign-off. Verified through the live `/api/chat` endpoint on a freshly
+  restarted server: the previously failing questions now return focused 2-3
+  sentence answers with no list dump or label leak. (The visible regressions the
+  owner hit were a stale uvicorn process serving pre-fix code — uvicorn does not
+  hot-reload — not a code defect.) `pytest tests/model tests/web -q` green,
+  `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 

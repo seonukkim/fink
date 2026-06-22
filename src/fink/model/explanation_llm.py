@@ -227,42 +227,41 @@ def _llm_reply(context: GroundedContext, question: str | None) -> str | None:
 
 
 def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
-    lines: list[str] = ["[분석 결과]"]
+    if question:
+        # A small model regurgitates whatever structure it is handed, so for a
+        # question we feed only the single most relevant concern — not the whole
+        # finding list, the clause text, or the reference checkpoints. That keeps
+        # the answer focused and stops the model from dumping numbered lists or
+        # echoing internal labels.
+        match = _best_match(question, context.findings) if context.findings else None
+        lines = ["[참고 자료]"]
+        if match is not None:
+            lines.append(f"- {match.label}: {match.why}")
+        elif context.summary:
+            lines.append(f"- {context.summary}")
+        elif context.recommendation_action:
+            lines.append(f"- {context.recommendation_action}")
+        lines.append(f"[질문] {question}")
+        lines.append(
+            "위 참고 자료를 바탕으로 질문에 2~3문장으로 자연스럽게 답하세요. "
+            "번호·목록·머리말·호칭 없이 핵심만 설명하고, 자료에 없는 금액·비율·법 조항은 "
+            "지어내지 마세요."
+        )
+        return "\n".join(lines)
+
+    # No question: a short overall read. Keep it compact so the model does not
+    # echo the structure back as a bulleted dump.
+    lines = ["[분석 결과]"]
     if context.recommendation_action:
         lines.append(f"권장: {context.recommendation_action}")
-    if context.recommendation_cashflow:
-        lines.append(f"현금흐름: {context.recommendation_cashflow}")
-    if context.findings:
-        lines.append("[확인할 항목]")
-        for finding in context.findings:
-            ground = "근거 연결됨" if finding.grounded else "확인 필요"
-            lines.append(f"{finding.rank}. {finding.label} ({ground}): {finding.why}")
-            if finding.questions:
-                lines.append(f"   협상 시 확인 포인트: {finding.questions[0]}")
-            if finding.snippet:
-                lines.append(f"   조항: {finding.snippet}")
-    if context.reference_checkpoints:
-        lines.append("[비공개 참고 체크포인트]")
-        lines.append(
-            "아래 항목은 답변의 판단 흐름을 보조하는 일반 실무 참고입니다. "
-            "공식 근거, 점수, 판정으로 취급하지 말고, 문장을 그대로 인용하거나 "
-            "체크리스트/목록 형태로 출력하지 마세요. 필요한 경우 자연스러운 설명 속에 "
-            "짧게 풀어 쓰세요."
-        )
-        for index, checkpoint in enumerate(context.reference_checkpoints, start=1):
-            lines.append(f"참고 {index}: {checkpoint}")
-    if question:
-        lines.append(f"[창작자 질문] {question}")
-        lines.append(
-            "위 자료만 근거로 질문에 곧바로, 자연스럽게 대화하듯 답하세요. "
-            "질문과 가장 관련된 내용을 중심으로 2~4문장으로 답하고, 관련 없는 항목을 "
-            "번호로 나열하지 마세요. 머리말·호칭·안내 문구 없이 핵심부터 설명하세요."
-        )
-    else:
-        lines.append(
-            "위 자료를 바탕으로 무엇을 먼저 확인하면 좋을지 자연스럽게 설명하세요. "
-            "머리말·호칭 없이 핵심부터 말하세요."
-        )
+    for finding in context.findings[:3]:
+        lines.append(f"- {finding.label}: {finding.why}")
+    if not context.findings and context.summary:
+        lines.append(context.summary)
+    lines.append(
+        "위 자료를 바탕으로 무엇을 먼저 확인하면 좋을지 2~3문장으로 자연스럽게 설명하세요. "
+        "번호·목록·머리말·호칭 없이 핵심부터 말하세요."
+    )
     return "\n".join(lines)
 
 
@@ -404,13 +403,15 @@ def _sanitize(text: str, *, reference_checkpoints: tuple[str, ...] = ()) -> str:
         checkpoint = checkpoint.strip()
         if checkpoint:
             cleaned = cleaned.replace(checkpoint, "")
-    # Remove leaked internal "참고 N:" checkpoint labels (and the sentence they
-    # introduce) that a small model may echo from the prompt scaffolding.
+    # Remove leaked internal checkpoint labels ("참고 N:", "N번 항목:") and the
+    # sentence they introduce, which a small model may echo from the scaffolding.
     cleaned = re.sub(r"참고\s*\d+\s*[:：]\s*[^.!?\n]*[.!?]?", "", cleaned)
+    cleaned = re.sub(r"\d+\s*번\s*항목\s*[:：]\s*[^.!?\n]*[.!?]?", "", cleaned)
     # Strip markdown emphasis; the chat bubble renders plain text.
     cleaned = re.sub(r"\*{1,2}([^*\n]+)\*{1,2}", r"\1", cleaned)
-    # Drop a trailing courtesy sign-off ("감사합니다!").
-    cleaned = re.sub(r"\s*감사합니다[.!]?\s*$", "", cleaned)
+    # Drop a trailing courtesy sign-off / dangling honorific
+    # ("감사합니다!", "… 감사합니다. 창작자님").
+    cleaned = re.sub(r"(?:\s*(?:감사합니다|창작자님)\s*[.!]?\s*){1,3}$", "", cleaned)
     cleaned = re.sub(r"(?m)^\s*[-*•]\s*$\n?", "", cleaned)
     cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
