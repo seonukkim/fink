@@ -63,9 +63,31 @@ class AnalyzePipelineTests(unittest.TestCase):
                 self.assertEqual(finding.grounding_evidence_ids, ())
                 self.assertEqual(finding.grounding, "CANDIDATE_UNVERIFIED")
 
-        # Findings are ranked by severity_raw * signal_confidence, descending.
-        scores = [finding.rank_score for finding in result.ranked_findings]
-        self.assertEqual(scores, sorted(scores, reverse=True))
+        # Production findings use the shared exposure-aware ranking policy.
+        for finding in result.ranked_findings:
+            self.assertEqual(finding.ranking_policy, "exposure_aware")
+            self.assertEqual(finding.authority_gate, "enforce")
+            self.assertIn(
+                finding.priority_basis,
+                {
+                    "quantified_exposure",
+                    "present_value_timing",
+                    "uncapped_or_unbounded",
+                    "counterparty_verification",
+                    "grounded_qualitative_signal",
+                    "unverified_candidate",
+                },
+            )
+            self.assertIn(
+                finding.quantification_status,
+                {
+                    "quantified",
+                    "partially_bounded",
+                    "unbounded",
+                    "input_required",
+                    "not_applicable",
+                },
+            )
 
         # Four separate dimensions are all present.
         payload = ANALYZE.analysis_result_to_payload(result, SCHEMAS.UILocale.KO)
@@ -95,6 +117,9 @@ class AnalyzePipelineTests(unittest.TestCase):
         for finding in payload["findings"]:
             self.assertTrue(finding["question_to_ask"]["ko"].strip())
             self.assertTrue(finding["question_to_ask"]["en"].strip())
+            self.assertIn("priority_basis_code", finding)
+            self.assertIn("quantification_status", finding)
+            self.assertIn("exposure_type", finding)
         primary_json = json.dumps(_without_audit(payload), ensure_ascii=False)
         for forbidden in (
             "FIM-",
@@ -111,6 +136,19 @@ class AnalyzePipelineTests(unittest.TestCase):
         audit_json = json.dumps(payload["audit_detail"], ensure_ascii=False)
         self.assertIn("runtime_s", audit_json)
         self.assertIn("overall_confidence", audit_json)
+        self.assertEqual(
+            payload["audit_detail"]["scoring"]["ranking_policy"],
+            "exposure_aware",
+        )
+        self.assertEqual(payload["audit_detail"]["scoring"]["authority_gate"], "enforce")
+        for finding in payload["audit_detail"]["technical_findings"]:
+            self.assertIn("priority_basis", finding)
+            self.assertIn("quantification_status", finding)
+            self.assertIn("fim_module", finding)
+            self.assertIn("exposure_type", finding)
+            self.assertIn("source_assumptions", finding)
+            self.assertIn("missing_inputs", finding)
+            self.assertNotIn("rank_score", finding)
 
         # Korean is canonical and English is a generated aid; both nonblank.
         self.assertTrue(result.nl_summary_ko.strip())

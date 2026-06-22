@@ -35,9 +35,13 @@ from fink.schemas import (
     UILocale,
 )
 from fink.scoring.engine import (
+    AUTHORITY_GATE_ENFORCE,
     CATEGORY_CONFIG_IDS,
     DocumentScoringResult,
+    FindingPriority,
+    RANKING_POLICY_EXPOSURE_AWARE,
     aggregate_document_signals,
+    rank_review_findings,
 )
 from fink.segment.engine import segment_pages
 from fink.signals.engine import RuleBasedSignalDetector, SignalRuleSet, load_signal_rules
@@ -85,9 +89,9 @@ MONETARY_BLANK_EN = (
 class RankedFinding:
     """One rule-signal finding for the transparent review-priority ranking.
 
-    The ranking is ordered by ``rank_score = severity_raw * signal_confidence``
-    and remains visible even when no official evidence makes the signal
-    score-eligible.
+    Production ordering comes from the shared exposure-aware scoring policy.
+    Severity-times-confidence remains available only through the explicit
+    evaluation baseline policy in ``fink.scoring``.
     """
 
     rank: int
@@ -101,7 +105,17 @@ class RankedFinding:
     exact_excerpt: str
     severity_raw: float
     signal_confidence: float
-    rank_score: float
+    priority_sort_value: str | None
+    ranking_policy: str
+    authority_gate: str
+    priority_basis: str
+    quantification_status: str
+    fim_module: str | None
+    exposure_type: str | None
+    source_assumptions: tuple[str, ...]
+    missing_inputs: tuple[str, ...]
+    deterministic_class: str
+    policy_notes: tuple[str, ...]
     is_missing_protection: bool
     scored: bool = False
     grounding: str = GROUNDING_UNVERIFIED
@@ -169,6 +183,8 @@ class LocalAnalysisResult:
     measured_runtime_seconds: float
     source_pages: tuple[OCRPage, ...]
     clauses: tuple[Any, ...]
+    ranking_policy: str
+    authority_gate: str
 
 
 def run_local_analysis(
@@ -177,6 +193,8 @@ def run_local_analysis(
     ingested: "IngestedDocument | None" = None,
     scenario_inputs: Any | None = None,
     ui_locale: UILocale = UILocale.KO,
+    ranking_policy: str = RANKING_POLICY_EXPOSURE_AWARE,
+    authority_gate: str = AUTHORITY_GATE_ENFORCE,
 ) -> LocalAnalysisResult:
     """Compose the offline FInk pipeline into one deterministic result.
 
@@ -218,6 +236,9 @@ def run_local_analysis(
         rule_set,
         grounding_records=grounding_records,
         scoring=scoring,
+        exposures=exposures,
+        ranking_policy=ranking_policy,
+        authority_gate=authority_gate,
     )
     monetary_present = any(not exposure.is_user_input_required for exposure in exposures)
 
@@ -272,6 +293,8 @@ def run_local_analysis(
         measured_runtime_seconds=measured_runtime_seconds,
         source_pages=pages,
         clauses=clauses,
+        ranking_policy=ranking_policy,
+        authority_gate=authority_gate,
     )
 
 
@@ -486,6 +509,9 @@ def _rank_findings(
     *,
     grounding_records: tuple["AuthorityRetrievedRecord", ...],
     scoring: DocumentScoringResult,
+    exposures: "tuple[MonetaryExposureEstimate, ...]",
+    ranking_policy: str,
+    authority_gate: str,
 ) -> tuple[RankedFinding, ...]:
     clauses_by_id = {clause.clause_id: clause for clause in clauses}
     records_by_id = {record.record_id: record for record in grounding_records}
@@ -493,15 +519,17 @@ def _rank_findings(
         (contribution.signal_id, contribution.clause_id): contribution
         for contribution in scoring.contributions
     }
-    scored = sorted(
+    priorities = rank_review_findings(
         signals,
-        key=lambda signal: (
-            -(float(signal.severity_raw or 0.0) * float(signal.signal_confidence)),
-            signal.signal_id,
-        ),
+        exposures=exposures,
+        contributions=scoring.contributions,
+        ranking_policy=ranking_policy,
+        authority_gate=authority_gate,
     )
+    signals_by_key = {(signal.signal_id, signal.clause_id): signal for signal in signals}
     findings: list[RankedFinding] = []
-    for rank, signal in enumerate(scored, start=1):
+    for rank, priority in enumerate(priorities, start=1):
+        signal = signals_by_key[(priority.signal_id, priority.clause_id)]
         rule = rule_set.rule_by_id(signal.signal_id)
         clause = clauses_by_id.get(signal.clause_id)
         severity_raw = float(signal.severity_raw or 0.0)
@@ -525,7 +553,19 @@ def _rank_findings(
                 exact_excerpt=_clause_exact_excerpt(clause),
                 severity_raw=severity_raw,
                 signal_confidence=confidence,
-                rank_score=severity_raw * confidence,
+                priority_sort_value=_priority_sort_value(priority),
+                ranking_policy=priority.ranking_policy,
+                authority_gate=priority.authority_gate,
+                priority_basis=priority.priority_basis,
+                quantification_status=priority.quantification_status,
+                fim_module=priority.fim_module.value if priority.fim_module is not None else None,
+                exposure_type=(
+                    priority.exposure_type.value if priority.exposure_type is not None else None
+                ),
+                source_assumptions=priority.source_assumptions,
+                missing_inputs=priority.missing_inputs,
+                deterministic_class=priority.deterministic_class,
+                policy_notes=priority.policy_notes,
                 is_missing_protection=signal.is_missing_protection,
                 scored=is_scored,
                 grounding=GROUNDING_GROUNDED if is_scored else GROUNDING_CANDIDATE,
@@ -536,6 +576,12 @@ def _rank_findings(
             )
         )
     return tuple(findings)
+
+
+def _priority_sort_value(priority: FindingPriority) -> str | None:
+    if priority.comparable_sort_value is None:
+        return None
+    return format(priority.comparable_sort_value, "f")
 
 
 def _record_authority_tiers(records: tuple["AuthorityRetrievedRecord", ...]) -> tuple[str, ...]:

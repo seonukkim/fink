@@ -1729,8 +1729,9 @@ tasks:
   - no_invented_numbers
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-22T03:01:35+00:00'
 - id: FINK-VERIFY-01
   phase: P2
   priority: P2

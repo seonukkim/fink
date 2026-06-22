@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import math
 import sys
 import unittest
@@ -19,6 +20,7 @@ def _load_module(name: str) -> Any:
 
 SCHEMAS = _load_module("fink.schemas")
 SCORING = _load_module("fink.scoring")
+FINANCE = _load_module("fink.finance")
 
 
 def _signal(
@@ -299,6 +301,163 @@ class AggregationTests(unittest.TestCase):
             result.category_scores[SCHEMAS.RiskCategory.F5],
             expected_score,
         )
+
+    def test_exposure_aware_ranking_uses_actual_fim_outputs_not_confidence_product(self) -> None:
+        config = SCORING.load_scoring_config()
+        low_conf_large_exposure = _signal(
+            "RS-RANK-F5-LARGE",
+            SCHEMAS.RiskCategory.F5,
+            evidence_ids=("EV-A1-F5",),
+            confidence=0.10,
+            severity=0.20,
+        )
+        high_conf_small_exposure = _signal(
+            "RS-RANK-F6-SMALL",
+            SCHEMAS.RiskCategory.F6,
+            evidence_ids=("EV-A1-F6",),
+            confidence=1.0,
+            severity=1.0,
+        )
+        scoring = SCORING.aggregate_document_signals(
+            (high_conf_small_exposure, low_conf_large_exposure),
+            config=config,
+            evidence_authority_tiers={"EV-A1-F5": "A1", "EV-A1-F6": "A1"},
+        )
+        fim5 = FINANCE.fim5_exclusivity_renewal_opportunity_cost(
+            exclusivity_duration_months=(1, 1, 1),
+            alternative_monthly_revenue=("10000", "10000", "10000"),
+            scenario_probability=("1", "1", "1"),
+            annual_discount_rate=("0", "0", "0"),
+        )
+        fim6 = FINANCE.fim6_ip_secondary_rights_scenario_value(
+            (
+                {
+                    "type": "translation",
+                    "value": ("1000000", "1000000", "1000000"),
+                    "prob": ("1", "1", "1"),
+                },
+            )
+        )
+
+        ranked = SCORING.rank_review_findings(
+            (high_conf_small_exposure, low_conf_large_exposure),
+            exposures=(fim5.opportunity_cost, fim6.scenario_value),
+            contributions=scoring.contributions,
+        )
+
+        self.assertEqual(ranked[0].signal_id, "RS-RANK-F5-LARGE")
+        self.assertEqual(ranked[0].ranking_policy, "exposure_aware")
+        self.assertEqual(ranked[0].authority_gate, "enforce")
+        self.assertEqual(ranked[0].priority_basis, "quantified_exposure")
+        self.assertEqual(ranked[0].quantification_status, "quantified")
+        self.assertEqual(ranked[0].exposure_type, SCHEMAS.ExposureType.OPPORTUNITY_COST)
+        self.assertEqual(ranked[0].fim_module, SCHEMAS.FimModule.FIM_6)
+        self.assertIn(
+            "confidence_not_used_as_exposure_multiplier",
+            ranked[0].policy_notes,
+        )
+
+    def test_exposure_aware_ranking_never_sums_incompatible_exposure_types(self) -> None:
+        config = SCORING.load_scoring_config()
+        nominal_signal = _signal(
+            "RS-RANK-F2-NOMINAL",
+            SCHEMAS.RiskCategory.F2,
+            evidence_ids=("EV-A1-F2",),
+        )
+        timing_signal = _signal(
+            "RS-RANK-F3-PV",
+            SCHEMAS.RiskCategory.F3,
+            evidence_ids=("EV-A1-F3",),
+        )
+        scoring = SCORING.aggregate_document_signals(
+            (nominal_signal, timing_signal),
+            config=config,
+            evidence_authority_tiers={"EV-A1-F2": "A1", "EV-A1-F3": "A1"},
+        )
+        fim1 = FINANCE.fim1_revenue_base_deduction_leakage(
+            gross_sales="1000000",
+            refunds="0",
+            explicitly_allowed_deductions="0",
+            revenue_share_rate="0.5",
+            open_ended_deductions=("10000", "10000", "10000"),
+        )
+        fim2 = FINANCE.fim2_payment_delay_present_value_loss(
+            delayed_amount="1000000",
+            annual_discount_rate=("0.05", "0.05", "0.05"),
+            delay_days=(30, 30, 30),
+        )
+
+        ranked = SCORING.rank_review_findings(
+            (nominal_signal, timing_signal),
+            exposures=(fim1.nominal_leakage, fim2.present_value_loss),
+            contributions=scoring.contributions,
+        )
+        payloads = [item.as_dict() for item in ranked]
+
+        self.assertEqual(
+            {item["exposure_type"] for item in payloads},
+            {"nominal_leakage", "present_value_loss"},
+        )
+        self.assertNotIn("grand_total", json.dumps(payloads))
+        self.assertTrue(
+            all("no_cross_exposure_type_total" in item["policy_notes"] for item in payloads)
+        )
+
+    def test_uncapped_unbounded_finding_gets_override_without_fabricated_high(self) -> None:
+        config = SCORING.load_scoring_config()
+        signal = _signal(
+            "RS-RANK-F7-UNCAPPED",
+            SCHEMAS.RiskCategory.F7,
+            evidence_ids=("EV-A1-F7",),
+        )
+        scoring = SCORING.aggregate_document_signals(
+            (signal,),
+            config=config,
+            evidence_authority_tiers={"EV-A1-F7": "A1"},
+        )
+        fim7 = FINANCE.fim7_penalty_liability_exposure(is_uncapped=True)
+
+        ranked = SCORING.rank_review_findings(
+            (signal,),
+            exposures=(fim7.liability_exposure,),
+            contributions=scoring.contributions,
+        )
+        first = ranked[0]
+
+        self.assertEqual(first.priority_basis, "uncapped_or_unbounded")
+        self.assertEqual(first.quantification_status, "unbounded")
+        self.assertEqual(first.deterministic_class, "unbounded_override")
+        self.assertIsNone(first.exposure_high)
+        self.assertIsNone(first.comparable_sort_value)
+        self.assertIn("no_cross_exposure_type_total", first.policy_notes)
+
+    def test_severity_baseline_and_authority_bypass_are_explicit_evaluation_options(self) -> None:
+        candidate = _signal(
+            "RS-RANK-F2-CANDIDATE",
+            SCHEMAS.RiskCategory.F2,
+            score_eligible=False,
+            evidence_ids=(),
+            confidence=1.0,
+            severity=1.0,
+        )
+        grounded = _signal(
+            "RS-RANK-F2-GROUNDED",
+            SCHEMAS.RiskCategory.F2,
+            evidence_ids=("EV-A1-F2",),
+            confidence=0.5,
+            severity=0.5,
+        )
+
+        baseline = SCORING.rank_review_findings(
+            (grounded, candidate),
+            ranking_policy=SCORING.RANKING_POLICY_SEVERITY_BASELINE,
+            authority_gate=SCORING.AUTHORITY_GATE_BYPASS_FOR_ABLATION,
+        )
+
+        self.assertEqual(baseline[0].signal_id, "RS-RANK-F2-CANDIDATE")
+        self.assertEqual(baseline[0].ranking_policy, "severity_baseline")
+        self.assertEqual(baseline[0].authority_gate, "bypass_for_ablation")
+        self.assertIn("evaluation_only_authority_gate_bypass", baseline[0].policy_notes)
 
 
 if __name__ == "__main__":

@@ -814,7 +814,7 @@ def _source_text_unchanged(
 
 
 def _finding_sources(payload: dict[str, Any]) -> list[dict[str, str]]:
-    return [
+    rows = [
         {
             "finding_id": str(finding.get("finding_id", "")),
             "clause_id": str(finding.get("source", {}).get("clause_id", "")),
@@ -822,6 +822,7 @@ def _finding_sources(payload: dict[str, Any]) -> list[dict[str, str]]:
         }
         for finding in payload.get("findings", ())
     ]
+    return sorted(rows, key=lambda row: row["finding_id"])
 
 
 def _evidence_eligibility_unchanged(
@@ -834,7 +835,7 @@ def _evidence_eligibility_unchanged(
 
 
 def _finding_scored_state(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    return [
+    rows = [
         {
             "finding_id": item.get("finding_id"),
             "scored": item.get("scored"),
@@ -842,6 +843,7 @@ def _finding_scored_state(payload: dict[str, Any]) -> list[dict[str, Any]]:
         }
         for item in payload.get("audit_detail", {}).get("technical_findings", ())
     ]
+    return sorted(rows, key=lambda row: str(row["finding_id"]))
 
 
 def _scenario_status_message(

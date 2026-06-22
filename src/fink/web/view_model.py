@@ -66,6 +66,12 @@ CREATOR_REVIEW_REQUIRED_COPY_KEYS = (
     "diagnostic.rule_focus_note",
     "finding.priority_basis.missing_protection",
     "finding.priority_basis.detected_term",
+    "finding.priority_basis.quantified_exposure",
+    "finding.priority_basis.present_value_timing",
+    "finding.priority_basis.uncapped_or_unbounded",
+    "finding.priority_basis.counterparty_verification",
+    "finding.priority_basis.grounded_qualitative_signal",
+    "finding.priority_basis.unverified_candidate",
     "finding.model_path.local_rules",
     "export.audit_detail_label",
 )
@@ -210,6 +216,30 @@ _COPY: dict[str, dict[str, str]] = {
     "finding.priority_basis.detected_term": {
         "ko": "현금흐름에 영향을 줄 수 있는 조건으로 감지되어 먼저 볼 항목으로 정렬했습니다.",
         "en": "Prioritized because the term may affect creator cash flow.",
+    },
+    "finding.priority_basis.quantified_exposure": {
+        "ko": "입력된 금액 가정에서 같은 유형의 노출 범위가 계산되어 먼저 볼 항목입니다.",
+        "en": "Prioritized from a computed range within the same exposure type.",
+    },
+    "finding.priority_basis.present_value_timing": {
+        "ko": "지급 시점의 현재가치 영향이 계산되어 먼저 볼 항목입니다.",
+        "en": "Prioritized from a computed present-value timing effect.",
+    },
+    "finding.priority_basis.uncapped_or_unbounded": {
+        "ko": "상한이 없거나 범위를 정할 수 없어 별도 우선 검토 항목입니다.",
+        "en": "Prioritized as a separate uncapped or unbounded review item.",
+    },
+    "finding.priority_basis.counterparty_verification": {
+        "ko": "상대방 정산·증빙 확인이 필요한 항목으로 먼저 볼 항목입니다.",
+        "en": "Prioritized because counterparty records or verification are needed.",
+    },
+    "finding.priority_basis.grounded_qualitative_signal": {
+        "ko": "공식 근거가 연결된 정성 신호로 먼저 확인할 항목입니다.",
+        "en": "Prioritized as an official-grounded qualitative signal.",
+    },
+    "finding.priority_basis.unverified_candidate": {
+        "ko": "공식 근거 연결이 필요한 미확인 후보입니다.",
+        "en": "An unverified candidate that needs official-source grounding.",
     },
     "finding.model_path.local_rules": {
         "ko": "기기 내 규칙 기반 검토 경로",
@@ -758,7 +788,10 @@ def _finding_from_ranked(
             monetary_present=monetary_present,
             evidence_state=evidence["state"],
         ),
-        "priority_basis": _priority_basis(finding.is_missing_protection),
+        "priority_basis": _priority_basis_from_ranked(finding),
+        "priority_basis_code": finding.priority_basis,
+        "quantification_status": finding.quantification_status,
+        "exposure_type": finding.exposure_type,
         "extracted_fields": [],
         "missing_inputs": _missing_inputs(monetary_present),
         "evidence": evidence,
@@ -893,6 +926,9 @@ def _audit_detail_from_result(result: Any) -> dict[str, Any]:
         "scoring": {
             "review_priority_score": result.review_priority_score,
             "category_scores": dict(result.category_scores),
+            "ranking_policy": result.ranking_policy,
+            "authority_gate": result.authority_gate,
+            "scoring_config_version": result.scoring.scoring_config_version,
             "confidence": {
                 "ocr_confidence": confidence.ocr_confidence,
                 "evidence_confidence": confidence.evidence_confidence,
@@ -963,12 +999,21 @@ def _technical_finding_from_ranked(finding: Any) -> dict[str, Any]:
         "risk_category": finding.risk_category,
         "severity_raw": finding.severity_raw,
         "signal_confidence": finding.signal_confidence,
-        "rank_score": finding.rank_score,
+        "priority_sort_value": finding.priority_sort_value,
+        "ranking_policy": finding.ranking_policy,
+        "authority_gate": finding.authority_gate,
+        "priority_basis": finding.priority_basis,
+        "quantification_status": finding.quantification_status,
+        "exposure_type": finding.exposure_type,
+        "source_assumptions": list(finding.source_assumptions),
+        "missing_inputs": list(finding.missing_inputs),
+        "deterministic_class": finding.deterministic_class,
+        "policy_notes": list(finding.policy_notes),
         "scored": finding.scored,
         "grounding": finding.grounding,
         "grounding_evidence_ids": list(finding.grounding_evidence_ids),
         "authority_tiers": list(finding.authority_tiers),
-        "fim_module": _RISK_TO_PRIMARY_FIM.get(finding.risk_category),
+        "fim_module": finding.fim_module or _RISK_TO_PRIMARY_FIM.get(finding.risk_category),
     }
 
 
@@ -1150,6 +1195,20 @@ def _priority_basis(is_missing_protection: bool) -> dict[str, str]:
         else "finding.priority_basis.detected_term"
     )
     return creator_review_pair(key)
+
+
+def _priority_basis_from_ranked(finding: Any) -> dict[str, str]:
+    key = {
+        "quantified_exposure": "finding.priority_basis.quantified_exposure",
+        "present_value_timing": "finding.priority_basis.present_value_timing",
+        "uncapped_or_unbounded": "finding.priority_basis.uncapped_or_unbounded",
+        "counterparty_verification": "finding.priority_basis.counterparty_verification",
+        "grounded_qualitative_signal": "finding.priority_basis.grounded_qualitative_signal",
+        "unverified_candidate": "finding.priority_basis.unverified_candidate",
+    }.get(getattr(finding, "priority_basis", ""))
+    if key is not None:
+        return creator_review_pair(key)
+    return _priority_basis(bool(getattr(finding, "is_missing_protection", False)))
 
 
 def _missing_inputs(monetary_present: bool) -> list[dict[str, str]]:

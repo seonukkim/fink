@@ -31,6 +31,25 @@ DEFAULT_SCORING_CONFIG_PATH = REPO_ROOT / "config" / "scoring_config.yaml"
 SCORING_AUTHORITY_TIERS = ("A0", "A1", "A2")
 AUTHORITY_TIER_RANK = {"A0": 0, "A1": 1, "A2": 2}
 ZERO_SCORE_TIERS = ("B", "C", "B/C", "D0", "M1", "M2", "M3", "R0")
+RANKING_POLICY_EXPOSURE_AWARE = "exposure_aware"
+RANKING_POLICY_SEVERITY_BASELINE = "severity_baseline"
+RANKING_POLICIES = (RANKING_POLICY_EXPOSURE_AWARE, RANKING_POLICY_SEVERITY_BASELINE)
+AUTHORITY_GATE_ENFORCE = "enforce"
+AUTHORITY_GATE_BYPASS_FOR_ABLATION = "bypass_for_ablation"
+AUTHORITY_GATES = (AUTHORITY_GATE_ENFORCE, AUTHORITY_GATE_BYPASS_FOR_ABLATION)
+
+PRIORITY_BASIS_QUANTIFIED_EXPOSURE = "quantified_exposure"
+PRIORITY_BASIS_PRESENT_VALUE_TIMING = "present_value_timing"
+PRIORITY_BASIS_UNCAPPED_OR_UNBOUNDED = "uncapped_or_unbounded"
+PRIORITY_BASIS_COUNTERPARTY_VERIFICATION = "counterparty_verification"
+PRIORITY_BASIS_GROUNDED_QUALITATIVE_SIGNAL = "grounded_qualitative_signal"
+PRIORITY_BASIS_UNVERIFIED_CANDIDATE = "unverified_candidate"
+
+QUANTIFICATION_STATUS_QUANTIFIED = "quantified"
+QUANTIFICATION_STATUS_PARTIALLY_BOUNDED = "partially_bounded"
+QUANTIFICATION_STATUS_UNBOUNDED = "unbounded"
+QUANTIFICATION_STATUS_INPUT_REQUIRED = "input_required"
+QUANTIFICATION_STATUS_NOT_APPLICABLE = "not_applicable"
 
 CATEGORY_CONFIG_IDS: Mapping[RiskCategory, str] = {
     RiskCategory.F1: "F1_SETTLEMENT_AND_AUDIT",
@@ -47,6 +66,35 @@ CONFIG_ID_TO_CATEGORY = {value: key for key, value in CATEGORY_CONFIG_IDS.items(
 SORTED_FINANCIAL_CATEGORIES = tuple(
     sorted(FINANCIAL_RISK_CATEGORIES, key=lambda category: category.value)
 )
+RISK_CATEGORY_FIM_MODULE: Mapping[RiskCategory, FimModule | None] = {
+    RiskCategory.F1: FimModule.FIM_1,
+    RiskCategory.F2: FimModule.FIM_1,
+    RiskCategory.F3: FimModule.FIM_2,
+    RiskCategory.F4: FimModule.FIM_3,
+    RiskCategory.F5: FimModule.FIM_6,
+    RiskCategory.F6: FimModule.FIM_5,
+    RiskCategory.F7: FimModule.FIM_7,
+    RiskCategory.F8: FimModule.FIM_4,
+    RiskCategory.F9: FimModule.FIM_8,
+}
+RISK_CATEGORY_EXPOSURE_TYPE: Mapping[RiskCategory, ExposureType | None] = {
+    RiskCategory.F1: ExposureType.NOMINAL_LEAKAGE,
+    RiskCategory.F2: ExposureType.NOMINAL_LEAKAGE,
+    RiskCategory.F3: ExposureType.PRESENT_VALUE_LOSS,
+    RiskCategory.F4: ExposureType.DEFERRAL,
+    RiskCategory.F5: ExposureType.OPPORTUNITY_COST,
+    RiskCategory.F6: ExposureType.OPPORTUNITY_COST,
+    RiskCategory.F7: ExposureType.LIABILITY_EXPOSURE,
+    RiskCategory.F8: ExposureType.OPPORTUNITY_COST,
+    RiskCategory.F9: None,
+}
+_EXPOSURE_TYPE_ORDER: Mapping[ExposureType, int] = {
+    ExposureType.LIABILITY_EXPOSURE: 0,
+    ExposureType.NOMINAL_LEAKAGE: 1,
+    ExposureType.PRESENT_VALUE_LOSS: 2,
+    ExposureType.OPPORTUNITY_COST: 3,
+    ExposureType.DEFERRAL: 4,
+}
 
 
 class ScoringAggregationError(ValueError):
@@ -112,6 +160,59 @@ class SignalContribution:
             "authority_factor": self.authority_factor,
             "confidence_used": self.confidence_used,
             "contribution": self.contribution,
+        }
+
+
+@dataclass(frozen=True)
+class FindingPriority:
+    """Shared review-ordering metadata for production and evaluation arms."""
+
+    signal_id: str
+    clause_id: str
+    risk_category: RiskCategory
+    ranking_policy: str
+    authority_gate: str
+    priority_basis: str
+    quantification_status: str
+    fim_module: FimModule | None
+    exposure_type: ExposureType | None
+    source_assumptions: tuple[str, ...]
+    missing_inputs: tuple[str, ...]
+    exposure_low: Decimal | None
+    exposure_base: Decimal | None
+    exposure_high: Decimal | None
+    nominal_amount: Decimal | None
+    comparable_sort_value: Decimal | None
+    deterministic_class: str
+    scored: bool
+    policy_notes: tuple[str, ...]
+    sort_key: tuple[Any, ...]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "signal_id": self.signal_id,
+            "clause_id": self.clause_id,
+            "risk_category": self.risk_category.value,
+            "ranking_policy": self.ranking_policy,
+            "authority_gate": self.authority_gate,
+            "priority_basis": self.priority_basis,
+            "quantification_status": self.quantification_status,
+            "fim_module": self.fim_module.value if self.fim_module is not None else None,
+            "exposure_type": (
+                self.exposure_type.value if self.exposure_type is not None else None
+            ),
+            "source_assumptions": list(self.source_assumptions),
+            "missing_inputs": list(self.missing_inputs),
+            "exposure": {
+                "low": _decimal_to_text(self.exposure_low),
+                "base": _decimal_to_text(self.exposure_base),
+                "high": _decimal_to_text(self.exposure_high),
+                "nominal_amount": _decimal_to_text(self.nominal_amount),
+            },
+            "comparable_sort_value": _decimal_to_text(self.comparable_sort_value),
+            "deterministic_class": self.deterministic_class,
+            "scored": self.scored,
+            "policy_notes": list(self.policy_notes),
         }
 
 
@@ -365,6 +466,44 @@ def score_signal_contribution(
     )
 
 
+def rank_review_findings(
+    signals: Sequence[RiskSignal],
+    *,
+    exposures: Sequence[MonetaryExposureEstimate] = (),
+    contributions: Sequence[SignalContribution] = (),
+    ranking_policy: str = RANKING_POLICY_EXPOSURE_AWARE,
+    authority_gate: str = AUTHORITY_GATE_ENFORCE,
+) -> tuple[FindingPriority, ...]:
+    """Rank findings with a transparent production/evaluation policy.
+
+    Production uses ``exposure_aware`` plus ``enforce``. The
+    ``severity_baseline`` and ``bypass_for_ablation`` options exist so
+    evaluation can run explicit ablations through this same code path.
+    Exposure-aware ordering only compares scenario values within the same
+    exposure type; it never creates a cross-type total.
+    """
+
+    _validate_policy(ranking_policy, RANKING_POLICIES, "ranking_policy")
+    _validate_policy(authority_gate, AUTHORITY_GATES, "authority_gate")
+    signal_tuple = tuple(signals)
+    exposure_tuple = tuple(exposures)
+    contributions_by_signal = {
+        (contribution.signal_id, contribution.clause_id): contribution
+        for contribution in contributions
+    }
+    priorities = tuple(
+        _finding_priority_for_signal(
+            signal,
+            exposure_tuple,
+            contributions_by_signal.get((signal.signal_id, signal.clause_id)),
+            ranking_policy=ranking_policy,
+            authority_gate=authority_gate,
+        )
+        for signal in signal_tuple
+    )
+    return tuple(sorted(priorities, key=lambda priority: priority.sort_key))
+
+
 def aggregation_tests(
     config_path: Path | str = DEFAULT_SCORING_CONFIG_PATH,
 ) -> AggregationTestReport:
@@ -537,6 +676,269 @@ def fim8_uncertainty_test(
     if not report.ok:
         raise ScoringAggregationError(f"fim8_uncertainty_test failed: {report.as_dict()}")
     return report
+
+
+def _finding_priority_for_signal(
+    signal: RiskSignal,
+    exposures: Sequence[MonetaryExposureEstimate],
+    contribution: SignalContribution | None,
+    *,
+    ranking_policy: str,
+    authority_gate: str,
+) -> FindingPriority:
+    category = signal.risk_category
+    fim_module = RISK_CATEGORY_FIM_MODULE.get(category)
+    expected_type = RISK_CATEGORY_EXPOSURE_TYPE.get(category)
+    exposure = _matching_exposure(exposures, fim_module, expected_type)
+    scored = _signal_scored_for_ranking(signal, contribution, authority_gate)
+    quantification_status = _quantification_status(exposure, expected_type)
+    priority_basis = _priority_basis_for(
+        signal,
+        exposure,
+        scored=scored,
+        quantification_status=quantification_status,
+    )
+    source_assumptions = tuple(exposure.assumptions) if exposure is not None else ()
+    missing_inputs = _priority_missing_inputs(exposure, expected_type)
+    comparable_sort_value = _comparable_sort_value(exposure, quantification_status)
+    deterministic_class = _deterministic_priority_class(
+        priority_basis,
+        quantification_status,
+    )
+    policy_notes = _policy_notes(ranking_policy, authority_gate, exposure)
+    if ranking_policy == RANKING_POLICY_SEVERITY_BASELINE:
+        sort_key = _severity_baseline_sort_key(signal)
+        deterministic_class = "severity_baseline"
+    else:
+        sort_key = _exposure_aware_sort_key(
+            signal,
+            priority_basis=priority_basis,
+            quantification_status=quantification_status,
+            exposure_type=expected_type,
+            comparable_sort_value=comparable_sort_value,
+            nominal_amount=exposure.nominal_amount if exposure is not None else None,
+        )
+    return FindingPriority(
+        signal_id=signal.signal_id,
+        clause_id=signal.clause_id,
+        risk_category=category,
+        ranking_policy=ranking_policy,
+        authority_gate=authority_gate,
+        priority_basis=priority_basis,
+        quantification_status=quantification_status,
+        fim_module=fim_module,
+        exposure_type=expected_type,
+        source_assumptions=source_assumptions,
+        missing_inputs=missing_inputs,
+        exposure_low=exposure.low if exposure is not None else None,
+        exposure_base=exposure.base if exposure is not None else None,
+        exposure_high=exposure.high if exposure is not None else None,
+        nominal_amount=exposure.nominal_amount if exposure is not None else None,
+        comparable_sort_value=comparable_sort_value,
+        deterministic_class=deterministic_class,
+        scored=scored,
+        policy_notes=policy_notes,
+        sort_key=sort_key,
+    )
+
+
+def _signal_scored_for_ranking(
+    signal: RiskSignal,
+    contribution: SignalContribution | None,
+    authority_gate: str,
+) -> bool:
+    if authority_gate == AUTHORITY_GATE_BYPASS_FOR_ABLATION:
+        return bool(signal.fired and signal.risk_category in FINANCIAL_RISK_CATEGORIES)
+    return bool(contribution is not None and contribution.contribution > 0)
+
+
+def _matching_exposure(
+    exposures: Sequence[MonetaryExposureEstimate],
+    fim_module: FimModule | None,
+    expected_type: ExposureType | None,
+) -> MonetaryExposureEstimate | None:
+    if fim_module is None or expected_type is None:
+        return None
+    exact = tuple(
+        exposure
+        for exposure in exposures
+        if exposure.module is fim_module and exposure.exposure_type is expected_type
+    )
+    if exact:
+        return max(exact, key=_exposure_selection_key)
+    same_module = tuple(exposure for exposure in exposures if exposure.module is fim_module)
+    if same_module:
+        return max(same_module, key=_exposure_selection_key)
+    return None
+
+
+def _exposure_selection_key(exposure: MonetaryExposureEstimate) -> tuple[Decimal, Decimal, str]:
+    high = exposure.high or exposure.base or exposure.nominal_amount or Decimal("0")
+    base = exposure.base or exposure.nominal_amount or Decimal("0")
+    return high, base, exposure.exposure_type.value
+
+
+def _quantification_status(
+    exposure: MonetaryExposureEstimate | None,
+    expected_type: ExposureType | None,
+) -> str:
+    if expected_type is None:
+        return QUANTIFICATION_STATUS_NOT_APPLICABLE
+    if exposure is None:
+        return QUANTIFICATION_STATUS_INPUT_REQUIRED
+    if _has_unbounded_flag(exposure):
+        return QUANTIFICATION_STATUS_UNBOUNDED
+    has_range = (
+        exposure.low is not None
+        and exposure.base is not None
+        and exposure.high is not None
+    )
+    if has_range and not exposure.is_user_input_required:
+        return QUANTIFICATION_STATUS_QUANTIFIED
+    if exposure.nominal_amount is not None:
+        return QUANTIFICATION_STATUS_PARTIALLY_BOUNDED
+    if exposure.is_user_input_required:
+        return QUANTIFICATION_STATUS_INPUT_REQUIRED
+    return QUANTIFICATION_STATUS_NOT_APPLICABLE
+
+
+def _has_unbounded_flag(exposure: MonetaryExposureEstimate) -> bool:
+    return any(
+        flag in {"uncapped", "unbounded"} or flag.endswith(":uncapped")
+        for flag in (exposure.uncertainty_flags or ())
+    )
+
+
+def _priority_basis_for(
+    signal: RiskSignal,
+    exposure: MonetaryExposureEstimate | None,
+    *,
+    scored: bool,
+    quantification_status: str,
+) -> str:
+    if not scored:
+        return PRIORITY_BASIS_UNVERIFIED_CANDIDATE
+    if quantification_status == QUANTIFICATION_STATUS_UNBOUNDED:
+        return PRIORITY_BASIS_UNCAPPED_OR_UNBOUNDED
+    if exposure is not None and exposure.exposure_type is ExposureType.PRESENT_VALUE_LOSS:
+        return PRIORITY_BASIS_PRESENT_VALUE_TIMING
+    if quantification_status in {
+        QUANTIFICATION_STATUS_QUANTIFIED,
+        QUANTIFICATION_STATUS_PARTIALLY_BOUNDED,
+    }:
+        return PRIORITY_BASIS_QUANTIFIED_EXPOSURE
+    if signal.risk_category in {RiskCategory.F1, RiskCategory.F9}:
+        return PRIORITY_BASIS_COUNTERPARTY_VERIFICATION
+    return PRIORITY_BASIS_GROUNDED_QUALITATIVE_SIGNAL
+
+
+def _priority_missing_inputs(
+    exposure: MonetaryExposureEstimate | None,
+    expected_type: ExposureType | None,
+) -> tuple[str, ...]:
+    if expected_type is None:
+        return ()
+    if exposure is None:
+        return ("scenario_inputs_not_provided",)
+    missing: list[str] = []
+    for flag in exposure.uncertainty_flags or ():
+        if flag.startswith("missing_user_input:"):
+            missing.append(flag.split(":", maxsplit=1)[1])
+    return tuple(missing)
+
+
+def _comparable_sort_value(
+    exposure: MonetaryExposureEstimate | None,
+    quantification_status: str,
+) -> Decimal | None:
+    if exposure is None or quantification_status == QUANTIFICATION_STATUS_UNBOUNDED:
+        return None
+    if quantification_status == QUANTIFICATION_STATUS_QUANTIFIED:
+        return exposure.high or exposure.base or exposure.low
+    if quantification_status == QUANTIFICATION_STATUS_PARTIALLY_BOUNDED:
+        return exposure.nominal_amount
+    return None
+
+
+def _deterministic_priority_class(priority_basis: str, quantification_status: str) -> str:
+    if priority_basis == PRIORITY_BASIS_UNCAPPED_OR_UNBOUNDED:
+        return "unbounded_override"
+    if priority_basis == PRIORITY_BASIS_PRESENT_VALUE_TIMING:
+        return "present_value_timing"
+    if quantification_status in {
+        QUANTIFICATION_STATUS_QUANTIFIED,
+        QUANTIFICATION_STATUS_PARTIALLY_BOUNDED,
+    }:
+        return "comparable_exposure_type"
+    if priority_basis == PRIORITY_BASIS_COUNTERPARTY_VERIFICATION:
+        return "counterparty_verification"
+    if priority_basis == PRIORITY_BASIS_UNVERIFIED_CANDIDATE:
+        return "unverified_candidate"
+    return "grounded_qualitative_signal"
+
+
+def _policy_notes(
+    ranking_policy: str,
+    authority_gate: str,
+    exposure: MonetaryExposureEstimate | None,
+) -> tuple[str, ...]:
+    notes = [
+        "ranking_policy:" + ranking_policy,
+        "authority_gate:" + authority_gate,
+        "confidence_not_used_as_exposure_multiplier",
+        "no_cross_exposure_type_total",
+    ]
+    if authority_gate == AUTHORITY_GATE_BYPASS_FOR_ABLATION:
+        notes.append("evaluation_only_authority_gate_bypass")
+    if exposure is None:
+        notes.append("no_fim_output_value_substituted")
+    return tuple(notes)
+
+
+def _severity_baseline_sort_key(signal: RiskSignal) -> tuple[Any, ...]:
+    score = float(signal.severity_raw or 0.0) * float(signal.signal_confidence)
+    return (-score, signal.signal_id, signal.clause_id)
+
+
+def _exposure_aware_sort_key(
+    signal: RiskSignal,
+    *,
+    priority_basis: str,
+    quantification_status: str,
+    exposure_type: ExposureType | None,
+    comparable_sort_value: Decimal | None,
+    nominal_amount: Decimal | None,
+) -> tuple[Any, ...]:
+    class_order = {
+        PRIORITY_BASIS_UNCAPPED_OR_UNBOUNDED: 0,
+        PRIORITY_BASIS_QUANTIFIED_EXPOSURE: 10,
+        PRIORITY_BASIS_PRESENT_VALUE_TIMING: 10,
+        PRIORITY_BASIS_COUNTERPARTY_VERIFICATION: 20,
+        PRIORITY_BASIS_GROUNDED_QUALITATIVE_SIGNAL: 30,
+        PRIORITY_BASIS_UNVERIFIED_CANDIDATE: 40,
+    }[priority_basis]
+    status_order = {
+        QUANTIFICATION_STATUS_QUANTIFIED: 0,
+        QUANTIFICATION_STATUS_PARTIALLY_BOUNDED: 1,
+        QUANTIFICATION_STATUS_UNBOUNDED: 0,
+        QUANTIFICATION_STATUS_INPUT_REQUIRED: 2,
+        QUANTIFICATION_STATUS_NOT_APPLICABLE: 3,
+    }[quantification_status]
+    type_order = (
+        _EXPOSURE_TYPE_ORDER[exposure_type]
+        if exposure_type is not None
+        else len(_EXPOSURE_TYPE_ORDER)
+    )
+    amount = comparable_sort_value or nominal_amount or Decimal("0")
+    return (
+        class_order,
+        status_order,
+        type_order,
+        -amount,
+        -float(signal.severity_raw or 0.0),
+        signal.signal_id,
+        signal.clause_id,
+    )
 
 
 def _category_scores_from_contributions(
@@ -928,6 +1330,19 @@ def _require_text(value: Any, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ScoringAggregationError(f"{field_name} must be nonblank text")
     return value.strip()
+
+
+def _validate_policy(value: str, allowed: Sequence[str], field_name: str) -> None:
+    if value not in allowed:
+        raise ScoringAggregationError(
+            f"{field_name} must be one of {', '.join(allowed)}"
+        )
+
+
+def _decimal_to_text(value: Decimal | None) -> str | None:
+    if value is None:
+        return None
+    return format(value, "f")
 
 
 def _mean(values: Sequence[float] | Any) -> float:
