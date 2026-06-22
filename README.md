@@ -2,18 +2,18 @@
 
 *Contractual Financial Review Priority for creator contracts.*
 
-FInk is a local-first creator-contract tool that triages cash-flow questions
-before signing. It highlights clause words that may affect settlement,
-deductions, recoupment, payment timing, IP revenue, exclusivity, termination
-exposure, or production costs; gates score-eligible signals on official
-evidence; and reports four outputs separately: review priority, low/base/high
-monetary exposure, time exposure, and evidence/OCR confidence.
+FInk is an on-device tool for creator contracts that triages cash-flow
+questions before signing. It marks the clauses that may affect settlement,
+deductions, recoupment, payment timing, IP revenue, exclusivity, penalties,
+or production costs; only items backed by official evidence count toward the
+score; and it shows the result as four separate parts: what to review first,
+a low/base/high cost range, when the money moves, and how reliable the reading is.
 
-FInk은 창작자 계약서에서 서명 전 확인해야 할 현금흐름 질문을 먼저 추리는
-로컬 우선 도구입니다. 정산, 공제, 선급금 회수, 지급 시점, 2차 수익, 독점,
-해지·위약금, 제작비와 관련된 조항 표현을 표시하고, 공식 근거가 있는 신호만
-점수 산정에 사용하며, 검토 우선순위, 낮음·적정·높음 금액 노출, 시간 노출,
-근거/OCR 신뢰도를 서로 분리해 보여줍니다.
+FInk은 창작자가 서명 전에 확인할 현금흐름 관련 조항을 먼저 추려 주는, 기기
+안에서만 동작하는 도구입니다. 정산, 공제, 선급금 회수, 지급 시점, 2차 수익,
+독점, 위약금, 제작비와 관련된 조항을 짚어 주고, 공식 근거가 있는 항목만 점수에
+반영하며, 결과는 검토 우선순위, 예상 금액 범위(낮음·적정·높음), 돈이 오가는
+시점, 판독 신뢰도로 나눠 보여 줍니다.
 
 **UNIST · IE412 AI for Finance · 2026 Spring · Final Project.**
 

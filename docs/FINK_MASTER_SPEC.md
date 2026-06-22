@@ -56,8 +56,8 @@ Korean webtoon and creator-economy authors sign contracts whose
 **financially consequential** clauses — settlement basis, revenue share,
 deductions, minimum guarantee (MG)/advance recoupment, payment timing, IP and
 secondary-rights monetization, exclusivity/renewal, termination/penalty,
-production-cost burden — are hard to read and easy to under-weight. FInk is a
-**local-first, Korean/English Financial-AI system** that ingests photographed
+production-cost burden — are hard to read and easy to under-weight. FInk is an
+**on-device, Korean/English Financial-AI system** that ingests photographed
 contract pages, images, PDFs, or pasted clauses and returns a prioritized,
 evidence-grounded, **uncertainty-aware financial review** so a creator can
 decide *which clauses to scrutinize and ask about before signing*.
@@ -95,7 +95,7 @@ authoritative for **course compliance only**.
 
 ### INV-2 — Product is a review priority, never a verdict
 The output is a **Contractual Financial Review Priority Score** (Korean:
-**계약상 금융 검토 우선도**). FInk must **never** present its output as: fraud
+**계약상 금융 검토 우선순위**). FInk must **never** present its output as: fraud
 probability, illegality probability, contract validity/voidness, a legal
 conclusion, an unfairness verdict, or guaranteed loss.
 

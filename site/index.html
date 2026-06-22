@@ -37,8 +37,8 @@
          data-en="Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts"
          data-ko="창작자 계약서의 현금흐름을 근거 기반으로 분석하고, 서명 전 확인 순서를 짚어 주는 도구">Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts</p>
       <p class="abstract"
-         data-en="FInk is a local-first creator-contract tool that highlights clause words affecting settlements, deductions, recoupment, payment timing, IP revenue, exclusivity, termination exposure, and production costs. It gates score-eligible signals on official evidence and keeps four outputs separate: review priority, low/base/high monetary exposure, time exposure, and evidence/OCR confidence."
-         data-ko="FInk은 창작자 계약서에서 정산, 공제, 선급금 회수, 지급 시점, 2차 수익, 독점, 해지·위약금, 제작비에 영향을 줄 수 있는 조항 표현을 표시하는 로컬 우선 도구입니다. 공식 근거가 있는 신호만 점수 산정에 사용하며, 검토 우선순위, 낮음·적정·높음 금액 노출, 시간 노출, 근거/OCR 신뢰도를 서로 분리해 보여줍니다.">FInk is a local-first creator-contract tool…</p>
+         data-en="FInk is an on-device tool for creator contracts. It finds and marks the clauses that affect settlement, deductions, recoupment, payment timing, IP revenue, exclusivity, penalties, and production costs; only items backed by official evidence count toward the score; and it shows the result as four separate parts — what to review first, a low/base/high cost range, when the money moves, and how reliable the reading is."
+         data-ko="FInk은 창작자 계약서에서 정산·공제·선급금 회수·지급 시점·2차 수익·독점·위약금·제작비에 영향을 주는 조항을 찾아 짚어 줍니다. 점수에는 공식 출처 근거가 있는 항목만 반영하고, 결과는 먼저 볼 조항, 예상 금액 범위(낮음·적정·높음), 돈이 오가는 시점, 판독 신뢰도의 네 가지로 나눠 보여 줍니다. 모든 분석은 내 기기 안에서만 이루어집니다.">FInk is an on-device tool for creator contracts…</p>
       <div class="links">
         <a class="btn primary" href="https://github.com/seonukkim/fink">GitHub</a>
         <a class="btn" href="#demo">Demo</a>
@@ -59,8 +59,8 @@
 
     <section id="how" class="band">
       <h2>How it works</h2>
-      <p data-en="FInk processes the document entirely on the device. Photographs and scans are read by OCR; the text is segmented into clauses; and each clause is matched against official-source evidence. Deterministic financial rules construct low, base, and high cash-flow scenarios and a reproducible review order. Optional local models may assist OCR, retrieval, or explanation only when privately installed and health-checked; they never create evidence, set review priority, or invent amounts."
-         data-ko="FInk은 문서를 전적으로 기기 안에서 처리합니다. 사진과 스캔은 OCR로 판독하고, 본문을 조항 단위로 분할한 뒤, 각 조항을 공식 출처 근거와 대조합니다. 결정론적 금융 규칙이 낮음·적정·높음 현금흐름 시나리오와 재현 가능한 검토 순서를 만듭니다. 선택적 로컬 모델은 사적으로 설치되고 상태 점검을 통과한 경우에만 OCR·검색·설명을 도울 수 있으며, 근거를 만들거나 검토 우선순위를 정하거나 금액을 만들어 내지 않습니다.">FInk processes the document entirely on the device…</p>
+      <p data-en="FInk processes the document entirely on your device. Photos and scans are read by OCR; the text is split into clauses; and each clause is matched against official-source evidence. Fixed financial rules then build low, base, and high cash-flow scenarios and a review order that reproduces exactly. Optional local models assist OCR, retrieval, or explanation only when you install them yourself and they pass a health check — they never create evidence, set the review order, or invent amounts."
+         data-ko="FInk은 문서를 전부 기기 안에서 처리합니다. 사진과 스캔은 OCR로 글자를 읽어 내고, 본문을 조항 단위로 나눈 뒤, 각 조항을 공식 출처 근거와 대조합니다. 이어서 정해진 금융 규칙으로 낮음·적정·높음 현금흐름 시나리오와, 다시 돌려도 같은 결과가 나오는 검토 순서를 만듭니다. 로컬 모델은 사용자가 직접 설치하고 상태 점검을 통과했을 때만 OCR·검색·설명을 보조하며, 근거를 지어내거나 검토 순서를 정하거나 금액을 만들어 내지는 않습니다.">FInk processes the document entirely on your device…</p>
 
       <ol class="flow" aria-label="FInk pipeline">
         <li><span class="step-n">1</span><span class="step-t" data-en="Input — photo · image · PDF · pasted clause" data-ko="입력 — 사진 · 이미지 · PDF · 붙여넣은 조항">Input — photo · image · PDF · pasted clause</span></li>
@@ -75,7 +75,7 @@
     <section id="outputs" class="band">
       <h2>Outputs</h2>
       <p data-en="After you analyze a contract, FInk summarizes it as a plain-language decision brief — a recommended action and the clause that most affects your cash flow — supported by four separate results. They are reported side by side and never merged into a single total-loss number: a cost range and a confidence level answer different questions, and combining them would hide what is uncertain."
-         data-ko="계약서를 분석하면 FInk은 결과를 자연어 ‘결정 브리프’로 요약합니다. 권장 행동과 현금흐름에 가장 큰 영향을 주는 조항을 짚어 주고, 그 근거로 네 가지 결과를 함께 제시합니다. 네 결과는 나란히 보여 주며 하나의 총손실 숫자로 합치지 않습니다. 금액 범위와 신뢰도는 서로 다른 질문에 답하므로, 하나로 합치면 무엇이 불확실한지가 가려지기 때문입니다.">After you analyze a contract, FInk summarizes it as a plain-language decision brief…</p>
+         data-ko="계약서를 분석하면 FInk은 결과를 한눈에 보이는 요약으로 정리합니다. 가장 먼저 할 일과 현금흐름에 제일 큰 영향을 주는 조항을 짚어 주고, 그 근거로 아래 네 가지 결과를 함께 보여 줍니다. 네 결과는 나란히 보여 줄 뿐 하나의 ‘총손실’ 숫자로 합치지 않습니다. 금액 범위와 신뢰도는 서로 다른 질문에 답하기 때문에, 하나로 합치면 어디가 불확실한지가 가려집니다.">After you analyze a contract, FInk summarizes it into one at-a-glance review…</p>
       <div class="grid4">
         <article>
           <h3><span class="out-n">1</span><span data-en="Review priority" data-ko="검토 우선순위">Review priority</span></h3>
@@ -98,8 +98,8 @@
 
     <section id="demo" class="band">
       <h2>Demo</h2>
-      <p data-en="Run the local app, paste or upload a contract, press Analyze, and read the decision brief. Every step runs on your machine, on loopback, using synthetic examples."
-         data-ko="로컬 앱을 실행하고 계약서를 붙여넣거나 업로드한 뒤 ‘분석하기’를 누르면 결정 브리프가 나옵니다. 모든 처리는 루프백 상태로 내 기기 안에서 이루어지며, 합성 예시를 사용합니다.">Run the local app, paste or upload a contract, press Analyze, and read the decision brief…</p>
+      <p data-en="Run the local app, paste or upload a contract, press Analyze, and read the review. Every step runs on your own machine, with no outbound connection, using synthetic examples."
+         data-ko="로컬 앱을 실행하고 계약서를 붙여넣거나 파일로 올린 뒤 ‘분석하기’를 누르면 검토 결과가 나옵니다. 모든 과정은 외부와 연결되지 않은 채 내 기기 안에서만 이루어지고, 합성 예시 데이터를 사용합니다.">Run the local app, paste or upload a contract, press Analyze, and read the review…</p>
       <div class="run">
         <div class="run-head">
           <p class="run-title" data-en="Run it" data-ko="실행하기">Run it</p>
@@ -119,13 +119,13 @@ uv run fink-web --host 127.0.0.1 --port 8000
 
     <section id="evaluation" class="band">
       <h2>Evaluation</h2>
-      <p data-en="The example below mirrors the app's report shape. Highlighted words are review cues, not safety colors; /100 is not the primary story. The app keeps review priority, monetary range, timing, and confidence separate. This clause is synthetic: no real contract is used, monetary figures stay blank until assumptions are supplied, and official-source grounding remains UNVERIFIED until confirmed."
-         data-ko="아래 예시는 실제 앱 리포트의 형태를 반영합니다. 표시된 단어는 검토 단서일 뿐, 색이 안전/위험을 뜻하지 않습니다. /100 숫자가 핵심이 아니며, 앱은 검토 우선순위, 금액 범위, 시점, 신뢰도를 분리해 보여줍니다. 이 조항은 합성 예시입니다. 실제 계약은 사용하지 않고, 금액은 가정을 입력하기 전까지 비워 두며, 공식 출처 근거는 확인 전까지 UNVERIFIED로 표시합니다.">The example below mirrors the app's report shape…</p>
+      <p data-en="The example below mirrors the shape of the app's actual result. Highlighted words mean 'check this first' — the colors do not signal safe or risky. The app shows review priority, cost range, timing, and confidence separately. This clause is synthetic: no real contract is used, cost figures stay blank until you supply assumptions, and official-source grounding stays UNVERIFIED until confirmed."
+         data-ko="아래 예시는 실제 앱이 보여 주는 결과의 모습을 그대로 옮긴 것입니다. 강조된 단어는 ‘먼저 확인하라’는 표시일 뿐, 색이 안전이나 위험을 뜻하지는 않습니다. 앱은 검토 우선순위, 금액 범위, 시점, 신뢰도를 따로따로 보여 줍니다. 이 조항은 합성 예시여서 실제 계약은 쓰지 않으며, 금액은 가정을 입력하기 전까지 비워 두고, 공식 출처 근거는 확인 전까지 UNVERIFIED(미확인)로 표시합니다.">The example below mirrors the shape of the app's actual result…</p>
 
       <figure class="example">
         <figcaption data-en="Synthetic example clause" data-ko="합성 예시 조항">Synthetic example clause</figcaption>
         <p class="clause" lang="ko"><mark>정산</mark>은 매 분기 종료일로부터 <mark>90일 이내</mark>에 지급하며, 회사는 <mark>‘일반 경비’</mark>를 공제할 수 있다.</p>
-        <p class="clause-gloss" data-en="“Settlement is paid within 90 days of each quarter's end, and the company may deduct ‘general expenses.’”" data-ko="(영문 풀이) 정산은 매 분기 종료일로부터 90일 이내에 지급하며, 회사는 ‘일반 경비’를 공제할 수 있다.">“Settlement is paid within 90 days of each quarter's end, and the company may deduct ‘general expenses.’”</p>
+        <p class="clause-gloss">English translation: “Settlement is paid within 90 days of each quarter's end, and the company may deduct ‘general expenses.’”</p>
         <div class="table-wrap">
           <table>
             <thead>
