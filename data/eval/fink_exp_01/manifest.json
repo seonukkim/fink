@@ -1,0 +1,42 @@
+{
+  "combined_sha256": "fcd55e4f010cb6e247f6acb4329b86019ad7a8129e0af5be6a596d803b6aa0a7",
+  "created_utc": "2026-06-22T00:00:00Z",
+  "doc_count": 128,
+  "files": [
+    {
+      "path": "data/eval/fink_exp_01/production_fixtures.jsonl",
+      "role": "production_inputs_without_oracle",
+      "sha256": "451aba0a3d9cd7ca7c66d953b9d314127b333ad77e8a31d34130b1214c056533"
+    },
+    {
+      "path": "data/eval/fink_exp_01/oracle_hidden.jsonl",
+      "role": "hidden_oracle_for_metric_scoring_only",
+      "sha256": "e540e707b18158605c7dedbccde7172fadfaf3b02af4589f3f137c959e0c60ff"
+    }
+  ],
+  "generator": "scripts/eval/fink_exp_01_factorial.py",
+  "minimum_pair_count_required": 64,
+  "oracle_hidden_path": "data/eval/fink_exp_01/oracle_hidden.jsonl",
+  "pair_count": 64,
+  "production_fixture_path": "data/eval/fink_exp_01/production_fixtures.jsonl",
+  "schema_version": 1,
+  "seed": 20260622,
+  "synthetic_only_boundary": {
+    "no_pdf": true,
+    "no_private_contract": true,
+    "no_real_contract": true,
+    "statement": "Synthetic-only fixtures generated for FINK-EXP-01; no real contract, private corpus passage, PDF, ZIP, model weight, token, or user upload is included.",
+    "synthetic_only": true
+  },
+  "task_id": "FINK-EXP-01",
+  "variant_counts": {
+    "bilingual": 16,
+    "bilingual_noisy": 16,
+    "eligible_ineligible": 16,
+    "ko_canonical": 16,
+    "missing_inputs": 16,
+    "missing_protection": 16,
+    "noisy_ocr": 16,
+    "unbounded": 16
+  }
+}

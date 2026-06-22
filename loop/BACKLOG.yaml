@@ -1869,8 +1869,9 @@ tasks:
   paper_sections:
   - 05_experiments.md
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-22T03:41:53+00:00'
 - id: FINK-COST-01
   phase: P5
   priority: P2
