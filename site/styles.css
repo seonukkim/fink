@@ -195,7 +195,6 @@ main {
 }
 .band > p { margin: 12px 0; color: #374151; }
 .sub { color: var(--muted) !important; }
-body.lang-ko .example .clause-gloss { display: none; }
 .course-note {
   font-size: 0.92rem;
   color: var(--muted) !important;
@@ -217,14 +216,16 @@ body.lang-ko .example .clause-gloss { display: none; }
 }
 .grid4 h3, .grid3 h3 {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin: 0 0 6px;
   font-size: 1.02rem;
+  line-height: 1.4;
   color: var(--pink-deep);
 }
 .out-n {
   flex: none;
+  margin-top: 1px;
   width: 22px;
   height: 22px;
   display: grid;
@@ -478,7 +479,20 @@ h3.mini {
   border-radius: 0;
 }
 .example table { min-width: 0; }
-.example td:first-child, .example th:first-child { width: 34%; font-weight: 700; color: var(--ink); }
+.example td:first-child, .example th:first-child { width: 26%; font-weight: 700; color: var(--ink); }
+.example td.cue, .example th.cue {
+  width: 58px;
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-weight: 700;
+}
+.example th.cue { color: var(--pink-deep); }
+.example td.cue svg { width: 26px; height: 26px; display: inline-block; vertical-align: middle; }
+.example .cue-priority { color: #6f5a8f; }
+.example .cue-cost { color: #4f6191; }
+.example .cue-timing { color: #7a6700; }
+.example .cue-conf { color: var(--muted); }
 
 /* Footer */
 .site-footer {

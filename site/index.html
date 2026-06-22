@@ -35,10 +35,10 @@
       <h1 class="title">F<span>I</span>nk</h1>
       <p class="lede"
          data-en="Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts"
-         data-ko="창작자 계약서의 현금흐름을 근거 기반으로 분석하고, 서명 전 확인 순서를 짚어 주는 도구">Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts</p>
+         data-ko="창작자 계약서의 현금흐름을 분석하고, 서명 전 확인 순서를 짚어 주는 도구">Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts</p>
       <p class="abstract"
          data-en="FInk is an on-device tool for creator contracts. It finds and marks the clauses that affect settlement, deductions, recoupment, payment timing, IP revenue, exclusivity, penalties, and production costs; only items backed by official evidence count toward the score; and it shows the result as four separate parts — what to review first, a low/base/high cost range, when the money moves, and how reliable the reading is."
-         data-ko="FInk은 창작자 계약서에서 정산·공제·선급금 회수·지급 시점·2차 수익·독점·위약금·제작비에 영향을 주는 조항을 찾아 짚어 줍니다. 점수에는 공식 출처 근거가 있는 항목만 반영하고, 결과는 먼저 볼 조항, 예상 금액 범위(낮음·적정·높음), 돈이 오가는 시점, 판독 신뢰도의 네 가지로 나눠 보여 줍니다. 모든 분석은 내 기기 안에서만 이루어집니다.">FInk is an on-device tool for creator contracts…</p>
+         data-ko="FInk은 창작자 계약서에서 정산·공제·선급금 회수·지급 시점·2차 수익·독점·위약금·제작비에 영향을 주는 조항을 찾아 짚어 줍니다. 점수에는 공식 출처 근거가 있는 항목만 반영하고, 결과는 먼저 볼 조항, 예상 비용(낮음·적정·높음), 돈이 오가는 시점, 판독 신뢰도의 네 가지로 나눠 보여 줍니다. 모든 분석은 내 기기 안에서만 이루어집니다.">FInk is an on-device tool for creator contracts…</p>
       <div class="links">
         <a class="btn primary" href="https://github.com/seonukkim/fink">GitHub</a>
         <a class="btn" href="#demo">Demo</a>
@@ -75,15 +75,15 @@
     <section id="outputs" class="band">
       <h2>Outputs</h2>
       <p data-en="After you analyze a contract, FInk summarizes it as a plain-language decision brief — a recommended action and the clause that most affects your cash flow — supported by four separate results. They are reported side by side and never merged into a single total-loss number: a cost range and a confidence level answer different questions, and combining them would hide what is uncertain."
-         data-ko="계약서를 분석하면 FInk은 결과를 한눈에 보이는 요약으로 정리합니다. 가장 먼저 할 일과 현금흐름에 제일 큰 영향을 주는 조항을 짚어 주고, 그 근거로 아래 네 가지 결과를 함께 보여 줍니다. 네 결과는 나란히 보여 줄 뿐 하나의 ‘총손실’ 숫자로 합치지 않습니다. 금액 범위와 신뢰도는 서로 다른 질문에 답하기 때문에, 하나로 합치면 어디가 불확실한지가 가려집니다.">After you analyze a contract, FInk summarizes it into one at-a-glance review…</p>
+         data-ko="계약서를 분석하면 FInk은 결과를 한눈에 보이는 요약으로 정리합니다. 가장 먼저 할 일과 현금흐름에 제일 큰 영향을 주는 조항을 짚어 주고, 그 근거로 아래 네 가지 결과를 함께 보여 줍니다. 네 결과는 나란히 보여 줄 뿐 하나의 ‘총손실’ 숫자로 합치지 않습니다. 예상 비용과 신뢰도는 서로 다른 질문에 답하기 때문에, 하나로 합치면 어디가 불확실한지가 가려집니다.">After you analyze a contract, FInk summarizes it into one at-a-glance review…</p>
       <div class="grid4">
         <article>
           <h3><span class="out-n">1</span><span data-en="Review priority" data-ko="검토 우선순위">Review priority</span></h3>
           <p data-en="The clauses that warrant the closest review, ranked in order." data-ko="가장 먼저 자세히 살펴볼 조항을 순서대로 제시합니다.">The clauses that warrant the closest review, ranked in order.</p>
         </article>
         <article>
-          <h3><span class="out-n">2</span><span data-en="Cost (low / base / high)" data-ko="금액 (낮음 / 적정 / 높음)">Cost (low / base / high)</span></h3>
-          <p data-en="A cost range derived from extracted values or your own editable assumptions." data-ko="추출된 값이나 사용자가 직접 수정하는 가정에서 도출한 금액 범위입니다.">A cost range from extracted values or your editable assumptions.</p>
+          <h3><span class="out-n">2</span><span data-en="Cost (low / base / high)" data-ko="비용 (낮음 / 적정 / 높음)">Cost (low / base / high)</span></h3>
+          <p data-en="A cost range derived from extracted values or your own editable assumptions." data-ko="추출된 값이나 사용자가 직접 수정하는 가정에서 도출한 예상 비용입니다.">A cost range from extracted values or your editable assumptions.</p>
         </article>
         <article>
           <h3><span class="out-n">3</span><span data-en="Timing" data-ko="시점">Timing</span></h3>
@@ -91,7 +91,7 @@
         </article>
         <article>
           <h3><span class="out-n">4</span><span data-en="Confidence" data-ko="신뢰도">Confidence</span></h3>
-          <p data-en="How reliable the reading is; ambiguous input lowers confidence, not the cost estimate." data-ko="판독의 신뢰도입니다. 불명확한 입력은 금액이 아니라 신뢰도를 낮춥니다.">How reliable the reading is; ambiguous input lowers confidence.</p>
+          <p data-en="How reliable the reading is; ambiguous input lowers confidence, not the cost estimate." data-ko="판독의 신뢰도입니다. 불명확한 입력은 비용이 아니라 신뢰도를 낮춥니다.">How reliable the reading is; ambiguous input lowers confidence.</p>
         </article>
       </div>
     </section>
@@ -120,36 +120,41 @@ uv run fink-web --host 127.0.0.1 --port 8000
     <section id="evaluation" class="band">
       <h2>Evaluation</h2>
       <p data-en="The example below mirrors the shape of the app's actual result. Highlighted words mean 'check this first' — the colors do not signal safe or risky. The app shows review priority, cost range, timing, and confidence separately. This clause is synthetic: no real contract is used, cost figures stay blank until you supply assumptions, and official-source grounding stays UNVERIFIED until confirmed."
-         data-ko="아래 예시는 실제 앱이 보여 주는 결과의 모습을 그대로 옮긴 것입니다. 강조된 단어는 ‘먼저 확인하라’는 표시일 뿐, 색이 안전이나 위험을 뜻하지는 않습니다. 앱은 검토 우선순위, 금액 범위, 시점, 신뢰도를 따로따로 보여 줍니다. 이 조항은 합성 예시여서 실제 계약은 쓰지 않으며, 금액은 가정을 입력하기 전까지 비워 두고, 공식 출처 근거는 확인 전까지 UNVERIFIED(미확인)로 표시합니다.">The example below mirrors the shape of the app's actual result…</p>
+         data-ko="아래 예시는 실제 앱이 보여 주는 결과의 모습을 그대로 옮긴 것입니다. 강조된 단어는 ‘먼저 확인하라’는 표시일 뿐, 색이 안전이나 위험을 뜻하지는 않습니다. 앱은 검토 우선순위, 예상 비용, 시점, 신뢰도를 따로따로 보여 줍니다. 이 조항은 합성 예시여서 실제 계약은 쓰지 않으며, 비용은 가정을 입력하기 전까지 비워 두고, 공식 출처 근거는 공식 확인 전까지 확인 필요(UNVERIFIED) 상태로 표시합니다.">The example below mirrors the shape of the app's actual result…</p>
 
       <figure class="example">
         <figcaption data-en="Synthetic example clause" data-ko="합성 예시 조항">Synthetic example clause</figcaption>
         <p class="clause" lang="ko"><mark>정산</mark>은 매 분기 종료일로부터 <mark>90일 이내</mark>에 지급하며, 회사는 <mark>‘일반 경비’</mark>를 공제할 수 있다.</p>
-        <p class="clause-gloss">English translation: “Settlement is paid within 90 days of each quarter's end, and the company may deduct ‘general expenses.’”</p>
+        <p class="clause-gloss">“Settlement is paid within 90 days of each quarter's end, and the company may deduct ‘general expenses.’”</p>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th data-en="Output" data-ko="출력">Output</th>
+                <th class="cue" data-en="At a glance" data-ko="한눈에">At a glance</th>
                 <th data-en="What FInk reports for this clause" data-ko="이 조항에 대해 FInk이 보고하는 내용">What FInk reports for this clause</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td data-en="Review priority" data-ko="검토 우선순위">Review priority</td>
+                <td class="cue cue-priority"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4 2.5 4H5"/></svg></td>
                 <td data-en="First-review group — the highlighted payment timing and deduction phrase are placed near the top of the review list." data-ko="우선 검토 그룹 — 표시된 지급 시점과 공제 표현이 검토 목록 상단에 배치됩니다.">First-review group — the highlighted payment timing and deduction phrase are placed near the top of the review list.</td>
               </tr>
               <tr>
-                <td data-en="Cost (low / base / high)" data-ko="금액 (낮음 / 적정 / 높음)">Cost (low / base / high)</td>
+                <td data-en="Cost (low / base / high)" data-ko="비용 (낮음 / 적정 / 높음)">Cost (low / base / high)</td>
+                <td class="cue cue-cost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 20v-4"/><path d="M12 20v-8"/><path d="M19 20v-12"/></svg></td>
                 <td data-en="Blank until you supply a settlement basis and a deduction assumption; then a range, never a single figure." data-ko="정산 기준과 공제 가정을 입력하기 전까지 비워 둡니다. 입력 후에는 단일 값이 아닌 범위로 제시합니다.">Blank until you supply a settlement basis and a deduction assumption; then a range, not a single figure.</td>
               </tr>
               <tr>
                 <td data-en="Timing" data-ko="시점">Timing</td>
+                <td class="cue cue-timing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></td>
                 <td data-en="Payment falls roughly 90 days after each quarter's end — money the creator has earned but cannot yet use." data-ko="지급은 매 분기 종료 후 약 90일 뒤에 이루어집니다 — 창작자가 이미 벌었지만 아직 쓸 수 없는 돈입니다.">Payment falls roughly 90 days after each quarter's end — earned but not yet usable.</td>
               </tr>
               <tr>
                 <td data-en="Confidence" data-ko="신뢰도">Confidence</td>
-                <td data-en="UNVERIFIED — the scope of “general expenses” is undefined, which lowers confidence rather than any cost figure." data-ko="UNVERIFIED — ‘일반 경비’의 범위가 정의되지 않아, 금액이 아니라 신뢰도를 낮춥니다.">UNVERIFIED — the scope of “general expenses” is undefined, which lowers confidence, not the cost.</td>
+                <td class="cue cue-conf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.6a2.3 2.3 0 0 1 4.2 1.3c0 1.6-2 1.7-2.3 3"/><circle cx="11.6" cy="17" r="0.7" fill="currentColor" stroke="none"/></svg></td>
+                <td data-en="UNVERIFIED — the scope of “general expenses” is undefined, which lowers confidence rather than any cost figure." data-ko="확인 필요(UNVERIFIED) — ‘일반 경비’의 범위가 정의되지 않아, 비용이 아니라 신뢰도를 낮춥니다.">UNVERIFIED — the scope of “general expenses” is undefined, which lowers confidence, not the cost.</td>
               </tr>
             </tbody>
           </table>
