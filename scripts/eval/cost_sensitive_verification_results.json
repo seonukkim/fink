@@ -1,0 +1,719 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "objective": "minimum total decision cost",
+        "selected_on_split": "dev",
+        "uses_complete_currency_dev_fixtures": true
+      },
+      "id": "dev_threshold_selection",
+      "metrics": [
+        "EV-MISSED-EXPOSURE-COST",
+        "EV-VERIFICATION-EFFORT-COST",
+        "EV-TOTAL-DECISION-COST",
+        "EV-FALSE-TRIGGER-RATE",
+        "EV-TRIGGER-RECALL"
+      ],
+      "observed": {
+        "candidate_count": 7,
+        "complete_dev_case_count": 6,
+        "issue_count": 0,
+        "issues": [],
+        "selected_threshold": "58.000000",
+        "selected_total_decision_cost": "110000.000000"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected": {
+        "frozen_eval_used_for_threshold_selection": false,
+        "frozen_eval_uses_fixed_dev_threshold": true
+      },
+      "id": "frozen_fixed_threshold",
+      "metrics": [
+        "EV-MISSED-EXPOSURE-COST",
+        "EV-VERIFICATION-EFFORT-COST",
+        "EV-TOTAL-DECISION-COST",
+        "EV-FALSE-TRIGGER-RATE",
+        "EV-TRIGGER-RECALL"
+      ],
+      "observed": {
+        "complete_frozen_case_count": 6,
+        "fixed_threshold": "58.000000",
+        "issue_count": 0,
+        "issues": [],
+        "metric_values": {
+          "EV-FALSE-TRIGGER-RATE": "0.333333",
+          "EV-MISSED-EXPOSURE-COST": "600000.000000",
+          "EV-TOTAL-DECISION-COST": "690000.000000",
+          "EV-TRIGGER-RECALL": "0.666667",
+          "EV-VERIFICATION-EFFORT-COST": "90000.000000"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected": {
+        "missed_exposure_cost_from_fixture_exposure": true,
+        "true_negative_cost_zero": true,
+        "verification_effort_cost_from_minutes_times_hourly_value": true
+      },
+      "id": "fixture_cost_derivation",
+      "metrics": [
+        "EV-MISSED-EXPOSURE-COST",
+        "EV-VERIFICATION-EFFORT-COST",
+        "EV-TOTAL-DECISION-COST"
+      ],
+      "observed": {
+        "checked_case_count": 12,
+        "issue_count": 0,
+        "issues": []
+      },
+      "status": "PASS"
+    },
+    {
+      "expected": {
+        "currency_inputs_absent_use_normalized_loss": true,
+        "currency_invented": false,
+        "sensitivity_analysis_from_fixture_values": true
+      },
+      "id": "normalized_missing_input_analysis",
+      "metrics": [],
+      "observed": {
+        "dev_missing_case_count": 2,
+        "dev_normalized_decision_loss": "1.000000",
+        "frozen_missing_case_count": 3,
+        "frozen_normalized_decision_loss": "1.400000",
+        "frozen_sensitivity_analysis": [
+          {
+            "normalized_decision_loss": "1.400000",
+            "scenario": "base"
+          },
+          {
+            "normalized_decision_loss": "2.050000",
+            "scenario": "high"
+          },
+          {
+            "normalized_decision_loss": "0.850000",
+            "scenario": "low"
+          }
+        ],
+        "issue_count": 0,
+        "issues": []
+      },
+      "status": "PASS"
+    },
+    {
+      "expected": {
+        "metric_labels_are_verification_and_cost_focused": true,
+        "scoring_frame": "Contractual Financial Review Priority"
+      },
+      "id": "verdict_free_metric_labels",
+      "metrics": [
+        "EV-MISSED-EXPOSURE-COST",
+        "EV-VERIFICATION-EFFORT-COST",
+        "EV-TOTAL-DECISION-COST",
+        "EV-FALSE-TRIGGER-RATE",
+        "EV-TRIGGER-RECALL"
+      ],
+      "observed": {
+        "forbidden_label_hits": [],
+        "issue_count": 0,
+        "issues": [],
+        "metric_ids": [
+          "EV-MISSED-EXPOSURE-COST",
+          "EV-VERIFICATION-EFFORT-COST",
+          "EV-TOTAL-DECISION-COST",
+          "EV-FALSE-TRIGGER-RATE",
+          "EV-TRIGGER-RECALL"
+        ]
+      },
+      "status": "PASS"
+    }
+  ],
+  "claim_boundary": {
+    "currency_values_only_from_fixtures": true,
+    "no_generalized_performance_claim": true,
+    "normalized_loss_used_when_currency_inputs_absent": true,
+    "scoring_frame": "Contractual Financial Review Priority",
+    "verdict_free": true
+  },
+  "fixtures": {
+    "complete_currency_case_count": 12,
+    "dev_count": 8,
+    "dev_fixture_path": "data/eval/fink_cost_01/dev_cost_fixtures.jsonl",
+    "dev_fixture_sha256": "89c50490b3070da547bb9cf4511d08ff091c9e22eadcd02c14270e783ed84ce7",
+    "fixture_boundary": "Synthetic-only cost fixtures for FINK-COST-01; no real contract, private corpus passage, PDF, ZIP, model weight, token, or user upload is included.",
+    "frozen_count": 9,
+    "frozen_fixture_path": "data/eval/fink_cost_01/frozen_cost_fixtures.jsonl",
+    "frozen_fixture_sha256": "7d695f8be8e25ba3e5f5d3b36939e93daaf8eedbbfb690ed137089ca2a7e304e",
+    "missing_currency_case_count": 5
+  },
+  "metric_definitions": {
+    "EV-FALSE-TRIGGER-RATE": {
+      "definition": "Triggered rows without oracle transfer/prepayment exposure divided by rows without oracle transfer/prepayment exposure.",
+      "direction": "lower_is_better",
+      "name": "False-Trigger Rate"
+    },
+    "EV-MISSED-EXPOSURE-COST": {
+      "definition": "For untriggered rows with oracle transfer/prepayment exposure, use the fixture exposure amount left unchecked.",
+      "direction": "lower_is_better",
+      "name": "Missed Exposure Cost",
+      "unit_source": "fixture currency field"
+    },
+    "EV-TOTAL-DECISION-COST": {
+      "definition": "Missed exposure cost plus verification effort cost, with true-negative rows contributing zero.",
+      "direction": "lower_is_better",
+      "name": "Total Decision Cost",
+      "unit_source": "fixture currency field"
+    },
+    "EV-TRIGGER-RECALL": {
+      "definition": "Triggered rows with oracle transfer/prepayment exposure divided by rows with oracle transfer/prepayment exposure.",
+      "direction": "higher_is_better",
+      "name": "Trigger Recall"
+    },
+    "EV-VERIFICATION-EFFORT-COST": {
+      "definition": "For triggered rows, multiply fixture verification minutes by fixture creator hourly value divided by 60.",
+      "direction": "lower_is_better",
+      "name": "Verification Effort Cost",
+      "unit_source": "fixture currency field"
+    }
+  },
+  "metric_values": {
+    "EV-FALSE-TRIGGER-RATE": "0.333333",
+    "EV-MISSED-EXPOSURE-COST": "600000.000000",
+    "EV-TOTAL-DECISION-COST": "690000.000000",
+    "EV-TRIGGER-RECALL": "0.666667",
+    "EV-VERIFICATION-EFFORT-COST": "90000.000000"
+  },
+  "metrics": {
+    "EV-FALSE-TRIGGER-RATE": {
+      "failed": 0,
+      "ok": true,
+      "passed": 3,
+      "total": 3
+    },
+    "EV-MISSED-EXPOSURE-COST": {
+      "failed": 0,
+      "ok": true,
+      "passed": 4,
+      "total": 4
+    },
+    "EV-TOTAL-DECISION-COST": {
+      "failed": 0,
+      "ok": true,
+      "passed": 4,
+      "total": 4
+    },
+    "EV-TRIGGER-RECALL": {
+      "failed": 0,
+      "ok": true,
+      "passed": 3,
+      "total": 3
+    },
+    "EV-VERIFICATION-EFFORT-COST": {
+      "failed": 0,
+      "ok": true,
+      "passed": 4,
+      "total": 4
+    }
+  },
+  "paper_sections": [
+    "05_experiments.md"
+  ],
+  "registered_gates": [
+    "dev_threshold_selection",
+    "frozen_fixed_threshold",
+    "fixture_cost_derivation",
+    "normalized_missing_input_analysis",
+    "verdict_free_metric_labels"
+  ],
+  "reports": {
+    "dev_complete_currency": {
+      "case_count": 6,
+      "case_rows": [
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-DEV-001",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "triggered_oracle_exposure",
+          "review_priority_score": "88.000000",
+          "split": "dev",
+          "threshold": "58.000000",
+          "total_decision_cost": "30000.000000",
+          "trigger": true,
+          "verification_effort_cost": "30000.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-DEV-002",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "triggered_oracle_exposure",
+          "review_priority_score": "72.000000",
+          "split": "dev",
+          "threshold": "58.000000",
+          "total_decision_cost": "45000.000000",
+          "trigger": true,
+          "verification_effort_cost": "45000.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-DEV-003",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "triggered_oracle_exposure",
+          "review_priority_score": "58.000000",
+          "split": "dev",
+          "threshold": "58.000000",
+          "total_decision_cost": "35000.000000",
+          "trigger": true,
+          "verification_effort_cost": "35000.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-DEV-004",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": false,
+          "outcome": "no_trigger_without_oracle_exposure",
+          "review_priority_score": "51.000000",
+          "split": "dev",
+          "threshold": "58.000000",
+          "total_decision_cost": "0.000000",
+          "trigger": false,
+          "verification_effort_cost": "0.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-DEV-005",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": false,
+          "outcome": "no_trigger_without_oracle_exposure",
+          "review_priority_score": "39.000000",
+          "split": "dev",
+          "threshold": "58.000000",
+          "total_decision_cost": "0.000000",
+          "trigger": false,
+          "verification_effort_cost": "0.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-DEV-006",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": false,
+          "outcome": "no_trigger_without_oracle_exposure",
+          "review_priority_score": "18.000000",
+          "split": "dev",
+          "threshold": "58.000000",
+          "total_decision_cost": "0.000000",
+          "trigger": false,
+          "verification_effort_cost": "0.000000"
+        }
+      ],
+      "currency": "KRW",
+      "currency_source": "fixture_explicit_currency_fields",
+      "denominators": {
+        "false_trigger_case_count": 0,
+        "no_exposure_case_count": 3,
+        "oracle_exposure_case_count": 3,
+        "triggered_oracle_case_count": 3
+      },
+      "metric_values": {
+        "EV-FALSE-TRIGGER-RATE": "0.000000",
+        "EV-MISSED-EXPOSURE-COST": "0.000000",
+        "EV-TOTAL-DECISION-COST": "110000.000000",
+        "EV-TRIGGER-RECALL": "1.000000",
+        "EV-VERIFICATION-EFFORT-COST": "110000.000000"
+      },
+      "split": "dev",
+      "threshold": "58.000000"
+    },
+    "dev_missing_inputs_normalized": {
+      "case_count": 2,
+      "case_rows": [
+        {
+          "currency": null,
+          "fixture_id": "FINK-COST-DEV-007",
+          "loss_source": "explicit_fixture_normalized_loss_values",
+          "normalized_decision_loss": "0.200000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "triggered_oracle_exposure",
+          "review_priority_score": "60.000000",
+          "sensitivity_by_scenario": {
+            "base": "0.200000",
+            "high": "0.300000",
+            "low": "0.100000"
+          },
+          "split": "dev",
+          "threshold": "58.000000",
+          "trigger": true
+        },
+        {
+          "currency": null,
+          "fixture_id": "FINK-COST-DEV-008",
+          "loss_source": "explicit_fixture_normalized_loss_values",
+          "normalized_decision_loss": "0.800000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "missed_oracle_exposure",
+          "review_priority_score": "44.000000",
+          "sensitivity_by_scenario": {
+            "base": "0.800000",
+            "high": "1.200000",
+            "low": "0.400000"
+          },
+          "split": "dev",
+          "threshold": "58.000000",
+          "trigger": false
+        }
+      ],
+      "currency": null,
+      "currency_invented": false,
+      "normalized_decision_loss": "1.000000",
+      "normalized_loss_source": "fixture_explicit_normalized_loss_inputs",
+      "sensitivity_analysis": [
+        {
+          "normalized_decision_loss": "1.000000",
+          "scenario": "base"
+        },
+        {
+          "normalized_decision_loss": "1.500000",
+          "scenario": "high"
+        },
+        {
+          "normalized_decision_loss": "0.500000",
+          "scenario": "low"
+        }
+      ],
+      "split": "dev",
+      "threshold": "58.000000"
+    },
+    "frozen_complete_currency": {
+      "case_count": 6,
+      "case_rows": [
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-FROZEN-001",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "triggered_oracle_exposure",
+          "review_priority_score": "91.000000",
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "total_decision_cost": "40000.000000",
+          "trigger": true,
+          "verification_effort_cost": "40000.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-FROZEN-002",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "triggered_oracle_exposure",
+          "review_priority_score": "64.000000",
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "total_decision_cost": "20000.000000",
+          "trigger": true,
+          "verification_effort_cost": "20000.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-FROZEN-003",
+          "missed_exposure_cost": "600000.000000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "missed_oracle_exposure",
+          "review_priority_score": "57.000000",
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "total_decision_cost": "600000.000000",
+          "trigger": false,
+          "verification_effort_cost": "0.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-FROZEN-004",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": false,
+          "outcome": "no_trigger_without_oracle_exposure",
+          "review_priority_score": "55.000000",
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "total_decision_cost": "0.000000",
+          "trigger": false,
+          "verification_effort_cost": "0.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-FROZEN-005",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": false,
+          "outcome": "no_trigger_without_oracle_exposure",
+          "review_priority_score": "42.000000",
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "total_decision_cost": "0.000000",
+          "trigger": false,
+          "verification_effort_cost": "0.000000"
+        },
+        {
+          "cost_source": "explicit_fixture_values",
+          "currency": "KRW",
+          "fixture_id": "FINK-COST-FROZEN-006",
+          "missed_exposure_cost": "0.000000",
+          "oracle_has_transfer_prepayment_exposure": false,
+          "outcome": "triggered_without_oracle_exposure",
+          "review_priority_score": "66.000000",
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "total_decision_cost": "30000.000000",
+          "trigger": true,
+          "verification_effort_cost": "30000.000000"
+        }
+      ],
+      "currency": "KRW",
+      "currency_source": "fixture_explicit_currency_fields",
+      "denominators": {
+        "false_trigger_case_count": 1,
+        "no_exposure_case_count": 3,
+        "oracle_exposure_case_count": 3,
+        "triggered_oracle_case_count": 2
+      },
+      "metric_values": {
+        "EV-FALSE-TRIGGER-RATE": "0.333333",
+        "EV-MISSED-EXPOSURE-COST": "600000.000000",
+        "EV-TOTAL-DECISION-COST": "690000.000000",
+        "EV-TRIGGER-RECALL": "0.666667",
+        "EV-VERIFICATION-EFFORT-COST": "90000.000000"
+      },
+      "split": "frozen_eval",
+      "threshold": "58.000000"
+    },
+    "frozen_missing_inputs_normalized": {
+      "case_count": 3,
+      "case_rows": [
+        {
+          "currency": null,
+          "fixture_id": "FINK-COST-FROZEN-007",
+          "loss_source": "explicit_fixture_normalized_loss_values",
+          "normalized_decision_loss": "1.000000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "missed_oracle_exposure",
+          "review_priority_score": "52.000000",
+          "sensitivity_by_scenario": {
+            "base": "1.000000",
+            "high": "1.400000",
+            "low": "0.600000"
+          },
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "trigger": false
+        },
+        {
+          "currency": null,
+          "fixture_id": "FINK-COST-FROZEN-008",
+          "loss_source": "explicit_fixture_normalized_loss_values",
+          "normalized_decision_loss": "0.250000",
+          "oracle_has_transfer_prepayment_exposure": true,
+          "outcome": "triggered_oracle_exposure",
+          "review_priority_score": "74.000000",
+          "sensitivity_by_scenario": {
+            "base": "0.250000",
+            "high": "0.400000",
+            "low": "0.150000"
+          },
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "trigger": true
+        },
+        {
+          "currency": null,
+          "fixture_id": "FINK-COST-FROZEN-009",
+          "loss_source": "explicit_fixture_normalized_loss_values",
+          "normalized_decision_loss": "0.150000",
+          "oracle_has_transfer_prepayment_exposure": false,
+          "outcome": "triggered_without_oracle_exposure",
+          "review_priority_score": "63.000000",
+          "sensitivity_by_scenario": {
+            "base": "0.150000",
+            "high": "0.250000",
+            "low": "0.100000"
+          },
+          "split": "frozen_eval",
+          "threshold": "58.000000",
+          "trigger": true
+        }
+      ],
+      "currency": null,
+      "currency_invented": false,
+      "normalized_decision_loss": "1.400000",
+      "normalized_loss_source": "fixture_explicit_normalized_loss_inputs",
+      "sensitivity_analysis": [
+        {
+          "normalized_decision_loss": "1.400000",
+          "scenario": "base"
+        },
+        {
+          "normalized_decision_loss": "2.050000",
+          "scenario": "high"
+        },
+        {
+          "normalized_decision_loss": "0.850000",
+          "scenario": "low"
+        }
+      ],
+      "split": "frozen_eval",
+      "threshold": "58.000000"
+    }
+  },
+  "result_ledger": {
+    "columns": [
+      "result_id",
+      "experiment_id",
+      "metric",
+      "value",
+      "artifact_path",
+      "status",
+      "reviewer",
+      "notes"
+    ],
+    "name": "RESULT_LEDGER",
+    "rows": [
+      {
+        "artifact_path": "scripts/eval/cost_sensitive_verification_results.json",
+        "experiment_id": "cost_sensitive_verification_evaluation",
+        "metric": "EV-MISSED-EXPOSURE-COST",
+        "notes": "synthetic-only FINK-COST-01 frozen evaluation; fixed dev threshold, fixture-derived costs, no generalized performance claim",
+        "result_id": "FINK-COST-01-EV-MISSED-EXPOSURE-COST",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "600000.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/cost_sensitive_verification_results.json",
+        "experiment_id": "cost_sensitive_verification_evaluation",
+        "metric": "EV-VERIFICATION-EFFORT-COST",
+        "notes": "synthetic-only FINK-COST-01 frozen evaluation; fixed dev threshold, fixture-derived costs, no generalized performance claim",
+        "result_id": "FINK-COST-01-EV-VERIFICATION-EFFORT-COST",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "90000.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/cost_sensitive_verification_results.json",
+        "experiment_id": "cost_sensitive_verification_evaluation",
+        "metric": "EV-TOTAL-DECISION-COST",
+        "notes": "synthetic-only FINK-COST-01 frozen evaluation; fixed dev threshold, fixture-derived costs, no generalized performance claim",
+        "result_id": "FINK-COST-01-EV-TOTAL-DECISION-COST",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "690000.000000"
+      },
+      {
+        "artifact_path": "scripts/eval/cost_sensitive_verification_results.json",
+        "experiment_id": "cost_sensitive_verification_evaluation",
+        "metric": "EV-FALSE-TRIGGER-RATE",
+        "notes": "synthetic-only FINK-COST-01 frozen evaluation; fixed dev threshold, fixture-derived costs, no generalized performance claim",
+        "result_id": "FINK-COST-01-EV-FALSE-TRIGGER-RATE",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.333333"
+      },
+      {
+        "artifact_path": "scripts/eval/cost_sensitive_verification_results.json",
+        "experiment_id": "cost_sensitive_verification_evaluation",
+        "metric": "EV-TRIGGER-RECALL",
+        "notes": "synthetic-only FINK-COST-01 frozen evaluation; fixed dev threshold, fixture-derived costs, no generalized performance claim",
+        "result_id": "FINK-COST-01-EV-TRIGGER-RECALL",
+        "reviewer": "codex",
+        "status": "measured",
+        "value": "0.666667"
+      }
+    ]
+  },
+  "suite": "cost_sensitive_verification_evaluation",
+  "summary": {
+    "failed": 0,
+    "ok": true,
+    "passed": 5,
+    "total": 5
+  },
+  "task_id": "FINK-COST-01",
+  "threshold_selection": {
+    "candidate_count": 7,
+    "candidate_rows": [
+      {
+        "false_trigger_rate": "1.000000",
+        "missed_exposure_cost": "0.000000",
+        "threshold": "18.000000",
+        "total_decision_cost": "170000.000000",
+        "trigger_recall": "1.000000",
+        "verification_effort_cost": "170000.000000"
+      },
+      {
+        "false_trigger_rate": "0.666667",
+        "missed_exposure_cost": "0.000000",
+        "threshold": "39.000000",
+        "total_decision_cost": "155000.000000",
+        "trigger_recall": "1.000000",
+        "verification_effort_cost": "155000.000000"
+      },
+      {
+        "false_trigger_rate": "0.333333",
+        "missed_exposure_cost": "0.000000",
+        "threshold": "51.000000",
+        "total_decision_cost": "135000.000000",
+        "trigger_recall": "1.000000",
+        "verification_effort_cost": "135000.000000"
+      },
+      {
+        "false_trigger_rate": "0.000000",
+        "missed_exposure_cost": "0.000000",
+        "threshold": "58.000000",
+        "total_decision_cost": "110000.000000",
+        "trigger_recall": "1.000000",
+        "verification_effort_cost": "110000.000000"
+      },
+      {
+        "false_trigger_rate": "0.000000",
+        "missed_exposure_cost": "900000.000000",
+        "threshold": "72.000000",
+        "total_decision_cost": "975000.000000",
+        "trigger_recall": "0.666667",
+        "verification_effort_cost": "75000.000000"
+      },
+      {
+        "false_trigger_rate": "0.000000",
+        "missed_exposure_cost": "1600000.000000",
+        "threshold": "88.000000",
+        "total_decision_cost": "1630000.000000",
+        "trigger_recall": "0.333333",
+        "verification_effort_cost": "30000.000000"
+      },
+      {
+        "false_trigger_rate": "0.000000",
+        "missed_exposure_cost": "2800000.000000",
+        "threshold": "88.000001",
+        "total_decision_cost": "2800000.000000",
+        "trigger_recall": "0.000000",
+        "verification_effort_cost": "0.000000"
+      }
+    ],
+    "frozen_eval_used_for_threshold_selection": false,
+    "frozen_eval_uses_fixed_dev_threshold": true,
+    "objective": "minimize_total_decision_cost_on_complete_currency_dev_fixtures",
+    "selected_on_split": "dev",
+    "selected_threshold": "58.000000"
+  }
+}

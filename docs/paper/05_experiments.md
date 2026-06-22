@@ -47,6 +47,28 @@ config hashes, measured extrema, and actual failure-analysis cases. The paper
 does not claim any arm is superior beyond the measured synthetic-only rows; when
 a baseline arm shares or wins a measured metric, the artifact records that fact.
 
+## FINK-COST-01 Cost-Sensitive Verification
+
+The FINK-COST-01 suite adds a cost-sensitive verification layer under
+`data/eval/fink_cost_01/` with result artifact
+`scripts/eval/cost_sensitive_verification_results.json`. It keeps the task
+framed as Contractual Financial Review Priority: the verification trigger is
+evaluated as a costed review action, not as a legal or misconduct label.
+
+Decision costs are derived only from explicit fixture fields. Missed-exposure
+cost uses the oracle transfer/prepayment exposure left unchecked. Triggered
+rows use verification minutes multiplied by creator hourly value from the same
+fixture; no-trigger/no-exposure rows contribute zero. Rows missing those
+currency inputs are excluded from currency aggregation and instead use explicit
+fixture-normalized loss values with sensitivity analysis, so no currency value
+is filled in.
+
+The trigger threshold is selected on dev fixtures only by minimizing complete
+currency decision cost. The frozen split then applies that fixed threshold.
+The suite computes `EV-MISSED-EXPOSURE-COST`,
+`EV-VERIFICATION-EFFORT-COST`, `EV-TOTAL-DECISION-COST`,
+`EV-FALSE-TRIGGER-RATE`, and `EV-TRIGGER-RECALL`.
+
 ## Reporting Rule
 
 Every numeric or evaluative result reported from these suites must be copied
