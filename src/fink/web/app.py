@@ -6072,7 +6072,7 @@ def _apply_security_headers(headers: Any) -> None:
     headers["X-Content-Type-Options"] = "nosniff"
     headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "img-src 'self' data:; "
+        "img-src 'self' data: blob:; "
         "style-src 'self' 'unsafe-inline'; "
         "script-src 'self'; "
         "connect-src 'self'; "
