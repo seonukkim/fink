@@ -1758,8 +1758,9 @@ tasks:
   - authority_invariant
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-22T03:17:33+00:00'
 - id: FINK-MODEL-01
   phase: P3
   priority: P2

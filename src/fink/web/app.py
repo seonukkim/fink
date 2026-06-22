@@ -1967,6 +1967,27 @@ footer {
   background: var(--warn-bg);
   border-color: #b7791f;
 }
+.verification-signals {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f7fafc;
+}
+.verification-signals ul {
+  display: grid;
+  gap: .65rem;
+  margin: 0;
+  padding-left: 1.15rem;
+}
+.verification-signals li {
+  padding: .75rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #fff;
+}
 .ranked-findings, .guidance-card ul {
   display: grid;
   gap: .6rem;
@@ -2947,6 +2968,37 @@ _APP_JS = r"""(function () {
     container.appendChild(section);
   }
 
+  function renderVerificationSignals(container, payload) {
+    var verification = payload.verification;
+    if (!verification || !verification.signals || verification.signals.length === 0) {
+      return;
+    }
+    var section = el("section", "verification-signals", null);
+    section.setAttribute("data-verification-section", "true");
+    section.setAttribute("data-score-contribution", "0");
+    section.setAttribute("data-separate-from-review-priority-score", "true");
+    section.appendChild(bilingual("h3", null, verification.section_title));
+    section.appendChild(bilingual("p", "hint", verification.section_hint));
+
+    var list = el("ul", null, null);
+    verification.signals.forEach(function (signal) {
+      var item = el("li", null, null);
+      item.setAttribute("data-verification-signal", signal.signal_id);
+      item.setAttribute("data-score-contribution", "0");
+      item.setAttribute("data-separate-from-review-priority-score", "true");
+      item.appendChild(bilingual("strong", null, signal.label));
+      item.appendChild(bilingual("p", null, signal.instruction));
+      var support = signal.support || {};
+      var ids = support.record_ids && support.record_ids.length
+        ? support.record_ids.join(", ")
+        : support.state || "";
+      item.appendChild(el("p", "hint", "local corpus support: " + ids));
+      list.appendChild(item);
+    });
+    section.appendChild(list);
+    container.appendChild(section);
+  }
+
   function renderCheckFirst(container, payload) {
     var section = el("section", "check-first", null);
     section.setAttribute("data-check-first", "true");
@@ -3040,6 +3092,7 @@ _APP_JS = r"""(function () {
     renderCheckFirst(reportPane, payload);
     renderDimensions(reportPane, payload);
     renderScenarioInputs(reportPane, payload);
+    renderVerificationSignals(reportPane, payload);
 
     var findingsHeading = bilingual("h3", null, copyPair(payload, "app.findings_heading"));
     reportPane.appendChild(findingsHeading);

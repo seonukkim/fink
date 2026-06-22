@@ -12,6 +12,10 @@ from fink.web.source_highlights import (
     empty_source_highlights,
 )
 from fink.web.qa import build_grounded_qa_payload, empty_grounded_qa_payload
+from fink.signals.verification import (
+    empty_verification_payload,
+    verification_payload,
+)
 
 VIEW_MODEL_NAME = "CreatorReviewViewModel"
 VIEW_MODEL_SCHEMA_VERSION = 1
@@ -60,6 +64,9 @@ CREATOR_REVIEW_REQUIRED_COPY_KEYS = (
     "section.question",
     "section.evidence",
     "section.detail",
+    "verification.section_title",
+    "verification.section_hint",
+    "verification.empty",
     "action.copy_question",
     "action.open_source",
     "diagnostic.rule_focus_index",
@@ -192,6 +199,21 @@ _COPY: dict[str, dict[str, str]] = {
     "section.detail": {
         "ko": "상세",
         "en": "Detail",
+    },
+    "verification.section_title": {
+        "ko": "상대방·지급 경로 확인 신호",
+        "en": "Counterparty and payment-route verification signals",
+    },
+    "verification.section_hint": {
+        "ko": "서명·이체 전 상대방과 지급 경로를 독립적으로 확인하세요. 이 영역은 검토 점수와 별도입니다.",
+        "en": (
+            "Before signing or transferring money, independently verify the "
+            "counterparty and payment route. This area is separate from the review score."
+        ),
+    },
+    "verification.empty": {
+        "ko": "이 입력에서는 별도 상대방·지급 경로 확인 신호가 없습니다.",
+        "en": "No separate counterparty or payment-route verification signal appears in this input.",
     },
     "action.copy_question": {
         "ko": "물어볼 말 복사",
@@ -326,6 +348,7 @@ class CreatorReviewViewModel:
     dimensions: dict[str, Any]
     findings: tuple[dict[str, Any], ...]
     audit_detail: dict[str, Any]
+    verification: dict[str, Any] | None = None
     scenario_inputs: dict[str, Any] | None = None
     source_highlights: dict[str, Any] | None = None
     grounded_qa: dict[str, Any] | None = None
@@ -345,6 +368,7 @@ class CreatorReviewViewModel:
             "statuses": self.statuses,
             "dimensions": self.dimensions,
             "findings": list(self.findings),
+            "verification": self.verification or empty_verification_payload(),
             "source_highlights": self.source_highlights or empty_source_highlights(),
             "grounded_qa": self.grounded_qa or empty_grounded_qa_payload(),
             "scenario_inputs": self.scenario_inputs or _scenario_inputs_from_audit({}),
@@ -387,6 +411,7 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         audit_detail,
         getattr(result, "scenario_input_values", {}),
     )
+    verification = _verification_from_result(result)
     return CreatorReviewViewModel(
         ui_locale=ui_locale,
         summary=_summary_from_result(result),
@@ -403,6 +428,7 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         statuses=statuses,
         dimensions=dimensions,
         findings=findings,
+        verification=verification,
         audit_detail=audit_detail,
         scenario_inputs=scenario_inputs,
         source_highlights=source_highlights,
@@ -483,6 +509,7 @@ def build_creator_review_view_model_from_report(
         statuses=statuses,
         dimensions=_dimensions_from_report(report, statuses),
         findings=findings,
+        verification=empty_verification_payload(),
         audit_detail=audit_detail,
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
         source_highlights=empty_source_highlights(),
@@ -583,6 +610,7 @@ def build_project_page_synthetic_view_model(
             },
         },
         findings=(finding,),
+        verification=empty_verification_payload(),
         audit_detail=audit_detail,
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
         source_highlights=empty_source_highlights(),
@@ -625,6 +653,19 @@ def export_creator_review_markdown(view_model: CreatorReviewViewModel) -> str:
                 f"  - 확인 질문: {finding['question_to_ask']['ko']}",
             ]
         )
+    verification = payload.get("verification") or {}
+    verification_signals = verification.get("signals") or []
+    if verification_signals:
+        lines.extend(["", f"## {verification['section_title']['ko']}"])
+        lines.append(verification["section_hint"]["ko"])
+        for signal in verification_signals:
+            lines.extend(
+                [
+                    f"- {signal['label']['ko']} ({signal['signal_id']})",
+                    f"  - 확인 문구: {signal['instruction']['ko']}",
+                    "  - 검토 점수 반영: 0",
+                ]
+            )
     lines.extend(["", f"## {payload['copy']['export.audit_detail_label']['ko']}"])
     lines.append("기술 세부정보는 JSON 내 audit_detail에만 포함됩니다.")
     return "\n".join(lines).strip() + "\n"
@@ -916,6 +957,7 @@ def _evidence_payload_from_signal(signal: Any) -> dict[str, Any]:
 
 def _audit_detail_from_result(result: Any) -> dict[str, Any]:
     confidence = result.scoring.confidence
+    verification = _verification_from_result(result)
     return {
         "clause_count": result.clause_count,
         "signal_count": result.signal_count,
@@ -943,8 +985,31 @@ def _audit_detail_from_result(result: Any) -> dict[str, Any]:
         "technical_findings": [
             _technical_finding_from_ranked(finding) for finding in result.ranked_findings
         ],
+        "verification": {
+            "signal_count": verification["signal_count"],
+            "score_contribution": verification["score_contribution"],
+            "separate_from_review_priority_score": verification[
+                "separate_from_review_priority_score"
+            ],
+            "signals": [
+                {
+                    "signal_id": signal["signal_id"],
+                    "signal_type": signal["signal_type"],
+                    "support": signal["support"],
+                    "score_contribution": signal["score_contribution"],
+                    "separate_from_review_priority_score": signal[
+                        "separate_from_review_priority_score"
+                    ],
+                }
+                for signal in verification["signals"]
+            ],
+        },
         "monetary_exposures": [_exposure_to_audit(exposure) for exposure in result.exposures],
     }
+
+
+def _verification_from_result(result: Any) -> dict[str, Any]:
+    return verification_payload(tuple(getattr(result, "verification_signals", ())))
 
 
 def _scenario_inputs_from_audit(

@@ -45,6 +45,7 @@ from fink.scoring.engine import (
 )
 from fink.segment.engine import segment_pages
 from fink.signals.engine import RuleBasedSignalDetector, SignalRuleSet, load_signal_rules
+from fink.signals.verification import VerificationSignal, detect_verification_signals
 from fink.time.exposure import AnalysisRuntimeTimer, TimeExposureResult, build_time_exposure
 
 if TYPE_CHECKING:
@@ -183,6 +184,7 @@ class LocalAnalysisResult:
     measured_runtime_seconds: float
     source_pages: tuple[OCRPage, ...]
     clauses: tuple[Any, ...]
+    verification_signals: tuple[VerificationSignal, ...]
     ranking_policy: str
     authority_gate: str
 
@@ -210,6 +212,7 @@ def run_local_analysis(
 
     with AnalysisRuntimeTimer() as timer:
         clauses = segment_pages(pages)
+        verification_signals = detect_verification_signals(clauses)
         rule_set = load_signal_rules()
         detector = RuleBasedSignalDetector(rule_set)
         first_pass_signals = detector.detect_clauses(clauses)
@@ -293,6 +296,7 @@ def run_local_analysis(
         measured_runtime_seconds=measured_runtime_seconds,
         source_pages=pages,
         clauses=clauses,
+        verification_signals=verification_signals,
         ranking_policy=ranking_policy,
         authority_gate=authority_gate,
     )

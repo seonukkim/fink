@@ -201,6 +201,7 @@ def _render_synchronized_reader(
         {_render_creator_first_action(view_model)}
         {_render_creator_dimensions(view_model)}
         {_render_creator_scenario_inputs(view_model)}
+        {_render_creator_verification(view_model)}
         {_render_creator_findings(view_model)}
         {_render_creator_audit_detail(view_model)}
         {_render_creator_grounded_qa(view_model)}
@@ -370,6 +371,33 @@ def _render_creator_scenario_inputs(view_model: CreatorReviewViewModel) -> str:
       <p class="hint" role="status" aria-live="polite" data-scenario-status-region="true">
         {_escape((scenario.get('recompute') or {}).get('status_idle', {}).get('ko', '시나리오 입력을 바꾼 뒤 버튼을 눌러 다시 계산하세요.'))}
       </p>
+    </section>"""
+
+
+def _render_creator_verification(view_model: CreatorReviewViewModel) -> str:
+    verification = view_model.verification or {}
+    signals = verification.get("signals") or []
+    if not signals:
+        return ""
+    items = []
+    for signal in signals:
+        support = signal.get("support") or {}
+        support_ids = ", ".join(support.get("record_ids") or ())
+        support_text = support_ids or support.get("state", "")
+        items.append(
+            f"""<li data-verification-signal="{_escape(signal['signal_id'])}"
+              data-score-contribution="0"
+              data-separate-from-review-priority-score="true">
+              <strong>{_render_pair_inline(signal['label'])}</strong>
+              <p>{_render_pair_inline(signal['instruction'])}</p>
+              <p class="hint">local corpus support: {_escape(support_text)}</p>
+            </li>"""
+        )
+    return f"""<section class="verification-signals" data-verification-section="true"
+      data-score-contribution="0" data-separate-from-review-priority-score="true">
+      <h3>{_render_pair_inline(verification['section_title'])}</h3>
+      <p class="hint">{_render_pair_inline(verification['section_hint'])}</p>
+      <ul>{''.join(items)}</ul>
     </section>"""
 
 
