@@ -1536,14 +1536,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .upload-label {
   font-weight: 700;
 }
-#contract-file {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: .55rem .65rem;
-  background: #fff;
-}
 textarea {
   width: 100%;
   min-height: 9rem;
@@ -3519,7 +3511,7 @@ footer {
   .wordmark {
     font-size: 1.15rem;
   }
-  .chat-title .subtitle { display: none; }
+  .chat-title .subtitle { font-size: .5rem; letter-spacing: .05em; }
   .chat-topbar-actions { flex: 0 0 auto; flex-wrap: nowrap; gap: .4rem; }
   .chat-topbar .locale-toggle button { min-width: 46px; padding: 6px 10px; }
   .review-signal-grid {
@@ -4682,7 +4674,7 @@ _APP_JS = r"""(function () {
 
   function reviewEffortLevel(key) {
     if (key === "professional") {
-      return { ko: "전문가 권장", en: "Professional recommended" };
+      return { ko: "전문가 권장", en: "Professional necessary" };
     }
     if (key === "careful") {
       return { ko: "꼼꼼히 확인", en: "Careful check" };
