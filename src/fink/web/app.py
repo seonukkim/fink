@@ -4870,15 +4870,9 @@ _APP_JS = r"""(function () {
   }
 
   function renderChatCitations(container, citations) {
-    if (!container || !citations || citations.length === 0) {
-      return;
-    }
-    var summary = bilingual("p", "chat-citation-summary", {
-      ko: "근거 " + citations.length + "건을 바탕으로 답했어요.",
-      en: "Answered from " + citations.length + " supporting source item(s)."
-    });
-    summary.setAttribute("data-chat-citations", "summary");
-    container.appendChild(summary);
+    // Intentionally render nothing: source-citation counts/ids are internal
+    // bookkeeping and are not useful to a creator reading a follow-up reply.
+    return;
   }
 
   function replaceBotMessageWithText(item, content, citations) {

@@ -289,7 +289,6 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('button.setAttribute("data-followup-chip", "true")', script)
         self.assertIn('button.setAttribute("data-make-review-brief", "true")', script)
         self.assertIn('button.setAttribute("data-download-review-brief", "true")', script)
-        self.assertIn('summary.setAttribute("data-chat-citations", "summary")', script)
         self.assertIn('ko: "이런 걸 물어볼 수 있어요"', script)
         self.assertIn('en: "You could ask"', script)
         self.assertIn('ko: "의견서 만들기"', script)
