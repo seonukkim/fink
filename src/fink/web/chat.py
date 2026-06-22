@@ -14,7 +14,7 @@ from fink.model.explanation_llm import FindingBrief, GroundedContext, generate_c
 from fink.schemas import UILocale
 
 _PROFESSIONAL_NOTE_KO = (
-    "이 정리는 결정을 돕기 위한 것이고 최종 법적 판단은 아니에요. 중요한 부분은 전문가 확인을 권해요."
+    "이 분석은 결정을 돕기 위한 것이고 최종 법적 판단은 아니에요. 중요한 부분은 전문가 확인을 권해요."
 )
 _PROFESSIONAL_NOTE_EN = (
     "This is decision support, not a final legal judgment; please have a professional "

@@ -40,7 +40,7 @@ SYSTEM_PROMPT_KO = (
     "1) 분석 결과에 없는 금액·비율·법 조항을 새로 지어내지 마세요. "
     "2) 이 계약이 안전한지, 위법인지, 유효한지 같은 최종 판정은 내리지 마세요. 대신 어떤 조항이 "
     "창작자에게 불리하게 작용할 수 있는지와 무엇을 확인·협상하면 좋은지를 알려 주세요. "
-    "3) 중요한 결정은 전문가 확인을 권하세요. "
+    "3) 중요한 결정 전에는 전문가와 상담하세요. "
     "4) 짧고 쉬운 말로, 창작자가 다음에 무엇을 하면 되는지 도와주는 톤으로 말하세요. "
     "5) 자연스러운 한국어를 한글로만 쓰고, 중국어 한자나 한자어 표기를 출력하지 마세요."
 )
@@ -258,7 +258,7 @@ def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
 def _deterministic_reply(context: GroundedContext, question: str | None) -> str:
     is_ko = context.locale != "en"
     note = context.professional_note or (
-        "이 정리는 결정을 돕기 위한 것이고 최종 법적 판단은 아니에요. 중요한 부분은 전문가 확인을 권해요."
+        "이 분석은 결정을 돕기 위한 것이고 최종 법적 판단은 아니에요. 중요한 부분은 전문가 확인을 권해요."
         if is_ko
         else "This is decision support, not a final legal judgment; please have a professional confirm important points."
     )

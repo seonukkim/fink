@@ -34,13 +34,11 @@ PRIVACY_BANNER_KO = (
 # does NOT determine legality/fraud/validity/etc., so it stays clear of the
 # legal_verdict_scan BAD_LEGAL_ASSERTIONS patterns.
 NOT_LEGAL_ADVICE_BANNER = (
-    "FInk finds and prioritizes the financial clauses in a contract (a Contractual "
-    "Financial Review Priority) and organizes decision-support information, but it "
-    "is not a final legal judgment, so confirm important decisions with a professional."
+    "FInk reports a Contractual Financial Review Priority, not a final legal "
+    "judgment, so consult a professional for important decisions."
 )
 NOT_LEGAL_ADVICE_BANNER_KO = (
-    "FInk은 계약서의 금융 관련 조항을 찾아 중요도를 매기고 결정에 필요한 정보를 "
-    "정리해 드리지만, 최종 법적 판단은 아니니 중요한 결정은 전문가와 확인하세요."
+    "FInk은 참고용일 뿐 확실한 법리적 판단이 아니니, 중요한 결정 전에는 전문가와 상담하세요."
 )
 TRUSTED_LAN_WARNING = (
     "Trusted-LAN mode exposes this local server only to devices on the same private "
@@ -274,10 +272,9 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
       <li class="msg bot" data-message-role="bot" data-greeting="true">
         <div class="bubble">
           <p class="bubble-text">{_bilingual(
-              "계약서를 붙여넣거나 사진·PDF를 올려 주세요. 서명 전에 확인할 현금흐름 "
-              "조항을 정리해 드릴게요.",
-              "Paste your contract or drop in a photo/PDF, and I'll line up the "
-              "financial clauses to check before you sign.",
+              "계약서를 붙여넣거나 사진·PDF를 올려 주세요. 금융 관련 조항을 검토해 드릴게요.",
+              "Paste your contract or drop in a photo/PDF, and I'll review the "
+              "finance-related clauses.",
           )}</p>
           <div class="chip-row">
             <button type="button" class="example-chip" data-example-chip="true"
@@ -2843,6 +2840,8 @@ footer {
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .wordmark span {
   color: var(--pink-bright);
@@ -3362,7 +3361,7 @@ footer {
   border-top: 1px solid var(--line-strong);
 }
 .composer-input {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   min-height: 44px;
   max-height: 40vh;
@@ -3413,14 +3412,24 @@ footer {
   border-color: var(--pink-ink);
 }
 @media (max-width: 480px) {
+  .chat-topbar {
+    flex-wrap: nowrap;
+    gap: .5rem;
+    padding: 13px 1rem;
+  }
   .chat-title {
-    align-items: flex-start;
-    width: 100%;
+    align-items: center;
+    min-width: 0;
+    gap: 10px;
   }
+  .chat-title-copy { min-width: 0; }
   .wordmark {
-    font-size: 1.2rem;
-    padding-top: .12rem;
+    font-size: 1.15rem;
   }
+  .chat-title .subtitle { display: none; }
+  .chat-topbar-actions { flex: 0 0 auto; flex-wrap: nowrap; gap: .4rem; }
+  .chat-topbar .locale-toggle button { min-width: 46px; padding: 6px 10px; }
+  .notice-button { min-width: 40px; height: 40px; }
   .review-signal-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3443,7 +3452,10 @@ footer {
     text-align: left;
   }
   .chat-title h1 {
-    font-size: 1.1rem;
+    font-size: .76rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4818,7 +4830,7 @@ _APP_JS = r"""(function () {
     closing.appendChild(bilingual("h2", null, { ko: "마무리", en: "Closing" }));
     closing.appendChild(
       bilingual("p", null, {
-        ko: "중요한 결정 전에는 전문가 확인을 권합니다.",
+        ko: "중요한 결정 전에는 전문가와 상담하세요.",
         en: "Confirm important decisions with a professional."
       })
     );
@@ -4979,7 +4991,7 @@ _APP_JS = r"""(function () {
     card.appendChild(concern);
     card.appendChild(
       bilingual("p", "glance-caution", {
-        ko: "최종 판단이 아니라 확인을 돕는 정리예요. 중요한 결정은 전문가 확인을 권해요.",
+        ko: "참고용일 뿐 확실한 법리적 판단은 아니에요. 중요한 결정 전에는 전문가와 상담하세요.",
         en: "This is a review aid, not a final judgment; confirm important decisions with a professional."
       })
     );
