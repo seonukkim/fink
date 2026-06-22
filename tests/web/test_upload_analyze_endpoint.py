@@ -227,6 +227,25 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
 
         self.assertEqual(text, "top\nbottom")
 
+    def test_ppocr_pipeline_omits_deprecated_kwargs_and_disables_mkldnn(self) -> None:
+        # paddleocr 3.x raises ValueError("use_angle_cls and use_textline_orientation
+        # are mutually exclusive") and its oneDNN/PIR CPU path raises
+        # NotImplementedError during inference. Guard both: never send the deprecated
+        # use_angle_cls/use_gpu aliases, and always disable MKLDNN.
+        captured: dict[str, object] = {}
+
+        def fake_paddle_ocr(**kwargs: object) -> object:
+            captured.update(kwargs)
+            return object()
+
+        with patch.object(PADDLE_OCR, "_import_paddle_ocr", lambda: fake_paddle_ocr):
+            PADDLE_OCR.PaddlePPOCRBackend()._build_pipeline()
+
+        self.assertNotIn("use_angle_cls", captured)
+        self.assertNotIn("use_gpu", captured)
+        self.assertIs(captured.get("enable_mkldnn"), False)
+        self.assertEqual(captured.get("lang"), "korean")
+
     def test_both_paste_and_file_returns_clear_validation_state(self) -> None:
         body, headers = _multipart_body(
             fields={"locale": "ko", "paste_text": SAMPLE_KO},

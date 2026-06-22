@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import tempfile
 from dataclasses import dataclass, replace
@@ -425,7 +426,11 @@ def _paddle_ocr_recognize_text(stored_path: Path) -> str | None:
         return _cached_paddle_ocr_backend(PaddlePPOCRBackend).recognize_image_text(stored_path)
     except PaddleOCRDependencyError:
         return None
-    except PaddleOCRRuntimeError:
+    except PaddleOCRRuntimeError as exc:
+        # A real pipeline/inference failure (not a missing dependency). Record it
+        # so it is not invisibly swallowed into the generic "couldn't read" path;
+        # the caller still falls back gracefully and never crashes the request.
+        logging.getLogger(__name__).warning("PP-OCR runtime failure: %s", exc)
         return None
 
 

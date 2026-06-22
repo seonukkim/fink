@@ -141,14 +141,24 @@ class PaddleOCRRuntimeError(RuntimeError):
 
 @dataclass(frozen=True)
 class PaddlePPOCRConfig:
-    """Configuration for the default lightweight PP-OCR backend."""
+    """Configuration for the default lightweight PP-OCR backend.
+
+    Tuned for paddleocr>=3.x (PP-OCRv5). The legacy ``use_gpu``/``use_angle_cls``
+    kwargs are intentionally absent: ``use_angle_cls`` is the deprecated alias of
+    ``use_textline_orientation`` and paddleocr 3.x raises ``ValueError`` if both
+    are supplied, while device selection is no longer a boolean. Text-line and
+    document orientation/unwarping stages are disabled by default because clean,
+    upright contract uploads do not need them, which keeps CPU inference fast.
+    """
 
     lang: str = "korean"
-    use_gpu: bool = False
-    use_angle_cls: bool = False
     use_doc_orientation_classify: bool = False
     use_doc_unwarping: bool = False
     use_textline_orientation: bool = False
+    # paddlepaddle 3.x's oneDNN/PIR CPU path raises NotImplementedError
+    # (ConvertPirAttribute2RuntimeAttribute) during PP-OCR inference, so MKLDNN is
+    # disabled to fall back to the plain CPU kernels that run correctly on-device.
+    enable_mkldnn: bool = False
 
 
 @dataclass(frozen=True)
@@ -248,11 +258,10 @@ class PaddlePPOCRBackend:
             paddle_ocr = _import_paddle_ocr()
             kwargs: dict[str, Any] = {
                 "lang": self.config.lang,
-                "use_gpu": self.config.use_gpu,
-                "use_angle_cls": self.config.use_angle_cls,
                 "use_doc_orientation_classify": self.config.use_doc_orientation_classify,
                 "use_doc_unwarping": self.config.use_doc_unwarping,
                 "use_textline_orientation": self.config.use_textline_orientation,
+                "enable_mkldnn": self.config.enable_mkldnn,
             }
             try:
                 self._pipeline = _create_ppocr_pipeline(paddle_ocr, kwargs)
@@ -354,7 +363,12 @@ def _create_ppocr_pipeline(paddle_ocr: Any, kwargs: dict[str, Any]) -> Any:
     try:
         return _create_quiet_pipeline(paddle_ocr, supported_kwargs)
     except Exception as exc:
-        minimal_kwargs = _with_supported_kwargs(paddle_ocr, {"lang": kwargs["lang"]})
+        # Last-resort minimal construction. Keep ``enable_mkldnn`` so the fallback
+        # never reintroduces the broken oneDNN CPU inference path.
+        minimal: dict[str, Any] = {"lang": kwargs["lang"]}
+        if "enable_mkldnn" in kwargs:
+            minimal["enable_mkldnn"] = kwargs["enable_mkldnn"]
+        minimal_kwargs = _with_supported_kwargs(paddle_ocr, minimal)
         if minimal_kwargs != supported_kwargs and _looks_like_pipeline_arg_mismatch(exc):
             return _create_quiet_pipeline(paddle_ocr, minimal_kwargs)
         raise
@@ -400,6 +414,8 @@ def _looks_like_pipeline_arg_mismatch(exc: Exception) -> bool:
             "unsupported",
             "not supported",
             "got an unexpected",
+            "mutually exclusive",
+            "deprecated",
         )
     )
 
