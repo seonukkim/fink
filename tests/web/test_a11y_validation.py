@@ -109,10 +109,11 @@ class WebA11yValidationTests(unittest.TestCase):
         )
         script = WEB.app_js()
 
-        # The chat shell exposes header, nav (locale toggle), main (the thread),
-        # and aside (the Notice disclosure panel); it has no footer landmark.
-        for landmark in ("<header", "<nav", "<main", "<aside"):
+        # The chat shell exposes header, nav (locale toggle), and main (the
+        # thread); the old Notice aside and footer landmarks are gone.
+        for landmark in ("<header", "<nav", "<main"):
             self.assertIn(landmark, markup)
+        self.assertNotIn('id="notice-panel"', markup)
         self.assertNotIn("<footer", markup)
         for heading in ("<h1", "<h2", "<h3"):
             self.assertIn(heading, markup)

@@ -1,5 +1,34 @@
 # AI Use Log
 
+## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: revised the local web app inside the existing gravitas design system:
+  the not-legal-advice warning is always visible under the privacy line, the
+  collapsible Notice panel and amount-estimate disclosure are removed, LAN
+  warnings stay persistent only when enabled, appended result blocks share one
+  aligned card rhythm, the dimension trio is grouped into one card grid, and the
+  composer now supports multiple attachments with thumbnail/file-tile previews
+  and per-file removal. The upload backend accepts repeated `contract_file`
+  multipart parts, recovers each file through the existing txt/PDF/OCR path,
+  merges all recovered text with pasted text, and analyzes once. No remote
+  runtime API, model weight, private input, paper, template, or `icml2026` file
+  was changed.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest
+  tests/web/test_local_web_app.py tests/web/test_a11y_validation.py
+  tests/web/test_upload_analyze_endpoint.py tests/web/test_report_ui.py -q`
+  passed; the exact bare `uv run pytest tests -q` command was attempted and
+  failed before tests started because the default uv cache path is read-only in
+  this sandbox; `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests -q` passed; the
+  exact bare `python3 -c "import fink.web.app, fink.web.upload"` command was
+  attempted and failed because the system interpreter does not have the
+  checkout's `src/` layout package on `sys.path`; `UV_CACHE_DIR=/tmp/uv-cache uv
+  run python3 -c "import fink.web.app, fink.web.upload"` passed; `bash
+  scripts/agent_loop/run_gates.sh` ended with `GATES_OK`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
 ## 2026-06-23 — Locked visual redesign port
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

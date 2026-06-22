@@ -83,8 +83,8 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('<span lang="ko" data-locale-text="ko">EN</span>', markup)
         self.assertIn('<span lang="en" data-locale-text="en">KO</span>', markup)
 
-        # The chat shell shows the short reworded privacy line in the header and
-        # folds the not-legal-advice text into the Notice panel. Korean is
+        # The chat shell shows the short reworded privacy line and the
+        # not-legal-advice warning persistently in the header. Korean is
         # canonical and the English text is an aid kept inside its locale span.
         # The privacy line is short and plain; "텔레메트리" and the older
         # long-form phrasing are gone.
@@ -99,24 +99,26 @@ class WebSmokeTests(unittest.TestCase):
         self.assertNotIn("검토 순서만 안내", markup)
         self.assertNotIn("먼저 확인할 순서로 정리합니다", markup)
         self.assertIn("not a final legal judgment", markup)
-        self.assertIn("Estimated amounts are reference values based on your inputs", markup)
+        self.assertNotIn("Estimated amounts", markup)
+        self.assertEqual(WEB.DISCLOSURE_ITEMS, ())
 
-        # The report disclosures render bilingually: the Korean canonical line
-        # leads and the English aid stays inside its locale span.
-        self.assertIn(
-            "추정 금액은 입력 가정에 따른 참고치이며, 한국어가 기준입니다.",
-            markup,
+        # The old amount-estimate disclosure is removed entirely.
+        self.assertNotIn("추정 금액", markup)
+        self.assertLess(
+            markup.index('data-privacy-line="true"'),
+            markup.index('class="chat-privacy banner banner-advice"'),
         )
 
         # The chat shell has no footer: dev info and the separate footer privacy
-        # paragraph are gone. The single privacy line lives in the header and the
-        # rest of the disclosures sit in the Notice panel.
+        # paragraph are gone. The privacy and advice lines live in the header,
+        # and the old collapsible Notice panel is gone.
         self.assertNotIn("Serving from", markup)
         self.assertNotIn("Loopback only", markup)
         self.assertNotIn("LAN opt-in enabled", markup)
         self.assertNotIn("<footer", markup)
         self.assertNotIn("계약서와 분석 결과는 이 기기에서만 처리됩니다.", markup)
-        self.assertIn('data-notice-panel="true"', markup)
+        self.assertNotIn('data-notice-panel="true"', markup)
+        self.assertNotIn('data-notice-toggle', markup)
 
         blocked_external_patterns = (
             "https://",
@@ -137,6 +139,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('id="analyze-btn"', markup)
         self.assertEqual(markup.count('id="analyze-btn"'), 1)
         self.assertIn('id="contract-file"', markup)
+        self.assertIn("multiple", markup)
         self.assertNotIn('class="upload-tile"', markup)
         self.assertNotIn('data-ui-ingest-modes="camera image pdf paste"', markup)
         self.assertIn('<script src="/app.js">', markup)
@@ -151,8 +154,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('class="paperclip-icon"', markup)
         self.assertIn('viewBox="0 0 24 24"', markup)
         self.assertNotIn("📎", markup)
-        self.assertIn('class="notice-button"', markup)
-        self.assertNotIn('class="notice-button secondary"', markup)
+        self.assertNotIn('class="notice-button"', markup)
         self.assertIn(
             "계약서를 붙여넣거나 사진·PDF를 올려 주세요.",
             markup,
@@ -228,6 +230,16 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn(b"function clauseReferencePair(finding, index)", body)
         self.assertIn(b"function renderLocalizedSourceSegments(container, source)", body)
         self.assertIn(b"followup-chip-stack", body)
+        self.assertIn(b"var attachedFiles = [];", body)
+        self.assertIn(b"function selectedFiles()", body)
+        self.assertIn(b"attachedFiles.push", body)
+        self.assertIn(b'form.append("contract_file", file)', body)
+        self.assertIn(b"data-attachment-tile", body)
+        self.assertIn(b"data-remove-attachment", body)
+        self.assertIn(b"user-attachment-thumbs", body)
+        self.assertIn(b"attachment-file-tile", body)
+        self.assertNotIn(b"data-file-chip", body)
+        self.assertNotIn(b"fileChip", body)
         self.assertIn(b'OCR_NO_TEXT" || code === "FILE_EMPTY"', body)
         self.assertNotIn(b"new Blob", body)
         self.assertNotIn(b"text/markdown", body)

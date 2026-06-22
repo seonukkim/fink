@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-23T02:58:00+09:00`
+- Generated: `2026-06-23T03:41:00+09:00`
 - Current branch: `main`
-- Base commit: `152d524352c5ea8f2e57d3a11440f25da521d86a`
+- Base commit: `e5cec1a8a28d49f0514bebc9d1045cdf3ba74a20`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -45,7 +45,11 @@
   FastAPI and the raw ASGI fallback, added `font-src 'self'` to CSP, renamed the
   user-facing score to `위험 지수` / `Risk Index`, removed the per-checklist
   source note, and kept the result framing as Contractual Financial Review
-  Priority rather than a legal/verdict claim.
+  Priority rather than a legal/verdict claim. Moved the advice/LAN warnings
+  into persistent header lines, removed the collapsible Notice disclosure panel
+  and amount-estimate disclosure, normalized the chat result sequence to one
+  aligned card rhythm, and added multi-file thumbnail attachments plus repeated
+  multipart `contract_file` analysis.
 
 ## Human Gates
 

@@ -44,18 +44,8 @@ TRUSTED_LAN_WARNING = (
     "Trusted-LAN mode exposes this local server only to devices on the same private "
     "network. Use it only on a network you control, and stop the server when finished."
 )
-DISCLOSURE_ITEMS = (
-    "Estimated amounts are reference values based on your inputs; Korean is canonical.",
-)
-# Korean-canonical / English-aid pairs for the report disclosures. The English
-# aid strings stay identical to DISCLOSURE_ITEMS so the privacy payload and the
-# a11y wording pins still match; the Korean line leads as the canonical text.
-DISCLOSURE_ITEMS_BILINGUAL = (
-    {
-        "ko": "추정 금액은 입력 가정에 따른 참고치이며, 한국어가 기준입니다.",
-        "en": DISCLOSURE_ITEMS[0],
-    },
-)
+DISCLOSURE_ITEMS: tuple[str, ...] = ()
+DISCLOSURE_ITEMS_BILINGUAL: tuple[dict[str, str], ...] = ()
 
 LAN_CONFIRMATION_TEXT = "I understand this is a trusted-LAN-only local server."
 _BLOCKED_BIND_HOSTS = frozenset({"0.0.0.0", "::", ""})
@@ -199,9 +189,8 @@ def resolve_bind_settings(
 def render_index_html(settings: WebBindSettings | None = None) -> str:
     """Render the local-only creator chat without external assets.
 
-    The page is a real chat thread: a sticky top bar (title, the single KO/EN
-    toggle, and a Notice button that opens the merged disclosure panel), one
-    short privacy line, a scrolling message thread that opens with a single bot
+    The page is a real chat thread: a sticky top bar (title and the single
+    KO/EN toggle), persistent privacy/advice lines, a scrolling message thread that opens with a single bot
     greeting, and a sticky bottom composer (an attach button, a growing paste
     box, and the send button). The analysis result and the follow-up Q&A render
     as bot/user message bubbles appended to the thread; ``/app.js`` fills the
@@ -220,7 +209,7 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
 
     bind = settings or resolve_bind_settings()
     lan_warning = (
-        '<p class="banner banner-warning" role="status">'
+        '<p class="chat-privacy banner banner-warning" role="status">'
         f"{html.escape(bind.trusted_lan_warning)}</p>"
         if bind.lan_enabled
         else ""
@@ -254,17 +243,12 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
           <span lang="en" data-locale-text="en">KO</span>
         </button>
       </nav>
-      <button type="button" class="notice-button" data-notice-toggle="true"
-        aria-controls="notice-panel" aria-expanded="false"
-        aria-label="고지 열기 또는 닫기 / Open or close notice">
-        <span aria-hidden="true">ⓘ</span>
-      </button>
     </div>
   </header>
 
   <p class="chat-privacy" data-privacy-line="true">{_bilingual(PRIVACY_BANNER_KO, PRIVACY_BANNER)}</p>
-
-  {_render_notice_panel(lan_warning)}
+  <p class="chat-privacy banner banner-advice">{_bilingual(NOT_LEGAL_ADVICE_BANNER_KO, NOT_LEGAL_ADVICE_BANNER)}</p>
+  {lan_warning}
 
   <main id="workspace" class="chat"
     data-responsive-validation-targets="320-no-horizontal-overflow 390x844 768x1024 1440x900 200-percent-zoom">
@@ -309,6 +293,7 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
     </button>
     <input id="contract-file" name="contract_file" type="file" class="visually-hidden-input"
       data-file-input="true"
+      multiple
       aria-describedby="pdf-error-region"
       accept="text/plain,.txt,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.heic,.heif">
     <div class="attachment-preview thumbnail-strip" data-attachment-preview="true" hidden></div>
@@ -348,28 +333,6 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
 </body>
 </html>
 """
-
-
-def _render_notice_panel(lan_warning: str) -> str:
-    """Render the merged disclosure surface opened by the Notice button.
-
-    One responsive ``<aside>`` panel holds the not-legal-advice text and the
-    report-disclosure bullets. The short privacy line lives in the page header;
-    this panel carries the rest so there is no two-column disclosure bar.
-    """
-
-    bullets = "\n".join(
-        f"<li>{_bilingual(item['ko'], item['en'])}</li>"
-        for item in DISCLOSURE_ITEMS_BILINGUAL
-    )
-    return f"""<aside id="notice-panel" class="notice-panel" data-notice-panel="true"
-    aria-label="고지 / Notice" hidden>
-    <p class="banner banner-advice">{_bilingual(NOT_LEGAL_ADVICE_BANNER_KO, NOT_LEGAL_ADVICE_BANNER)}</p>
-    <ul class="notice-list">
-      {bullets}
-    </ul>
-    {lan_warning}
-  </aside>"""
 
 
 def _render_ingest_mode_control(control: Any) -> str:
@@ -1482,14 +1445,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 }
 .banner {
   margin: 0;
-  padding: .7rem .85rem;
-  border-left: 4px solid var(--accent);
-  background: #fff;
+}
+.banner-advice {
+  border-top: 0;
 }
 .banner-warning {
   color: var(--warn-ink);
   background: var(--warn-bg);
-  border-left-color: #b7791f;
 }
 .workspace {
   display: grid;
@@ -2315,11 +2277,12 @@ footer {
 .verification-signals {
   display: grid;
   gap: var(--space-1);
-  margin: var(--space-2) 0;
+  width: 100%;
+  margin: 0;
   padding: var(--space-2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: #f7fafc;
+  background: #fff;
 }
 .verification-signals ul {
   display: grid;
@@ -2353,7 +2316,8 @@ footer {
 .advanced-diagnostic {
   display: grid;
   gap: .5rem;
-  margin-top: var(--space-1);
+  width: 100%;
+  margin: 0;
   padding: var(--space-1);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2468,21 +2432,24 @@ footer {
 }
 .result-chip-row {
   display: grid;
-  gap: .45rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
   margin: 0;
 }
 .result-chip {
   display: flex;
   width: 100%;
-  max-width: var(--reading-measure);
+  max-width: none;
+  min-height: 3.1rem;
   align-items: center;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  padding: .45rem .65rem;
-  background: #fff;
+  padding: .65rem .75rem;
+  background: #f7f4ed;
   color: var(--ink);
   font-size: .9rem;
   font-weight: 650;
+  line-height: 1.45;
 }
 .followup-chip-stack {
   display: grid;
@@ -2495,10 +2462,32 @@ footer {
   border-radius: 8px;
   text-align: left;
 }
+.dimension-chip-bubble,
+.review-action-bubble,
+.followup-chip-bubble {
+  padding: 24px 26px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--card);
+  box-shadow: none;
+}
+.glance-bubble,
+.finding-bubble,
+.audit-bubble {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .audit-source-excerpts {
   display: grid;
   gap: .55rem;
-  margin-top: var(--space-1);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
 }
 .audit-source-excerpts h4 {
   margin: 0;
@@ -2506,9 +2495,30 @@ footer {
 .audit-source-excerpts blockquote {
   margin: 0;
   padding: .75rem;
-  border-left: 3px solid var(--line);
-  background: #f9fafb;
+  border-left: 3px solid var(--pink);
+  background: #f6f4ed;
   color: var(--muted);
+}
+.audit-detail {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding: 24px 26px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--card);
+}
+.audit-detail > summary {
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-family: var(--sans);
+  font-weight: 800;
+  line-height: 1.4;
+}
+.audit-detail[open] > summary {
+  padding-bottom: .75rem;
+  border-bottom: 1px solid var(--line);
 }
 .audit-topic-list {
   display: grid;
@@ -2870,22 +2880,6 @@ footer {
   align-items: center;
   flex-wrap: wrap;
 }
-.notice-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 1px solid #463f39;
-  border-radius: 8px;
-  background: transparent;
-  color: #ece5df;
-  font-size: 1.05rem;
-}
-.notice-button:hover {
-  background: transparent;
-}
 .chat-topbar .locale-toggle button {
   min-width: 56px;
   border: 1px solid #463f39;
@@ -2906,23 +2900,7 @@ footer {
   color: var(--muted);
   font-family: var(--sans);
   font-size: .72rem;
-}
-.notice-panel {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: var(--space-2) clamp(1rem, 4vw, 2rem);
-  background: var(--card);
-  border-bottom: 1px solid var(--line);
-  font-family: var(--sans);
-}
-.notice-panel[hidden] {
-  display: none;
-}
-.notice-list {
-  display: grid;
-  gap: .4rem;
-  margin: .75rem 0 0;
-  padding-left: 1.15rem;
+  line-height: 1.5;
 }
 .chat {
   flex: 1 1 auto;
@@ -2996,6 +2974,7 @@ footer {
   animation-delay: calc(var(--result-index, 0) * 70ms);
 }
 .result-sequence-msg .bubble {
+  width: min(100%, var(--bubble-max));
   max-width: min(100%, var(--bubble-max));
 }
 @keyframes fink-result-message-in {
@@ -3162,49 +3141,92 @@ footer {
   background: transparent;
   box-shadow: none;
 }
-.file-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  font-weight: 700;
-  min-width: 0;
-}
-.file-chip span {
-  overflow-wrap: anywhere;
-}
 .user-attachment-stack {
   display: grid;
   gap: .5rem;
 }
+.user-attachment-thumbs {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
 .user-attachment-thumb,
-.attachment-thumbnail {
+.attachment-thumbnail,
+.attachment-file-tile {
   width: 3rem;
   height: 3rem;
   border: 1px solid var(--line);
   border-radius: 6px;
-  object-fit: cover;
   background: #fff;
+}
+.user-attachment-thumb,
+.attachment-thumbnail {
+  object-fit: cover;
+}
+.attachment-file-tile {
+  display: inline-grid;
+  place-items: center;
+  color: var(--muted);
+}
+.attachment-file-tile svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 .attachment-preview {
   order: -1;
   flex: 1 0 100%;
   min-width: 0;
 }
-.attachment-card {
+.attachment-preview-grid {
   display: flex;
+  gap: .55rem;
+  flex-wrap: wrap;
   align-items: center;
-  gap: .5rem;
+}
+.attachment-card {
+  position: relative;
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
   min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  overflow: visible;
+}
+.attachment-card .attachment-thumbnail,
+.attachment-card .attachment-file-tile {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 7px;
 }
 .attachment-remove-button {
-  flex: 0 0 auto;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
+  position: absolute;
+  top: -.45rem;
+  right: -.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
   padding: 0;
   border-color: var(--line);
   background: #fff;
   color: var(--ink);
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: .95rem;
+  line-height: 1;
 }
 .chip-row {
   display: flex;
@@ -3429,7 +3451,6 @@ footer {
   .chat-title .subtitle { display: none; }
   .chat-topbar-actions { flex: 0 0 auto; flex-wrap: nowrap; gap: .4rem; }
   .chat-topbar .locale-toggle button { min-width: 46px; padding: 6px 10px; }
-  .notice-button { min-width: 40px; height: 40px; }
   .review-signal-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3440,6 +3461,16 @@ footer {
     min-height: 3.35rem;
     padding-inline: .35rem;
     font-size: .72rem;
+  }
+  .dimension-chip-bubble,
+  .review-action-bubble,
+  .followup-chip-bubble,
+  .audit-detail,
+  .finding-line {
+    padding: 20px 18px;
+  }
+  .result-chip-row {
+    grid-template-columns: minmax(0, 1fr);
   }
   .inline-brief-document {
     padding: var(--space-1);
@@ -3509,7 +3540,8 @@ _APP_JS = r"""(function () {
   var lastResultPayload = null;
   var lastReviewBriefItem = null;
   var lastSubmittedAssumptions = {};
-  var attachmentPreviewUrl = "";
+  var attachedFiles = [];
+  var nextAttachmentId = 1;
   var ANALYSIS_STAGE_LABELS = [
     { ko: "계약서 읽는 중", en: "Reading the contract" },
     { ko: "조항 나누는 중", en: "Splitting clauses" },
@@ -3633,16 +3665,6 @@ _APP_JS = r"""(function () {
     return wrap;
   }
 
-  function paperclipIcon() {
-    var source = document.querySelector(".paperclip-icon");
-    if (source && source.cloneNode) {
-      return source.cloneNode(true);
-    }
-    var fallback = el("span", null, "file");
-    fallback.setAttribute("aria-hidden", "true");
-    return fallback;
-  }
-
   function createFileObjectUrl(file) {
     if (!file || !window.URL || !window.URL.createObjectURL) {
       return "";
@@ -3656,9 +3678,17 @@ _APP_JS = r"""(function () {
     }
   }
 
-  function revokeAttachmentPreviewUrl() {
-    revokeObjectUrl(attachmentPreviewUrl);
-    attachmentPreviewUrl = "";
+  function revokeAttachmentRecord(record) {
+    if (!record) {
+      return;
+    }
+    revokeObjectUrl(record.previewUrl);
+    record.previewUrl = "";
+  }
+
+  function clearAttachmentRecords() {
+    attachedFiles.forEach(revokeAttachmentRecord);
+    attachedFiles = [];
   }
 
   function isImageUpload(file) {
@@ -3670,18 +3700,10 @@ _APP_JS = r"""(function () {
     return type.indexOf("image/") === 0 || /\.(png|jpe?g|webp|heic|heif)$/.test(name);
   }
 
-  function fileChip(fileName) {
-    var chip = el("span", "file-chip", null);
-    chip.setAttribute("data-file-chip", "true");
-    chip.appendChild(paperclipIcon());
-    chip.appendChild(el("span", null, text(fileName || "첨부 파일")));
-    return chip;
-  }
-
   function attachmentImage(src, className, fileName, revokeAfterLoad) {
     var image = el("img", className, null);
     image.src = src;
-    image.alt = text(fileName || "첨부 이미지");
+    image.alt = text(fileName || "첨부 이미지 / Attached image");
     image.loading = "lazy";
     if (revokeAfterLoad) {
       image.addEventListener("load", function () {
@@ -3692,6 +3714,19 @@ _APP_JS = r"""(function () {
       });
     }
     return image;
+  }
+
+  function fileTile(className) {
+    var tile = el("span", className || "attachment-file-tile", null);
+    tile.setAttribute("aria-label", "첨부 파일 / Attached file");
+    tile.innerHTML =
+      '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">' +
+      '<path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"></path>' +
+      '<path d="M14 2v5h5"></path>' +
+      '<path d="M9 13h6"></path>' +
+      '<path d="M9 17h4"></path>' +
+      '</svg>';
+    return tile;
   }
 
   function creatorStatusLabel(status) {
@@ -5220,17 +5255,23 @@ _APP_JS = r"""(function () {
     var bubble = el("div", "bubble", null);
     if (isFile) {
       var stack = el("div", "user-attachment-stack", null);
-      if (options.imageUrl) {
-        stack.appendChild(
-          attachmentImage(
-            options.imageUrl,
-            "user-attachment-thumb",
-            options.fileName || content,
-            true
-          )
-        );
+      var thumbs = el("div", "user-attachment-thumbs", null);
+      var files = options.files || [];
+      files.forEach(function (file) {
+        if (isImageUpload(file)) {
+          var url = createFileObjectUrl(file);
+          if (url) {
+            thumbs.appendChild(
+              attachmentImage(url, "user-attachment-thumb", "첨부 이미지 / Attached image", true)
+            );
+            return;
+          }
+        }
+        thumbs.appendChild(fileTile("attachment-file-tile user-attachment-thumb"));
+      });
+      if (thumbs.childNodes.length > 0) {
+        stack.appendChild(thumbs);
       }
-      stack.appendChild(fileChip(options.fileName || content || "첨부 파일"));
       if (content && text(content).trim() !== "") {
         stack.appendChild(el("p", "bubble-text", text(content)));
       }
@@ -5511,12 +5552,10 @@ _APP_JS = r"""(function () {
     return "scenario_inputs";
   }
 
-  function selectedFile() {
-    var input = document.getElementById("contract-file");
-    if (!input || !input.files || input.files.length === 0) {
-      return null;
-    }
-    return input.files[0];
+  function selectedFiles() {
+    return attachedFiles.map(function (record) {
+      return record.file;
+    }).filter(Boolean);
   }
 
   function attachmentPreviewElement() {
@@ -5529,42 +5568,75 @@ _APP_JS = r"""(function () {
       return;
     }
     clearNode(container);
-    var file = selectedFile();
-    if (!file) {
+    if (attachedFiles.length === 0) {
       container.hidden = true;
       return;
     }
     container.hidden = false;
-    var card = el("div", "attachment-card", null);
-    if (isImageUpload(file) && attachmentPreviewUrl) {
-      card.appendChild(
-        attachmentImage(attachmentPreviewUrl, "attachment-thumbnail", file.name, false)
-      );
-    }
-    card.appendChild(fileChip(file.name || "첨부 파일"));
-    var remove = el("button", "attachment-remove-button", "x");
-    remove.type = "button";
-    remove.setAttribute("data-clear-attachment", "true");
-    remove.setAttribute("aria-label", "첨부 파일 제거 / Remove attachment");
-    card.appendChild(remove);
-    container.appendChild(card);
+    var grid = el("div", "attachment-preview-grid", null);
+    attachedFiles.forEach(function (record) {
+      var card = el("div", "attachment-card", null);
+      card.setAttribute("data-attachment-tile", "true");
+      if (isImageUpload(record.file) && record.previewUrl) {
+        card.appendChild(
+          attachmentImage(
+            record.previewUrl,
+            "attachment-thumbnail",
+            "첨부 이미지 / Attached image",
+            false
+          )
+        );
+      } else {
+        card.appendChild(fileTile("attachment-file-tile"));
+      }
+      var remove = el("button", "attachment-remove-button", "×");
+      remove.type = "button";
+      remove.setAttribute("data-remove-attachment", String(record.id));
+      remove.setAttribute("data-clear-attachment", "true");
+      remove.setAttribute("aria-label", "첨부 파일 제거 / Remove attachment");
+      card.appendChild(remove);
+      grid.appendChild(card);
+    });
+    container.appendChild(grid);
   }
 
   function updateAttachmentPreviewForSelection() {
-    revokeAttachmentPreviewUrl();
-    var file = selectedFile();
-    if (file && isImageUpload(file)) {
-      attachmentPreviewUrl = createFileObjectUrl(file);
+    var input = document.getElementById("contract-file");
+    var picked = input && input.files ? Array.prototype.slice.call(input.files) : [];
+    picked.forEach(function (file) {
+      attachedFiles.push({
+        id: nextAttachmentId,
+        file: file,
+        previewUrl: isImageUpload(file) ? createFileObjectUrl(file) : ""
+      });
+      nextAttachmentId += 1;
+    });
+    if (input) {
+      input.value = "";
     }
     renderAttachmentPreview();
   }
 
-  function clearSelectedAttachment() {
+  function removeAttachmentById(id) {
+    var wanted = String(id);
+    var next = [];
+    attachedFiles.forEach(function (record) {
+      if (String(record.id) === wanted) {
+        revokeAttachmentRecord(record);
+      } else {
+        next.push(record);
+      }
+    });
+    attachedFiles = next;
+    renderAttachmentPreview();
+  }
+
+  function clearSelectedAttachments() {
     var input = document.getElementById("contract-file");
     if (input) {
       input.value = "";
     }
-    revokeAttachmentPreviewUrl();
+    clearAttachmentRecords();
     renderAttachmentPreview();
   }
 
@@ -5588,8 +5660,12 @@ _APP_JS = r"""(function () {
     };
   }
 
-  function isOcrReadFailure(data, file) {
-    if (!isImageOrPdfUpload(file)) {
+  function isOcrReadFailure(data, files) {
+    files = files || [];
+    var hasImageOrPdf = files.some(function (file) {
+      return isImageOrPdfUpload(file);
+    });
+    if (!hasImageOrPdf) {
       return false;
     }
     var code = text(data && data.error_code);
@@ -5622,15 +5698,18 @@ _APP_JS = r"""(function () {
     }
   }
 
-  function buildAnalyzeRequest(pasteText, file, options) {
+  function buildAnalyzeRequest(pasteText, files, options) {
     options = options || {};
+    files = files || [];
     var assumptions = collectAssumptions();
     var changedInput = options.scenarioRecompute
       ? firstChangedAssumption(lastSubmittedAssumptions, assumptions)
       : "";
-    if (file) {
+    if (files.length > 0) {
       var form = new FormData();
-      form.append("contract_file", file);
+      files.forEach(function (file) {
+        form.append("contract_file", file);
+      });
       form.append("locale", activeLocale());
       form.append("assumptions", JSON.stringify(assumptions));
       if (options.scenarioRecompute) {
@@ -5677,11 +5756,11 @@ _APP_JS = r"""(function () {
       return;
     }
     var pasteText = box.value;
-    var file = selectedFile();
-    if ((!pasteText || pasteText.trim() === "") && !file) {
+    var files = selectedFiles();
+    if ((!pasteText || pasteText.trim() === "") && files.length === 0) {
       statusMessage({
-        ko: "먼저 계약 텍스트를 입력하거나 파일 하나를 선택하세요.",
-        en: "Enter contract text or choose one file first."
+        ko: "먼저 계약 텍스트를 입력하거나 파일을 선택하세요.",
+        en: "Enter contract text or choose file(s) first."
       });
       return;
     }
@@ -5694,13 +5773,12 @@ _APP_JS = r"""(function () {
     } else {
       // Echo the creator's turn as a user bubble before sending, then clear the
       // composer so it behaves like a chat input.
-      if (file) {
+      if (files.length > 0) {
         appendUserMessage(pasteText, true, {
-          fileName: file.name || "첨부 파일",
-          imageUrl: isImageUpload(file) ? createFileObjectUrl(file) : ""
+          files: files
         });
         box.value = "";
-        clearSelectedAttachment();
+        clearSelectedAttachments();
         autoGrowComposer();
       } else {
         appendUserMessage(pasteText, false);
@@ -5711,7 +5789,7 @@ _APP_JS = r"""(function () {
       statusMessage({ ko: "로컬에서 분석 중입니다.", en: "Analyzing locally." });
     }
     setAnalyzeBusy(true);
-    var request = buildAnalyzeRequest(pasteText, file, options);
+    var request = buildAnalyzeRequest(pasteText, files, options);
     fetch("/api/analyze", {
       method: "POST",
       headers: request.headers,
@@ -5724,7 +5802,7 @@ _APP_JS = r"""(function () {
       })
       .then(function (result) {
         if (!result.ok) {
-          var errorPair = isOcrReadFailure(result.data, file)
+          var errorPair = isOcrReadFailure(result.data, files)
             ? ocrReadFailureMessage()
             : {
                 ko: result.data && result.data.error ? result.data.error : "분석에 실패했습니다.",
@@ -5755,7 +5833,7 @@ _APP_JS = r"""(function () {
         }
         lastResultPayload = result.data;
         if (!options.scenarioRecompute) {
-          analyzedContractText = !file && pasteText && pasteText.trim() !== "" ? pasteText : "";
+          analyzedContractText = files.length === 0 && pasteText && pasteText.trim() !== "" ? pasteText : "";
         }
         lastSubmittedAssumptions = request.assumptions;
       })
@@ -5861,7 +5939,7 @@ _APP_JS = r"""(function () {
   }
 
   function submitComposer() {
-    if (lastResultPayload && !selectedFile()) {
+    if (lastResultPayload && selectedFiles().length === 0) {
       var box = document.getElementById("paste-box");
       submitFollowUpQuestion(box ? box.value : "", { clearComposer: true });
       return;
@@ -5874,7 +5952,7 @@ _APP_JS = r"""(function () {
     if (box) {
       box.value = "";
     }
-    clearSelectedAttachment();
+    clearSelectedAttachments();
     var container = document.getElementById("result");
     if (container) {
       clearNode(container);
@@ -5913,24 +5991,13 @@ _APP_JS = r"""(function () {
     if (!box) {
       return;
     }
-    clearSelectedAttachment();
+    clearSelectedAttachments();
     box.value =
       activeLocale() === "en"
         ? "Section 3 (Settlement) Payment is made within 90 days after the end of each quarter; the company may deduct general expenses."
         : "제3조(정산) 정산은 매 분기 종료일로부터 90일 이내에 지급하며, 회사는 일반 경비를 공제할 수 있다.";
     autoGrowComposer();
     analyze();
-  }
-
-  function toggleNotice() {
-    var button = document.querySelector("[data-notice-toggle]");
-    var panel = document.getElementById("notice-panel");
-    if (!button || !panel) {
-      return;
-    }
-    var open = panel.hidden;
-    panel.hidden = !open;
-    button.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
   function init() {
@@ -5966,10 +6033,6 @@ _APP_JS = r"""(function () {
       if (!target || !target.closest) {
         return;
       }
-      var noticeButton = target.closest("[data-notice-toggle]");
-      if (noticeButton) {
-        toggleNotice();
-      }
       var exampleChip = target.closest("[data-example-chip]");
       if (exampleChip) {
         event.preventDefault();
@@ -5978,7 +6041,7 @@ _APP_JS = r"""(function () {
       var clearAttachmentButton = target.closest("[data-clear-attachment]");
       if (clearAttachmentButton) {
         event.preventDefault();
-        clearSelectedAttachment();
+        removeAttachmentById(clearAttachmentButton.getAttribute("data-remove-attachment"));
       }
       var followUpChip = target.closest("[data-followup-chip]");
       if (followUpChip) {
@@ -6007,11 +6070,12 @@ _APP_JS = r"""(function () {
       }
       var picked = target.closest("[data-file-input]");
       if (picked) {
+        var pickedCount = picked.files ? picked.files.length : 0;
         updateAttachmentPreviewForSelection();
-        if (picked.files && picked.files.length > 0) {
+        if (pickedCount > 0) {
           statusMessage({
             ko: "첨부 파일을 추가했습니다. 필요한 문구를 더 입력한 뒤 보내세요.",
-            en: "File attached. Add any needed text, then send."
+            en: "File(s) attached. Add any needed text, then send."
           });
         }
       }

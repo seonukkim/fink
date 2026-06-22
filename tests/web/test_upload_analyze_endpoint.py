@@ -60,6 +60,7 @@ def _multipart_body(
     filename: str | None = None,
     content_type: str = "text/plain",
     data: bytes | None = None,
+    files: tuple[tuple[str, str, str, bytes], ...] | None = None,
 ) -> tuple[bytes, dict[str, str]]:
     boundary = "----fink-test-boundary"
     chunks: list[bytes] = []
@@ -72,16 +73,19 @@ def _multipart_body(
                 b"\r\n",
             ]
         )
-    if filename is not None and data is not None:
+    file_parts = files
+    if file_parts is None and filename is not None and data is not None:
+        file_parts = ((file_field, filename, content_type, data),)
+    for current_field, current_filename, current_content_type, current_data in file_parts or ():
         chunks.extend(
             [
                 f"--{boundary}\r\n".encode("ascii"),
                 (
-                    f'Content-Disposition: form-data; name="{file_field}"; '
-                    f'filename="{filename}"\r\n'
+                    f'Content-Disposition: form-data; name="{current_field}"; '
+                    f'filename="{current_filename}"\r\n'
                 ).encode("utf-8"),
-                f"Content-Type: {content_type}\r\n\r\n".encode("ascii"),
-                data,
+                f"Content-Type: {current_content_type}\r\n\r\n".encode("ascii"),
+                current_data,
                 b"\r\n",
             ]
         )
@@ -278,6 +282,37 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
         self.assertIn("정산 자료", rendered)
         self.assertIn("지급시기는 회사가 추후 정하는 일정", rendered)
         self.assertGreaterEqual(payload["audit_detail"]["signal_count"], 2)
+
+    def test_multiple_text_files_and_paste_merge_into_one_analysis(self) -> None:
+        paste_text = "제1조(정산) 정산 자료와 감사권은 제공하지 않는다."
+        first_file = "제2조(지급) 지급시기는 회사가 추후 정하는 일정에 따른다."
+        second_file = "Article 3 Revenue share 40% Payment due 30 days."
+        body, headers = _multipart_body(
+            fields={"locale": "ko", "paste_text": paste_text},
+            files=(
+                (
+                    "contract_file",
+                    "first-contract.txt",
+                    "text/plain",
+                    first_file.encode("utf-8"),
+                ),
+                (
+                    "contract_file",
+                    "second-contract.txt",
+                    "text/plain",
+                    second_file.encode("utf-8"),
+                ),
+            ),
+        )
+        status, _, payload = asyncio.run(_asgi_post(_fallback_app(), body, headers))
+        self.assertEqual(status, 200)
+        rendered = json.dumps(payload, ensure_ascii=False)
+        self.assertIn("정산 자료", rendered)
+        self.assertIn("지급시기는 회사가 추후 정하는 일정", rendered)
+        self.assertIn("Payment due 30 days", rendered)
+        self.assertGreaterEqual(payload["audit_detail"]["clause_count"], 3)
+        self.assertNotIn("first-contract", repr(payload))
+        self.assertNotIn("second-contract", repr(payload))
 
     def test_upload_validation_errors_are_structured_and_sanitized(self) -> None:
         cases = (

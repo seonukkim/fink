@@ -41,7 +41,11 @@ class UploadedAnalyzeFile:
 @dataclass(frozen=True)
 class MultipartAnalyzeRequest:
     fields: dict[str, str]
-    file: UploadedAnalyzeFile | None
+    files: tuple[UploadedAnalyzeFile, ...] = ()
+
+    @property
+    def file(self) -> UploadedAnalyzeFile | None:
+        return self.files[0] if self.files else None
 
 
 @dataclass(frozen=True)
@@ -108,7 +112,7 @@ def parse_multipart_analyze_request(
         raise _request_invalid_error()
 
     fields: dict[str, str] = {}
-    upload: UploadedAnalyzeFile | None = None
+    uploads: list[UploadedAnalyzeFile] = []
     for part in message.iter_parts():
         disposition = part.get("Content-Disposition", "")
         if "form-data" not in disposition:
@@ -121,15 +125,15 @@ def parse_multipart_analyze_request(
         if filename is None:
             fields[name] = _decode_form_value(payload, part.get_content_charset())
             continue
-        if upload is not None:
-            raise _unsupported_error()
-        upload = UploadedAnalyzeFile(
-            field_name=str(name),
-            filename=str(filename),
-            content_type=part.get_content_type(),
-            data=payload,
+        uploads.append(
+            UploadedAnalyzeFile(
+                field_name=str(name),
+                filename=str(filename),
+                content_type=part.get_content_type(),
+                data=payload,
+            )
         )
-    return MultipartAnalyzeRequest(fields=fields, file=upload)
+    return MultipartAnalyzeRequest(fields=fields, files=tuple(uploads))
 
 
 def assumptions_from_multipart_fields(fields: dict[str, str]) -> Any:
@@ -157,13 +161,18 @@ def analyze_multipart_request(
 ) -> dict[str, Any]:
     paste_text = request.fields.get("paste_text") or ""
     has_paste = bool(paste_text.strip())
-    upload = request.file
-    has_file = upload is not None and bool(upload.data)
+    uploads = request.files
 
-    if has_paste and has_file:
-        assert upload is not None
-        recovered = _recover_upload_text(upload, ui_locale=ui_locale, allow_empty=True)
-        combined_text = _combine_paste_and_upload_text(paste_text, recovered.text)
+    if uploads and (has_paste or len(uploads) > 1):
+        recovered_texts = [
+            _recover_upload_text(
+                upload,
+                ui_locale=ui_locale,
+                allow_empty=has_paste,
+            ).text
+            for upload in uploads
+        ]
+        combined_text = _combine_paste_and_upload_text(paste_text, *recovered_texts)
         result = run_local_analysis(
             pasted_text=combined_text,
             scenario_inputs=scenario_inputs,
@@ -177,9 +186,9 @@ def analyze_multipart_request(
             ui_locale=ui_locale,
         )
         return analysis_result_to_payload(result, ui_locale)
-    if upload is None:
+    if not uploads:
         raise _empty_input_error()
-    return _analyze_upload(upload, scenario_inputs=scenario_inputs, ui_locale=ui_locale)
+    return _analyze_upload(uploads[0], scenario_inputs=scenario_inputs, ui_locale=ui_locale)
 
 
 def _analyze_upload(
@@ -270,8 +279,8 @@ def _recover_upload_text(
             return RecoveredUploadText(text=text, ingested=ingested)
 
 
-def _combine_paste_and_upload_text(paste_text: str, upload_text: str) -> str:
-    parts = [part.strip() for part in (paste_text, upload_text) if part.strip()]
+def _combine_paste_and_upload_text(paste_text: str, *upload_texts: str) -> str:
+    parts = [part.strip() for part in (paste_text, *upload_texts) if part.strip()]
     return "\n\n".join(parts)
 
 
@@ -519,8 +528,8 @@ def _empty_input_error() -> AnalyzeRequestError:
         validation_status="rejected_empty",
         message_ko="분석할 계약 텍스트 또는 파일이 없습니다.",
         message_en="No contract text or file was supplied.",
-        action_ko="계약 텍스트를 붙여넣거나 지원되는 파일 하나를 선택하세요.",
-        action_en="Paste contract text or choose one supported file.",
+        action_ko="계약 텍스트를 붙여넣거나 지원되는 파일을 선택하세요.",
+        action_en="Paste contract text or choose supported file(s).",
     )
 
 
@@ -558,8 +567,8 @@ def _unsupported_error() -> AnalyzeRequestError:
         validation_status=ValidationStatus.REJECTED_UNSUPPORTED.value,
         message_ko="지원하지 않는 파일 형식입니다.",
         message_en="Unsupported file type.",
-        action_ko="txt, PDF, PNG, JPG, WEBP, HEIC 파일 중 하나를 선택하세요.",
-        action_en="Choose one txt, PDF, PNG, JPG, WEBP, or HEIC file.",
+        action_ko="txt, PDF, PNG, JPG, WEBP, HEIC 파일을 선택하세요.",
+        action_en="Choose txt, PDF, PNG, JPG, WEBP, or HEIC file(s).",
     )
 
 
