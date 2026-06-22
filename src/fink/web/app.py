@@ -2374,7 +2374,9 @@ footer {
   #analyze-btn,
   #contract-file,
   .reader-jump-links,
-  .reader-back-link {
+  .reader-back-link,
+  .review-brief-launcher,
+  .review-brief-actions {
     display: none !important;
   }
   details,
@@ -2698,6 +2700,35 @@ footer {
   display: grid;
   gap: var(--space-1);
 }
+.review-brief-launcher {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0 0 var(--space-1);
+}
+.review-brief-button {
+  width: fit-content;
+}
+.review-brief-panel {
+  display: grid;
+  gap: var(--space-1);
+  max-width: var(--reading-measure);
+}
+.review-brief-panel h3 {
+  margin: 0;
+}
+.review-brief-body {
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #fbfcfe;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: .95rem;
+  line-height: 1.65;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
 .composer {
   display: flex;
   gap: .5rem;
@@ -2808,6 +2839,7 @@ _APP_JS = r"""(function () {
   var chatInFlight = false;
   var analyzedContractText = "";
   var lastResultPayload = null;
+  var lastReviewBriefItem = null;
   var lastSubmittedAssumptions = {};
   var qaCheckState = {};
   var ANALYSIS_STAGE_LABELS = [
@@ -2898,6 +2930,14 @@ _APP_JS = r"""(function () {
       return "";
     }
     return text(pair[activeLocale()] || pair.ko || pair.en);
+  }
+
+  function localizedFor(pair, locale) {
+    if (!pair) {
+      return "";
+    }
+    locale = normalizeLocale(locale);
+    return text(pair[locale] || pair.ko || pair.en);
   }
 
   function bilingual(tag, className, pair) {
@@ -3872,6 +3912,272 @@ _APP_JS = r"""(function () {
     };
   }
 
+  function formatBriefDate(locale) {
+    var date = new Date();
+    var tag = normalizeLocale(locale) === "en" ? "en-US" : "ko-KR";
+    try {
+      return date.toLocaleDateString(tag, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      });
+    } catch (error) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+
+  function reviewBriefFilename() {
+    return "fink-review-brief-" + new Date().toISOString().slice(0, 10) + ".md";
+  }
+
+  function briefEvidenceLine(finding, locale) {
+    var evidence = (finding && finding.evidence) || {};
+    var ids = evidence.grounding_evidence_ids || [];
+    var count = ids.length;
+    if (normalizeLocale(locale) === "en") {
+      return count + " official source item(s)";
+    }
+    return "공식 자료 " + count + "건";
+  }
+
+  function briefClauseLabel(finding, index, locale) {
+    var source = (finding && finding.source) || {};
+    var order = clauseOrderValue(finding || {});
+    var clauseId = text(source.clause_id || (finding && finding.clause_id)).trim();
+    if (order != null && clauseId.toLowerCase().indexOf("clause") !== -1) {
+      return normalizeLocale(locale) === "en" ? "Clause " + order : "조항 " + order;
+    }
+    if (clauseId) {
+      return clauseId;
+    }
+    return normalizeLocale(locale) === "en"
+      ? "Item " + (index + 1)
+      : "확인 항목 " + (index + 1);
+  }
+
+  function briefFindingTitle(finding, index, locale) {
+    var title = localizedFor(finding && finding.title, locale).trim();
+    if (title) {
+      return title;
+    }
+    return briefClauseLabel(finding, index, locale);
+  }
+
+  function briefField(pair, locale, fallbackPair) {
+    var value = localizedFor(pair, locale).trim();
+    if (value) {
+      return value;
+    }
+    return localizedFor(fallbackPair, locale);
+  }
+
+  function buildReviewBriefText(payload, locale) {
+    locale = normalizeLocale(locale);
+    var isEnglish = locale === "en";
+    var findings = (payload && payload.findings) || [];
+    var findingCount = findings.length;
+    var lines = [
+      isEnglish ? "# FInk Review Brief" : "# FInk 검토 의견서",
+      "",
+      (isEnglish ? "Date: " : "작성일: ") + formatBriefDate(locale),
+      "",
+      isEnglish
+        ? "This review brief organizes points to support a signing decision and is not legal advice."
+        : "이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.",
+      "",
+      isEnglish ? "## Overall" : "## 전체 정리",
+      "- " + localizedFor(recommendationActionPair(payload), locale),
+      "- " + localizedFor(reviewEffortChipPair(payload, findingCount), locale),
+      "- " + localizedFor(itemCountPair(findingCount), locale),
+      "",
+      isEnglish ? "## Findings" : "## 확인할 항목"
+    ];
+
+    if (findings.length === 0) {
+      lines.push(
+        isEnglish
+          ? "No individual finding is listed. Still confirm payment, term, and termination terms."
+          : "개별 확인 항목이 없습니다. 지급, 기간, 해지 조건은 직접 확인하세요."
+      );
+    }
+
+    findings.forEach(function (finding, index) {
+      lines.push((index + 1) + ". " + briefFindingTitle(finding, index, locale));
+      lines.push(
+        "   - " + (isEnglish ? "Clause: " : "조항: ") + briefClauseLabel(finding, index, locale)
+      );
+      lines.push(
+        "   - " +
+          (isEnglish ? "Why it matters: " : "왜 중요한지: ") +
+          briefField(finding && finding.why_it_matters, locale, {
+            ko: "서명 전 확인할 현금흐름 조건입니다.",
+            en: "This is a cash-flow term to confirm before signing."
+          })
+      );
+      lines.push(
+        "   - " +
+          (isEnglish ? "Question to confirm or negotiate: " : "확인·협상 질문: ") +
+          briefField(finding && finding.question_to_ask, locale, {
+            ko: "이 조건을 계약서에 어떻게 명확히 적을 수 있나요?",
+            en: "How can this term be written clearly in the contract?"
+          })
+      );
+      lines.push(
+        "   - " + (isEnglish ? "Evidence: " : "근거: ") + briefEvidenceLine(finding, locale)
+      );
+    });
+
+    lines.push(
+      "",
+      isEnglish ? "## Closing" : "## 마무리",
+      isEnglish
+        ? "Confirm important decisions with a professional."
+        : "중요한 결정 전에는 전문가 확인을 권합니다."
+    );
+    return lines.join("\n") + "\n";
+  }
+
+  function buildReviewBriefPair(payload) {
+    return {
+      ko: buildReviewBriefText(payload, "ko"),
+      en: buildReviewBriefText(payload, "en")
+    };
+  }
+
+  function renderReviewBriefAction(container) {
+    var action = el("section", "review-brief-launcher", null);
+    action.setAttribute("data-review-brief-launcher", "true");
+    var button = el("button", "secondary review-brief-button", null);
+    button.type = "button";
+    button.setAttribute("data-make-review-brief", "true");
+    button.setAttribute("aria-label", "의견서 만들기 / Make a review brief");
+    button.appendChild(
+      bilingual("span", null, {
+        ko: "의견서 만들기",
+        en: "Make a review brief"
+      })
+    );
+    action.appendChild(button);
+    container.appendChild(action);
+  }
+
+  function removeReviewBriefBubble() {
+    if (lastReviewBriefItem && lastReviewBriefItem.parentNode) {
+      lastReviewBriefItem.parentNode.removeChild(lastReviewBriefItem);
+    }
+    lastReviewBriefItem = null;
+  }
+
+  function reviewBriefBodyNode(panel) {
+    if (!panel) {
+      return null;
+    }
+    return (
+      panel.querySelector('[data-review-brief-body="' + activeLocale() + '"]') ||
+      panel.querySelector("[data-review-brief-body]")
+    );
+  }
+
+  function activeReviewBriefText(panel) {
+    var body = reviewBriefBodyNode(panel);
+    return body ? text(body.textContent) : "";
+  }
+
+  function briefStatusMessage(pair) {
+    var regions = document.querySelectorAll("[data-review-brief-status-region]");
+    regions.forEach(function (region) {
+      clearNode(region);
+      region.appendChild(bilingual("span", null, pair));
+    });
+    statusMessage(pair);
+  }
+
+  function renderReviewBriefPanel(payload) {
+    var brief = buildReviewBriefPair(payload);
+    var panel = el("section", "review-brief-panel", null);
+    panel.setAttribute("data-review-brief-panel", "true");
+    panel.setAttribute("aria-labelledby", "review-brief-heading");
+    var heading = bilingual("h3", null, {
+      ko: "검토 의견서",
+      en: "Review brief"
+    });
+    heading.id = "review-brief-heading";
+    panel.appendChild(heading);
+
+    var actions = el("div", "action-row review-brief-actions", null);
+    actions.setAttribute("role", "group");
+    actions.setAttribute("aria-label", "의견서 작업 / Review brief actions");
+
+    var copy = el("button", "secondary", null);
+    copy.type = "button";
+    copy.setAttribute("data-copy-review-brief", "true");
+    copy.setAttribute("aria-label", "의견서 복사 / Copy review brief");
+    copy.appendChild(bilingual("span", null, { ko: "복사", en: "Copy" }));
+    actions.appendChild(copy);
+
+    var download = el("button", "secondary", null);
+    download.type = "button";
+    download.setAttribute("data-download-review-brief", "markdown");
+    download.setAttribute("data-export-filename", reviewBriefFilename());
+    download.setAttribute("aria-label", "의견서 Markdown 다운로드 / Download review brief Markdown");
+    download.appendChild(
+      bilingual("span", null, {
+        ko: "다운로드 (.md)",
+        en: "Download (.md)"
+      })
+    );
+    actions.appendChild(download);
+    panel.appendChild(actions);
+
+    var ko = el("pre", "review-brief-body", brief.ko);
+    ko.setAttribute("lang", "ko");
+    ko.setAttribute("data-locale-text", "ko");
+    ko.setAttribute("data-review-brief-body", "ko");
+    panel.appendChild(ko);
+
+    var en = el("pre", "review-brief-body", brief.en);
+    en.setAttribute("lang", "en");
+    en.setAttribute("data-locale-text", "en");
+    en.setAttribute("data-review-brief-body", "en");
+    panel.appendChild(en);
+
+    var status = el("p", "sr-only", "");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("data-review-brief-status-region", "true");
+    panel.appendChild(status);
+    return panel;
+  }
+
+  function showReviewBrief() {
+    if (!lastResultPayload) {
+      appendBotMessage({
+        ko: "먼저 계약을 분석한 뒤 의견서를 만들 수 있습니다.",
+        en: "Analyze a contract first, then make a review brief."
+      });
+      statusMessage({
+        ko: "먼저 계약을 분석하세요.",
+        en: "Analyze a contract first."
+      });
+      return;
+    }
+    var thread = threadElement();
+    if (!thread) {
+      return;
+    }
+    removeReviewBriefBubble();
+    var item = el("li", "msg bot review-brief-msg", null);
+    item.setAttribute("data-message-role", "bot");
+    item.setAttribute("data-review-brief-message", "true");
+    var bubble = el("div", "bubble review-brief-bubble", null);
+    bubble.appendChild(renderReviewBriefPanel(lastResultPayload));
+    item.appendChild(bubble);
+    thread.appendChild(item);
+    lastReviewBriefItem = item;
+    setLocale(activeLocale());
+    scrollThreadToLatest(item);
+  }
+
   function renderIntegratedJudgmentCard(container, payload) {
     var findings = (payload && payload.findings) || [];
     var findingCount = findings.length;
@@ -4308,12 +4614,14 @@ _APP_JS = r"""(function () {
     }
     var bubble = revealResultMessage(targetItem);
     clearNode(container);
+    removeReviewBriefBubble();
     var heading = el("h2", "sr-only", null);
     heading.id = "result-heading";
     heading.appendChild(bilingual("span", null, { ko: "검토 결과", en: "Review result" }));
     container.appendChild(heading);
 
     renderIntegratedJudgmentCard(container, payload);
+    renderReviewBriefAction(container);
     renderSuggestedFollowUps(container, payload);
     container.appendChild(renderReaderShortcutNav());
 
@@ -4709,6 +5017,7 @@ _APP_JS = r"""(function () {
     if (resultMessage) {
       resultMessage.hidden = true;
     }
+    removeReviewBriefBubble();
     autoGrowComposer();
     analyzedContractText = "";
     lastResultPayload = null;
@@ -4790,10 +5099,7 @@ _APP_JS = r"""(function () {
     });
   }
 
-  function copyText(value, messagePair) {
-    function done() {
-      qaStatusMessage(messagePair);
-    }
+  function writeClipboardText(value, done) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(value).then(done).catch(function () {
         fallbackCopy(value);
@@ -4803,6 +5109,12 @@ _APP_JS = r"""(function () {
     }
     fallbackCopy(value);
     done();
+  }
+
+  function copyText(value, messagePair) {
+    writeClipboardText(value, function () {
+      qaStatusMessage(messagePair);
+    });
   }
 
   function qaStatusMessage(pair) {
@@ -4833,6 +5145,43 @@ _APP_JS = r"""(function () {
     qaStatusMessage({
       ko: "Q&A 파일을 만들었습니다.",
       en: "Q&A export created."
+    });
+  }
+
+  function copyReviewBrief(button) {
+    var panel = button.closest("[data-review-brief-panel]");
+    var value = activeReviewBriefText(panel);
+    if (!value) {
+      return;
+    }
+    writeClipboardText(value, function () {
+      briefStatusMessage({
+        ko: "의견서를 복사했습니다.",
+        en: "Review brief copied."
+      });
+    });
+  }
+
+  function downloadReviewBrief(button) {
+    var panel = button.closest("[data-review-brief-panel]");
+    var value = activeReviewBriefText(panel);
+    if (!value) {
+      return;
+    }
+    var filename = button.getAttribute("data-export-filename") || reviewBriefFilename();
+    var blob = new Blob([value], { type: "text/markdown;charset=utf-8" });
+    var link = document.createElement("a");
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    document.body.appendChild(link);
+    link.click();
+    window.setTimeout(function () {
+      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
+    }, 0);
+    briefStatusMessage({
+      ko: "의견서 파일을 만들었습니다.",
+      en: "Review brief download created."
     });
   }
 
@@ -4955,6 +5304,21 @@ _APP_JS = r"""(function () {
       var readerLink = target.closest("[data-source-nav], [data-reader-jump]");
       if (readerLink && activateReaderAnchor(readerLink)) {
         event.preventDefault();
+      }
+      var makeBriefButton = target.closest("[data-make-review-brief]");
+      if (makeBriefButton) {
+        event.preventDefault();
+        showReviewBrief();
+      }
+      var copyBriefButton = target.closest("[data-copy-review-brief]");
+      if (copyBriefButton) {
+        event.preventDefault();
+        copyReviewBrief(copyBriefButton);
+      }
+      var downloadBriefButton = target.closest("[data-download-review-brief]");
+      if (downloadBriefButton) {
+        event.preventDefault();
+        downloadReviewBrief(downloadBriefButton);
       }
       var copyButton = target.closest("[data-copy-question]");
       if (copyButton) {
