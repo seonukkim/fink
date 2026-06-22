@@ -92,15 +92,16 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("클라우드 OCR·원격 LLM을 사용하지 않습니다.", markup)
         self.assertNotIn("외부 검색", markup)
         self.assertNotIn("계약서와 OCR로 읽은 글자는 기기를 떠나지 않으며", markup)
-        self.assertIn("FInk은 금융 관련 조항을 먼저 확인할 순서로 정리합니다.", markup)
+        self.assertIn("계약서의 금융 관련 조항을 찾아 중요도를 매기고", markup)
         self.assertNotIn("검토 순서만 안내", markup)
-        self.assertIn("does not decide illegality, fraud, contract validity", markup)
-        self.assertIn("Review order and estimated amounts are not determinations", markup)
+        self.assertNotIn("먼저 확인할 순서로 정리합니다", markup)
+        self.assertIn("not a final legal judgment", markup)
+        self.assertIn("Estimated amounts are reference values based on your inputs", markup)
 
         # The report disclosures render bilingually: the Korean canonical line
         # leads and the English aid stays inside its locale span.
         self.assertIn(
-            "검토 순서·추정 금액은 판정이 아니며, 한국어가 기준입니다.",
+            "추정 금액은 입력 가정에 따른 참고치이며, 한국어가 기준입니다.",
             markup,
         )
 

@@ -33,27 +33,27 @@ PRIVACY_BANNER_KO = (
 # does NOT determine legality/fraud/validity/etc., so it stays clear of the
 # legal_verdict_scan BAD_LEGAL_ASSERTIONS patterns.
 NOT_LEGAL_ADVICE_BANNER = (
-    "FInk organizes financial clauses as a Contractual Financial Review "
-    "Priority. It does not decide illegality, fraud, contract validity, or "
-    "unfairness; confirm important decisions with a professional."
+    "FInk finds and prioritizes the financial clauses in a contract (a Contractual "
+    "Financial Review Priority) and organizes decision-support information, but it "
+    "is not a final legal judgment, so confirm important decisions with a professional."
 )
 NOT_LEGAL_ADVICE_BANNER_KO = (
-    "FInk은 금융 관련 조항을 먼저 확인할 순서로 정리합니다. 위법성·사기·"
-    "계약 효력·불공정 여부를 판정하지 않으니 중요한 결정은 전문가와 확인하세요."
+    "FInk은 계약서의 금융 관련 조항을 찾아 중요도를 매기고 결정에 필요한 정보를 "
+    "정리해 드리지만, 최종 법적 판단은 아니니 중요한 결정은 전문가와 확인하세요."
 )
 TRUSTED_LAN_WARNING = (
     "Trusted-LAN mode exposes this local server only to devices on the same private "
     "network. Use it only on a network you control, and stop the server when finished."
 )
 DISCLOSURE_ITEMS = (
-    "Review order and estimated amounts are not determinations; Korean is canonical.",
+    "Estimated amounts are reference values based on your inputs; Korean is canonical.",
 )
 # Korean-canonical / English-aid pairs for the report disclosures. The English
 # aid strings stay identical to DISCLOSURE_ITEMS so the privacy payload and the
 # a11y wording pins still match; the Korean line leads as the canonical text.
 DISCLOSURE_ITEMS_BILINGUAL = (
     {
-        "ko": "검토 순서·추정 금액은 판정이 아니며, 한국어가 기준입니다.",
+        "ko": "추정 금액은 입력 가정에 따른 참고치이며, 한국어가 기준입니다.",
         "en": DISCLOSURE_ITEMS[0],
     },
 )
