@@ -83,6 +83,7 @@ class GroundedContext:
     recommendation_cashflow: str = ""
     summary: str = ""
     findings: tuple[FindingBrief, ...] = ()
+    reference_checkpoints: tuple[str, ...] = ()
     professional_note: str = ""
 
 
@@ -219,6 +220,14 @@ def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
                 lines.append(f"   물어볼 말: {finding.questions[0]}")
             if finding.snippet:
                 lines.append(f"   조항: {finding.snippet}")
+    if context.reference_checkpoints:
+        lines.append("[참고 체크포인트]")
+        lines.append(
+            "아래 항목은 설명하거나 확인할 점을 제안할 때 참고할 수 있는 일반 실무 안내입니다. "
+            "공식 근거, 점수, 판정으로 취급하지 마세요."
+        )
+        for checkpoint in context.reference_checkpoints:
+            lines.append(f"- {checkpoint}")
     if question:
         lines.append(f"[창작자 질문] {question}")
         lines.append("질문에 위 내용만 근거로 답하세요.")
@@ -255,7 +264,11 @@ def _deterministic_reply(context: GroundedContext, question: str | None) -> str:
                     else f"You could ask the other side: “{match.questions[0]}”"
                 )
             parts.append(note)
-            return " ".join(parts)
+            reply = " ".join(parts)
+            tip = _best_checkpoint_tip(context.reference_checkpoints, question, match)
+            if tip and is_ko:
+                reply += f"\n확인 팁: {tip}"
+            return reply
         thin = (
             "지금 분석 결과 안에서는 그 질문에 바로 연결되는 항목을 찾지 못했어요. "
             if is_ko
@@ -288,7 +301,11 @@ def _deterministic_reply(context: GroundedContext, question: str | None) -> str:
     elif context.summary:
         parts.append(context.summary)
     parts.append(note)
-    return " ".join(parts)
+    reply = " ".join(parts)
+    tip = _best_checkpoint_tip(context.reference_checkpoints, question, top[0] if top else None)
+    if tip and is_ko:
+        reply += f"\n확인 팁: {tip}"
+    return reply
 
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+|[가-힣]+")
@@ -311,6 +328,31 @@ def _best_match(question: str, findings: tuple[FindingBrief, ...]) -> FindingBri
             best_score = score
             best = finding
     return best if best_score > 0 else None
+
+
+def _best_checkpoint_tip(
+    checkpoints: tuple[str, ...],
+    question: str | None,
+    finding: FindingBrief | None,
+) -> str:
+    if not checkpoints:
+        return ""
+    hay = question or ""
+    if finding is not None:
+        hay = " ".join(
+            (hay, finding.label, finding.why, " ".join(finding.questions), finding.snippet)
+        )
+    wanted = _tokens(hay)
+    if not wanted:
+        return checkpoints[0]
+    best = checkpoints[0]
+    best_score = 0
+    for checkpoint in checkpoints:
+        score = len(wanted & _tokens(checkpoint))
+        if score > best_score:
+            best_score = score
+            best = checkpoint
+    return best
 
 
 def _context_citations(context: GroundedContext) -> tuple[str, ...]:

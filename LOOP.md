@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T21:05:36+09:00`
+- Generated: `2026-06-22T21:58:36+09:00`
 - Current branch: `main`
-- Base commit: `f5c489cbdd1a9c4f50262120731bdcd60a351382`
+- Base commit: `f40f724fa8abe57ada6bfc248098effd249e8778`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -20,7 +20,8 @@
   friendly OCR-failure chat bubbles, replaced the dense creator result report
   with a single-column messenger-style result sequence, polished the chat demo
   shell per owner feedback with a fixed bottom composer, pink theme, effort
-  meter, and browser-print PDF brief, and kept the work local-only with no
+  meter, and browser-print PDF brief, wired distilled knowledge checkpoints into
+  chatbot conversation grounding only, and kept the work local-only with no
   paper-template changes.
 
 ## Human Gates
@@ -43,7 +44,7 @@
 ## Tasks
 
 - Next eligible task: `none`
-- Done count: `74`
+- Done count: `75`
 - Blocked count: `0`
 - Next task selection order: highest priority, shortest scope, lexical task ID.
 

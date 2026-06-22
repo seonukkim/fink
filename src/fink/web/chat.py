@@ -54,8 +54,39 @@ def build_grounded_context(result: Any, locale: UILocale) -> GroundedContext:
         recommendation_cashflow=action.cash_flow_ko if is_ko else action.cash_flow_en,
         summary=result.nl_summary_ko if is_ko else result.nl_summary_en,
         findings=tuple(briefs),
+        reference_checkpoints=_reference_checkpoints_for_findings(result.ranked_findings),
         professional_note=_PROFESSIONAL_NOTE_KO if is_ko else _PROFESSIONAL_NOTE_EN,
     )
+
+
+def _reference_checkpoints_for_findings(ranked_findings: Any) -> tuple[str, ...]:
+    categories: list[str] = []
+    for finding in ranked_findings:
+        category = str(getattr(finding, "risk_category", "")).strip()
+        if category and category not in categories:
+            categories.append(category)
+    if not categories:
+        return ()
+
+    try:
+        from fink.knowledge.checkpoints import checkpoints_for_categories
+
+        topics = checkpoints_for_categories(categories)
+    except Exception:
+        return ()
+
+    checkpoints: list[str] = []
+    for topic in topics:
+        items = topic.get("checkpoints_ko", ()) if isinstance(topic, dict) else ()
+        if not isinstance(items, (list, tuple)):
+            continue
+        for item in items:
+            checkpoint = str(item).strip()
+            if checkpoint and checkpoint not in checkpoints:
+                checkpoints.append(checkpoint)
+            if len(checkpoints) >= 5:
+                return tuple(checkpoints)
+    return tuple(checkpoints)
 
 
 def chat_reply_for_request(

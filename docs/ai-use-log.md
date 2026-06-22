@@ -1,5 +1,20 @@
 # AI Use Log
 
+## 2026-06-22 — Chat grounding reference checkpoints
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: conversation grounding only. Added distilled Korean checkpoint
+  references to the chatbot `GroundedContext`, prompt grounding, deterministic
+  fallback tip path, and web-context projection. No `fink.scoring`,
+  `analyze.py` scoring, authority invariant, model download, remote runtime API,
+  or paper-template change was added.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web tests/model
+  tests/test_knowledge_base.py -q` passed; `bash scripts/agent_loop/run_gates.sh`
+  ended with `GATES_OK`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
 ## 2026-06-22 — Chat demo owner-feedback polish
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.
