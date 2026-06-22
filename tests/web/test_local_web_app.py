@@ -83,32 +83,32 @@ class WebSmokeTests(unittest.TestCase):
         # The chat shell shows the short reworded privacy line in the header and
         # folds the not-legal-advice text into the Notice panel. Korean is
         # canonical and the English text is an aid kept inside its locale span.
-        # The reworded privacy line leads with "기록 미수집 · 기기 내 처리" and drops
-        # the old "읽은 글자는 기기를 떠나지 않으며" phrasing; "텔레메트리" is gone.
+        # The privacy line is short and plain; "텔레메트리" and the older
+        # long-form phrasing are gone.
         self.assertIn(WEB.PRIVACY_BANNER, markup)
         self.assertIn(WEB.NOT_LEGAL_ADVICE_BANNER, markup)
         self.assertNotIn("텔레메트리", markup)
-        self.assertIn("기록 미수집 · 기기 내 처리", markup)
-        self.assertIn("사용 기록을 수집하지 않고", markup)
+        self.assertIn("로컬 전용입니다.", markup)
+        self.assertIn("추적·클라우드 OCR·원격 LLM·외부 검색은 쓰지 않습니다.", markup)
         self.assertNotIn("계약서와 OCR로 읽은 글자는 기기를 떠나지 않으며", markup)
-        self.assertIn("FInk은 계약서에서 돈과 직결되는 조항과 주의가 필요한 신호를 찾아", markup)
+        self.assertIn("FInk은 돈과 관련된 조항을 먼저 확인할 순서로 정리합니다.", markup)
         self.assertNotIn("검토 순서만 안내", markup)
         for expected in (
-            "does not make the final call on legality, fraud, contract validity",
-            "scenario estimates",
-            "needs evidence confirmation until confirmed",
-            "Korean source language is canonical",
-            "English UI text is a generated aid",
+            "does not determine fraud, illegality, contract validity",
+            "estimates from your assumptions",
+            "marked as needing evidence confirmation",
+            "Korean is canonical",
+            "English text is an aid",
         ):
             self.assertIn(expected, markup)
 
         # The report disclosures render bilingually: the Korean canonical line
         # leads and the English aid stays inside its locale span.
         self.assertIn(
-            "검토 순서는 위법성·사기·유효성·불공정·손실 확정에 대한 판정이 아닙니다.",
+            "검토 순서는 위법성·사기·유효성·불공정·손실 판정이 아닙니다.",
             markup,
         )
-        self.assertIn("한국어 원문이 기준이며, 영어 화면 문구는 보조용으로 생성됩니다.", markup)
+        self.assertIn("한국어가 기준이며, 영어 문구는 보조용입니다.", markup)
 
         # The chat shell has no footer: dev info and the separate footer privacy
         # paragraph are gone. The single privacy line lives in the header and the
@@ -163,14 +163,11 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('data-analysis-result="true"', markup)
         self.assertIn('data-print-brief-root="true"', markup)
 
-        # The composer's send button label is a Korean-canonical / English-aid
-        # pair of locale spans ("보내기"/"Send"), not the old Analyze label.
+        # The composer's send button is icon-only visually; its accessible name
+        # keeps the Korean-canonical / English-aid label.
         self.assertNotIn("분석하기 / Analyze", markup)
-        self.assertIn(
-            '<span lang="ko" data-locale-text="ko">보내기</span>'
-            '<span lang="en" data-locale-text="en">Send</span>',
-            markup,
-        )
+        self.assertIn('aria-label="보내기 / Send"', markup)
+        self.assertNotIn('class="send-label"', markup)
 
         # The 32-field assumptions grid and the OCR page editor are not rendered
         # in the creator flow: a creator cannot fill those fields or hand-edit
@@ -215,7 +212,10 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("의견서 만들기".encode("utf-8"), body)
         self.assertIn(b"Make a review brief", body)
         self.assertIn("이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.".encode("utf-8"), body)
+        self.assertIn("다운로드하기".encode("utf-8"), body)
         self.assertIn(b'data-make-review-brief', body)
+        self.assertIn(b"data-inline-review-brief", body)
+        self.assertIn(b"data-download-review-brief", body)
         self.assertIn(b"window.print()", body)
         self.assertIn(b"data-print-brief-document", body)
         self.assertNotIn(b"new Blob", body)
@@ -274,24 +274,29 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("function renderAdvancedDiagnostics(container, payload)", script)
         self.assertIn("function renderSuggestedFollowUps(container, payload)", script)
         self.assertIn("function renderPrintableBrief(payload)", script)
+        self.assertIn("function appendReviewBriefBubble(payload)", script)
         self.assertIn("function printBriefRoot()", script)
         self.assertIn("function renderReviewBriefAction(container)", script)
         self.assertIn("function showReviewBrief()", script)
+        self.assertIn("function downloadReviewBrief()", script)
         self.assertIn("function reviewEffortSignal(payload, findingCount)", script)
         self.assertIn("function reviewEffortKey(payload, findingCount)", script)
+        self.assertIn("function reviewFocusSignal(payload)", script)
+        self.assertIn("function collectAuditEvidenceTopics(payload)", script)
         self.assertIn('section.setAttribute("data-followup-suggestions", "true")', script)
         self.assertIn('button.setAttribute("data-followup-chip", "true")', script)
         self.assertIn('button.setAttribute("data-make-review-brief", "true")', script)
+        self.assertIn('button.setAttribute("data-download-review-brief", "true")', script)
         self.assertIn('summary.setAttribute("data-chat-citations", "summary")', script)
         self.assertIn('ko: "이런 걸 물어볼 수 있어요"', script)
         self.assertIn('en: "You could ask"', script)
         self.assertIn('ko: "의견서 만들기"', script)
         self.assertIn('en: "Make a review brief"', script)
         self.assertIn("이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.", script)
+        self.assertIn('ko: "다운로드하기"', script)
         self.assertIn("window.print()", script)
         self.assertNotIn("new Blob", script)
         self.assertNotIn("text/markdown", script)
-        self.assertNotIn("data-download-review-brief", script)
         self.assertIn('paste_text: analyzedContractText', script)
         self.assertIn('question: asked', script)
         self.assertIn('locale: activeLocale()', script)
@@ -370,7 +375,7 @@ class WebSmokeTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual(headers["cache-control"], "no-store")
             self.assertIn("default-src 'self'", headers["content-security-policy"])
-            self.assertIn(b"Local-only session", body)
+            self.assertIn(b"Local-only. Uploads", body)
 
             status, _, body = asyncio.run(_asgi_get(app, "/healthz"))
             self.assertEqual(status, 200)

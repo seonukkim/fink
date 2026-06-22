@@ -151,7 +151,7 @@ class WebA11yValidationTests(unittest.TestCase):
             "function renderDimensionChips(appendBubble, payload)",
             'item.setAttribute("data-result-sequence-item", "true")',
             'row.setAttribute("data-result-dimension-chips", "true")',
-            'collectAuditEvidenceIds',
+            'collectAuditEvidenceTopics',
             # The single locale toggle flips KO<->EN on click instead of reading
             # a per-button locale value.
             'setLocale(activeLocale() === "en" ? "ko" : "en")',

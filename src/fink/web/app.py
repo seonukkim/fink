@@ -22,58 +22,54 @@ DEFAULT_LOOPBACK_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
 
 PRIVACY_BANNER = (
-    "Local-only session. Contract uploads and OCR text stay on this device; "
-    "no usage tracking, cloud OCR, remote LLM, or external legal search is used."
+    "Local-only. Uploads and OCR text stay on this device; no tracking, "
+    "cloud OCR, remote LLM, or external search is used."
 )
 PRIVACY_BANNER_KO = (
-    "기록 미수집 · 기기 내 처리. 사용 기록을 수집하지 않고, 모든 분석을 이 기기 "
-    "안에서 처리합니다. 클라우드 OCR·원격 LLM·외부 법률 검색을 쓰지 않습니다."
+    "로컬 전용입니다. 업로드와 OCR 문구는 이 기기에만 남고, 추적·클라우드 OCR·"
+    "원격 LLM·외부 검색은 쓰지 않습니다."
 )
 # Value first, honest boundary second. The English aid still carries the pinned
 # phrase "Contractual Financial Review Priority". This is a disclaimer that FInk
 # does NOT determine legality/fraud/validity/etc., so it stays clear of the
 # legal_verdict_scan BAD_LEGAL_ASSERTIONS patterns.
 NOT_LEGAL_ADVICE_BANNER = (
-    "FInk reads your contract to find the clauses that move money and the signals "
-    "that need attention, orders them so you check the most important first, and "
-    "explains why (a Contractual Financial Review Priority). It does not make the "
-    "final call on legality, fraud, contract validity, or unfairness, so have an "
-    "expert confirm anything important before you decide."
+    "FInk organizes money-related clauses into a Contractual Financial Review "
+    "Priority. It does not determine fraud, illegality, contract validity, or "
+    "unfairness; confirm important decisions with a professional."
 )
 NOT_LEGAL_ADVICE_BANNER_KO = (
-    "FInk은 계약서에서 돈과 직결되는 조항과 주의가 필요한 신호를 찾아 "
-    "먼저 확인할 순서로 정리하고 그 이유를 설명합니다. 다만 위법성·사기·계약 효력·"
-    "불공정 여부를 최종적으로 판정하지는 않으니, 중요한 결정 전에는 전문가의 확인을 "
-    "받으세요."
+    "FInk은 돈과 관련된 조항을 먼저 확인할 순서로 정리합니다. 위법성·사기·"
+    "계약 효력·불공정 여부를 판정하지 않으니 중요한 결정은 전문가와 확인하세요."
 )
 TRUSTED_LAN_WARNING = (
     "Trusted-LAN mode exposes this local server only to devices on the same private "
     "network. Use it only on a network you control, and stop the server when finished."
 )
 DISCLOSURE_ITEMS = (
-    "Review priority is not a legal, fraud, validity, unfairness, or guaranteed-loss verdict.",
-    "Figures are scenario estimates from user assumptions, not guaranteed losses.",
-    "Official-source grounding is shown as needs evidence confirmation until confirmed.",
-    "Korean source language is canonical; English UI text is a generated aid.",
+    "Review priority is not a legal, fraud, validity, unfairness, or loss verdict.",
+    "Figures are estimates from your assumptions, not guaranteed losses.",
+    "Official grounding stays marked as needing evidence confirmation.",
+    "Korean is canonical; English text is an aid.",
 )
 # Korean-canonical / English-aid pairs for the report disclosures. The English
 # aid strings stay identical to DISCLOSURE_ITEMS so the privacy payload and the
 # a11y wording pins still match; the Korean line leads as the canonical text.
 DISCLOSURE_ITEMS_BILINGUAL = (
     {
-        "ko": "검토 순서는 위법성·사기·유효성·불공정·손실 확정에 대한 판정이 아닙니다.",
+        "ko": "검토 순서는 위법성·사기·유효성·불공정·손실 판정이 아닙니다.",
         "en": DISCLOSURE_ITEMS[0],
     },
     {
-        "ko": "금액은 사용자가 입력한 가정에 따른 시나리오 추정치이며 확정 손실이 아닙니다.",
+        "ko": "금액은 입력 가정에 따른 추정치이며 확정 손실이 아닙니다.",
         "en": DISCLOSURE_ITEMS[1],
     },
     {
-        "ko": "공식 자료 근거가 부족한 항목은 근거 확인 필요로 표시됩니다.",
+        "ko": "공식 근거는 확인 전까지 근거 확인 필요로 표시됩니다.",
         "en": DISCLOSURE_ITEMS[2],
     },
     {
-        "ko": "한국어 원문이 기준이며, 영어 화면 문구는 보조용으로 생성됩니다.",
+        "ko": "한국어가 기준이며, 영어 문구는 보조용입니다.",
         "en": DISCLOSURE_ITEMS[3],
     },
 )
@@ -84,10 +80,10 @@ _BLOCKED_BIND_HOSTS = frozenset({"0.0.0.0", "::", ""})
 WEB_DESIGN_TOKENS = {
     "ink": "#1f2937",
     "muted": "#6b7280",
-    "line": "#f4d4e2",
-    "line_soft": "#f8e1ec",
+    "line": "#e5e7eb",
+    "line_soft": "#f3f4f6",
     "panel": "#ffffff",
-    "canvas": "#fff7fb",
+    "canvas": "#f7f8fa",
     "pink": "#e83e8c",
     "pink_deep": "#b91c5c",
     "pink_pale": "#fff1f7",
@@ -312,7 +308,6 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
       aria-controls="result analyze-status"
       aria-label="보내기 / Send">
       <span aria-hidden="true">↑</span>
-      <span class="send-label">{_bilingual("보내기", "Send")}</span>
     </button>
   </form>
   <p class="hint sr-only" id="analyze-status" data-analyze-status="true" role="status" aria-live="polite">
@@ -1272,10 +1267,10 @@ def _css() -> str:
   --space-3: 1.5rem;
   --space-4: 2rem;
   --radius: 8px;
-  --shadow: 0 1px 2px rgba(31, 41, 55, .06), 0 6px 18px rgba(185, 28, 92, .06);
+  --shadow: 0 1px 2px rgba(31, 41, 55, .05), 0 12px 28px rgba(31, 41, 55, .08);
   --reading-measure: 66ch;
   --bubble-max: 44rem;
-  --bubble-padding: .85rem 1rem;
+  --bubble-padding: 1rem;
 }}
 """ + """
 * { box-sizing: border-box; }
@@ -1847,13 +1842,13 @@ footer {
 }
 .integrated-judgment-card {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-height: 0;
   margin: 0;
-  padding: .85rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #f9fcfd;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
 }
 .glance-heading {
@@ -1863,20 +1858,21 @@ footer {
 }
 .glance-heading h3 {
   margin: 0;
-  color: var(--accent-strong);
-  font-size: .95rem;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 800;
 }
 .glance-icon {
   display: inline-flex;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.5rem;
+  height: 1.5rem;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   padding: .18rem;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--accent-tint);
+  background: #fff;
   color: var(--accent-strong);
 }
 .glance-icon svg {
@@ -1893,7 +1889,7 @@ footer {
   max-width: var(--reading-measure);
   color: var(--ink);
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 750;
 }
 .glance-cues {
   display: flex;
@@ -1906,97 +1902,146 @@ footer {
   width: fit-content;
   max-width: 100%;
   align-items: center;
-  padding: .25rem .55rem;
-  border: 1px solid var(--accent);
+  padding: .25rem .5rem;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--accent-tint);
-  color: var(--accent-strong);
+  background: #fff;
+  color: var(--ink);
   font-size: .85rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 .glance-count {
   border-color: var(--line);
   background: #fff;
   color: var(--ink);
 }
+.review-signal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(10rem, .75fr);
+  gap: var(--space-1);
+  align-items: stretch;
+}
 .review-effort-signal {
   display: grid;
-  gap: .55rem;
-  padding: .75rem;
-  border: 1px solid var(--line-soft);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
 }
 .review-effort-label {
   display: flex;
-  gap: .45rem;
+  gap: .5rem;
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
   margin: 0;
   color: var(--muted);
   font-size: .9rem;
-  font-weight: 800;
+  font-weight: 650;
 }
 .review-effort-current {
   color: var(--ink);
+  font-weight: 800;
 }
 .effort-meter {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: .4rem;
+  gap: .5rem;
 }
 .effort-segment {
-  position: relative;
   min-height: 3rem;
-  padding: .55rem .5rem .5rem;
-  border: 1px solid var(--line-soft);
-  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fff;
   color: var(--muted);
   font-size: .78rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
   text-align: center;
 }
 .effort-segment::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: .28rem;
-  border-radius: 7px 7px 0 0;
-  background: var(--effort-color);
-  opacity: .4;
+  display: none;
 }
 .effort-segment[data-effort-level="light"] {
-  --effort-color: #2f7d5b;
-  --effort-bg: #effaf4;
-  --effort-text: #166534;
+  --effort-color: var(--accent-strong);
 }
 .effort-segment[data-effort-level="careful"] {
-  --effort-color: #b7791f;
-  --effort-bg: #fff8e6;
-  --effort-text: #7a4f00;
+  --effort-color: var(--accent-strong);
 }
 .effort-segment[data-effort-level="professional"] {
-  --effort-color: #b91c5c;
-  --effort-bg: #fff1f7;
-  --effort-text: #b91c5c;
+  --effort-color: var(--accent-strong);
 }
 .effort-segment[data-active="true"] {
-  border-color: var(--effort-color);
-  background: var(--effort-bg);
-  color: var(--effort-text);
-  box-shadow: inset 0 0 0 2px var(--effort-color);
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(185, 28, 92, .16);
 }
 .effort-segment[data-active="true"]::before {
-  opacity: 1;
+  display: none;
+}
+.review-focus-signal {
+  display: grid;
+  gap: .5rem;
+  align-content: start;
+  padding: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.focus-score-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 650;
+}
+.focus-score-line {
+  display: flex;
+  gap: .35rem;
+  align-items: baseline;
+}
+.focus-score-number {
+  display: inline;
+  color: var(--ink);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.focus-score-max {
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 700;
+}
+.focus-score-bar {
+  display: block;
+  width: 100%;
+  height: .35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line-soft);
+}
+.focus-score-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-strong);
+}
+.focus-score-caption {
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
 }
 .glance-concern {
   display: grid;
-  gap: .35rem;
-  padding: .75rem .85rem;
-  border: 1px solid var(--line-soft);
+  gap: .5rem;
+  padding: var(--space-1);
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
 }
@@ -2020,9 +2065,9 @@ footer {
 }
 .result-source-quote {
   margin: 0;
-  padding: .55rem .7rem;
-  border-left: 3px solid var(--accent);
-  background: #f9fcfd;
+  padding: .75rem;
+  border-left: 3px solid var(--line);
+  background: #f9fafb;
   color: var(--muted);
   font-size: .92rem;
   max-width: var(--reading-measure);
@@ -2136,16 +2181,16 @@ footer {
   gap: .5rem;
   margin-top: var(--space-1);
   padding: var(--space-1);
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcfe;
+  background: #fff;
 }
 .finding-head { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
 /* The rank badge leads each finding card. */
 .finding-head .badge:first-child {
-  background: var(--accent);
+  background: var(--ink);
   color: #fff;
-  border-color: var(--accent-strong);
+  border-color: var(--ink);
 }
 .finding-label { font-weight: 800; margin: 0; }
 .finding-heading { margin: 0; font-weight: 700; }
@@ -2163,13 +2208,13 @@ footer {
 }
 .finding-number-badge {
   display: inline-flex;
-  width: 1.65rem;
-  height: 1.65rem;
+  width: 1.75rem;
+  height: 1.75rem;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--ink);
   color: #fff;
   font-size: .85rem;
   font-weight: 800;
@@ -2189,7 +2234,7 @@ footer {
   color: var(--muted);
 }
 .finding-line-question strong {
-  color: var(--accent-strong);
+  color: var(--ink);
 }
 .result-chip-row {
   display: flex;
@@ -2219,10 +2264,16 @@ footer {
 }
 .audit-source-excerpts blockquote {
   margin: 0;
-  padding: .65rem .75rem;
-  border-left: 3px solid var(--accent);
-  background: #fff;
+  padding: .75rem;
+  border-left: 3px solid var(--line);
+  background: #f9fafb;
   color: var(--muted);
+}
+.audit-topic-list {
+  display: grid;
+  gap: .5rem;
+  margin: 0;
+  padding-left: 1.15rem;
 }
 @media (max-width: 480px) {
   .workspace {
@@ -2507,13 +2558,13 @@ footer {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  padding: .75rem clamp(1rem, 4vw, 2rem);
+  padding: 1rem clamp(1rem, 4vw, 2rem);
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 .chat-title {
   display: flex;
-  gap: .85rem;
+  gap: .75rem;
   align-items: center;
   min-width: min(100%, 20rem);
 }
@@ -2531,6 +2582,7 @@ footer {
 .chat-title h1 {
   margin: 0;
   font-size: 1.25rem;
+  font-weight: 800;
   line-height: 1.3;
 }
 .chat-title .subtitle {
@@ -2560,17 +2612,17 @@ footer {
 .chat-privacy {
   flex: 0 0 auto;
   margin: 0;
-  padding: .55rem clamp(1rem, 4vw, 2rem);
-  background: var(--accent-tint);
-  border-bottom: 1px solid var(--line-soft);
-  color: var(--ink);
+  padding: .5rem clamp(1rem, 4vw, 2rem);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
   font-size: .85rem;
 }
 .notice-panel {
   flex: 0 0 auto;
   margin: 0;
   padding: var(--space-2) clamp(1rem, 4vw, 2rem);
-  background: var(--accent-tint);
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 .notice-panel[hidden] {
@@ -2615,7 +2667,7 @@ footer {
 .bubble {
   max-width: min(100%, var(--bubble-max));
   padding: var(--bubble-padding);
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: var(--shadow);
@@ -2630,8 +2682,8 @@ footer {
   width: auto;
   max-width: min(100%, var(--bubble-max));
   border-top-right-radius: 4px;
-  border-color: var(--accent);
-  background: var(--accent-tint);
+  border-color: var(--line);
+  background: #f9fafb;
 }
 .bubble-text {
   margin: 0;
@@ -2820,15 +2872,20 @@ footer {
   display: flex;
   gap: .5rem;
   flex-wrap: wrap;
-  margin-top: .65rem;
+  margin-top: .75rem;
 }
 .example-chip {
   background: #fff;
-  color: var(--accent-strong);
-  border: 1px solid var(--accent);
+  color: var(--ink);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  padding: .4rem .85rem;
+  padding: .5rem .75rem;
   font-weight: 700;
+}
+.example-chip[data-example-chip="true"] {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: #fff;
 }
 .result-pane {
   display: grid;
@@ -2846,13 +2903,115 @@ footer {
 .review-brief-button {
   width: fit-content;
 }
+.brief-bubble {
+  width: min(100%, var(--bubble-max));
+}
+.review-brief-card {
+  display: grid;
+  gap: var(--space-1);
+}
+.inline-brief-document {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.inline-brief-document .print-brief-header {
+  display: flex;
+  gap: var(--space-1);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: .75rem;
+  border-bottom: 2px solid var(--accent-strong);
+}
+.inline-brief-document .print-wordmark {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.inline-brief-document .print-wordmark span {
+  color: var(--accent-strong);
+}
+.inline-brief-document .print-date {
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 700;
+  text-align: right;
+}
+.inline-brief-document .print-brief-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.inline-brief-document .print-brief-disclaimer {
+  margin: 0;
+  padding: .75rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: .9rem;
+}
+.inline-brief-document .print-brief-summary,
+.inline-brief-document .print-findings,
+.inline-brief-document .print-brief-closing {
+  display: grid;
+  gap: .5rem;
+}
+.inline-brief-document h2,
+.inline-brief-document h3,
+.inline-brief-document p {
+  margin: 0;
+}
+.inline-brief-document h2 {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 800;
+}
+.inline-brief-document h3 {
+  font-size: .96rem;
+  font-weight: 800;
+}
+.inline-brief-document .print-finding {
+  display: grid;
+  gap: .35rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--line);
+}
+.inline-brief-document .print-effort-pill {
+  width: fit-content;
+  padding: .25rem .5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: #fff;
+  font-size: .85rem;
+  font-weight: 700;
+}
+.brief-download-row {
+  display: flex;
+  justify-content: flex-end;
+}
+.download-brief-button {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
 .composer {
   flex: 0 0 auto;
   display: flex;
   gap: .5rem;
   align-items: flex-end;
-  padding: .65rem clamp(.75rem, 4vw, 2rem);
-  padding-bottom: max(.65rem, env(safe-area-inset-bottom));
+  padding: .75rem clamp(.75rem, 4vw, 2rem);
+  padding-bottom: max(.75rem, env(safe-area-inset-bottom));
   background: var(--panel);
   border-top: 1px solid var(--line);
 }
@@ -2864,7 +3023,7 @@ footer {
   resize: none;
   border: 1px solid var(--line);
   border-radius: 22px;
-  padding: .6rem 1rem;
+  padding: .625rem 1rem;
   line-height: 1.5;
   overflow-y: auto;
 }
@@ -2874,15 +3033,15 @@ footer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .35rem;
   min-width: 44px;
   height: 44px;
   border-radius: 999px;
-  padding: 0 .9rem;
+  padding: 0;
 }
 .attach-button {
   background: #fff;
-  color: var(--accent-strong);
+  color: var(--ink);
+  border-color: var(--line);
   font-size: 1.1rem;
 }
 .paperclip-icon {
@@ -2890,13 +3049,11 @@ footer {
   height: 1.2rem;
 }
 .send-button {
+  width: 44px;
   font-weight: 800;
 }
 .send-button:hover {
   background: var(--accent-strong);
-}
-.send-button .send-label {
-  font-size: .95rem;
 }
 @media (max-width: 480px) {
   .chat-title {
@@ -2907,6 +3064,9 @@ footer {
     font-size: 1.2rem;
     padding-top: .12rem;
   }
+  .review-signal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .effort-meter {
     gap: .3rem;
   }
@@ -2915,16 +3075,15 @@ footer {
     padding-inline: .35rem;
     font-size: .72rem;
   }
-  .send-button .send-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+  .inline-brief-document {
+    padding: var(--space-1);
+  }
+  .inline-brief-document .print-brief-header {
+    display: grid;
+    gap: .5rem;
+  }
+  .inline-brief-document .print-date {
+    text-align: left;
   }
   .chat-title h1 {
     font-size: 1.1rem;
@@ -3353,14 +3512,22 @@ _APP_JS = r"""(function () {
         en: "Source highlights"
       })
     );
-    sources.slice(0, 3).forEach(function (source) {
+    var seen = {};
+    var rendered = 0;
+    sources.forEach(function (source) {
+      if (rendered >= 3) {
+        return;
+      }
       var quote = el("blockquote", null, null);
       renderPlainSourceSegments(quote, source.segments || []);
       if (!quote.textContent.trim() && source.exact_excerpt) {
         quote.textContent = text(source.exact_excerpt);
       }
-      if (quote.textContent.trim()) {
+      var normalized = quote.textContent.replace(/\s+/g, " ").trim();
+      if (normalized && !seen[normalized]) {
+        seen[normalized] = true;
         section.appendChild(quote);
+        rendered += 1;
       }
     });
     if (section.childNodes.length > 1) {
@@ -3497,6 +3664,56 @@ _APP_JS = r"""(function () {
     });
     section.appendChild(meter);
     return section;
+  }
+
+  function reviewFocusScore(payload) {
+    var dimensions = (payload && payload.dimensions) || {};
+    var reviewPriority = dimensions.review_priority || {};
+    var score = finiteNumberOrNull(reviewPriority.score);
+    if (score == null) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  function reviewFocusSignal(payload) {
+    var score = reviewFocusScore(payload);
+    var section = el("section", "review-focus-signal", null);
+    section.setAttribute("data-review-focus-signal", "true");
+    section.setAttribute("aria-label", "검토 집중도 지수 / Review focus index");
+
+    section.appendChild(
+      bilingual("h4", "focus-score-title", {
+        ko: "검토 집중도 지수",
+        en: "Review focus index"
+      })
+    );
+    var scoreLine = el("div", "focus-score-line", null);
+    scoreLine.appendChild(el("output", "focus-score-number", String(score)));
+    scoreLine.appendChild(el("span", "focus-score-max", "/ 100"));
+    section.appendChild(scoreLine);
+
+    var bar = el("span", "focus-score-bar", null);
+    bar.setAttribute("aria-hidden", "true");
+    var fill = el("span", "focus-score-fill", null);
+    fill.style.width = String(score) + "%";
+    bar.appendChild(fill);
+    section.appendChild(bar);
+    section.appendChild(
+      bilingual("p", "focus-score-caption", {
+        ko: "위험 확률, 손실액, 안전 판정이 아닙니다.",
+        en: "Not a risk probability, loss amount, or safety verdict."
+      })
+    );
+    return section;
+  }
+
+  function renderReviewSignalGrid(container, payload, findingCount) {
+    var grid = el("div", "review-signal-grid", null);
+    grid.setAttribute("data-review-signal-grid", "true");
+    grid.appendChild(reviewEffortSignal(payload, findingCount));
+    grid.appendChild(reviewFocusSignal(payload));
+    container.appendChild(grid);
   }
 
   function reviewEffortPair(payload, findingCount) {
@@ -3747,6 +3964,50 @@ _APP_JS = r"""(function () {
     container.appendChild(action);
   }
 
+  function appendReviewBriefBubble(payload) {
+    var thread = threadElement();
+    if (!thread) {
+      return null;
+    }
+    var printRoot = renderPrintableBrief(payload);
+    var printable = printRoot.querySelector("[data-print-brief-document]");
+    if (!printable) {
+      return null;
+    }
+    var item = el("li", "msg bot review-brief-msg", null);
+    item.setAttribute("data-message-role", "bot");
+    item.setAttribute("data-review-brief-message", "true");
+    var bubble = el("div", "bubble brief-bubble", null);
+    var card = el("section", "review-brief-card", null);
+    card.setAttribute("data-inline-review-brief", "true");
+
+    var inlineDocument = printable.cloneNode(true);
+    inlineDocument.className += " inline-brief-document";
+    inlineDocument.setAttribute("aria-hidden", "false");
+    card.appendChild(inlineDocument);
+
+    var actions = el("div", "brief-download-row", null);
+    var button = el("button", "download-brief-button", null);
+    button.type = "button";
+    button.setAttribute("data-download-review-brief", "true");
+    button.setAttribute("aria-label", "다운로드하기 / Download");
+    button.appendChild(
+      bilingual("span", null, {
+        ko: "다운로드하기",
+        en: "Download"
+      })
+    );
+    actions.appendChild(button);
+    card.appendChild(actions);
+    bubble.appendChild(card);
+    item.appendChild(bubble);
+    thread.appendChild(item);
+    lastReviewBriefItem = item;
+    setLocale(activeLocale());
+    scrollThreadToLatest(item);
+    return item;
+  }
+
   function removeReviewBriefBubble() {
     if (lastReviewBriefItem && lastReviewBriefItem.parentNode) {
       lastReviewBriefItem.parentNode.removeChild(lastReviewBriefItem);
@@ -3767,6 +4028,19 @@ _APP_JS = r"""(function () {
       return;
     }
     removeReviewBriefBubble();
+    appendReviewBriefBubble(lastResultPayload);
+    setLocale(activeLocale());
+    statusMessage({
+      ko: "의견서를 대화에 표시했습니다.",
+      en: "Review brief shown in the chat."
+    });
+  }
+
+  function downloadReviewBrief() {
+    if (!lastResultPayload) {
+      showReviewBrief();
+      return;
+    }
     renderPrintableBrief(lastResultPayload);
     setLocale(activeLocale());
     statusMessage({
@@ -3794,7 +4068,7 @@ _APP_JS = r"""(function () {
     );
     card.appendChild(heading);
     card.appendChild(bilingual("p", "glance-action", recommendationActionPair(payload)));
-    card.appendChild(reviewEffortSignal(payload, findingCount));
+    renderReviewSignalGrid(card, payload, findingCount);
 
     var cues = el("p", "glance-cues", null);
     cues.appendChild(bilingual("span", "glance-chip glance-count", itemCountPair(findingCount)));
@@ -3838,35 +4112,72 @@ _APP_JS = r"""(function () {
     container.appendChild(card);
   }
 
-  function collectAuditEvidenceIds(payload) {
+  function auditCategoryTopicPair(payload, category) {
+    var keys = {
+      F1: "category.settlement_audit",
+      F2: "category.revenue_deductions",
+      F3: "category.payment_cashflow",
+      F4: "category.mg_recoupment",
+      F5: "category.ip_monetization",
+      F6: "category.term_exclusivity",
+      F7: "category.termination_liability",
+      F8: "category.scope_cost",
+      F9: "category.econtract_privacy"
+    };
+    var normalized = text(category).toUpperCase();
+    var key = keys[normalized];
+    if (key && payload && payload.copy && payload.copy[key]) {
+      return payload.copy[key];
+    }
+    return {
+      ko: "계약 금융 체크리스트",
+      en: "Contract finance checklist"
+    };
+  }
+
+  function collectAuditEvidenceTopics(payload) {
     var seen = {};
-    var ids = [];
-    function add(value) {
-      var id = text(value);
-      if (!id || seen[id]) {
+    var topics = [];
+    function add(pair) {
+      var ko = localizedFor(pair, "ko").trim();
+      var en = localizedFor(pair, "en").trim();
+      var key = (ko + "\n" + en).toLowerCase();
+      if ((!ko && !en) || seen[key]) {
         return;
       }
-      seen[id] = true;
-      ids.push(id);
+      seen[key] = true;
+      topics.push({ ko: ko || en, en: en || ko });
     }
-    (payload.findings || []).forEach(function (finding) {
+    var audit = (payload && payload.audit_detail) || {};
+    (audit.technical_findings || []).forEach(function (finding) {
+      var ids = finding.grounding_evidence_ids || [];
+      if (ids.length > 0) {
+        add(auditCategoryTopicPair(payload, finding["risk" + "_category"]));
+      }
+    });
+    ((payload && payload.findings) || []).forEach(function (finding) {
       var evidence = finding.evidence || {};
-      (evidence.grounding_evidence_ids || []).forEach(add);
+      if ((evidence.grounding_evidence_ids || []).length > 0) {
+        add(finding.title);
+      }
       (finding.citations || []).forEach(function (citation) {
-        add(citation.evidence_id);
+        if (citation.evidence_id) {
+          add(finding.title);
+        }
       });
     });
-    var qa = payload.grounded_qa || {};
+    var qa = (payload && payload.grounded_qa) || {};
     (qa.items || []).forEach(function (item) {
       (item.citations || []).forEach(function (citation) {
-        add(citation.evidence_id);
+        if (citation.evidence_id) {
+          add({
+            ko: "후속 질문 근거",
+            en: "Follow-up answer support"
+          });
+        }
       });
     });
-    var audit = payload.audit_detail || {};
-    (audit.technical_findings || []).forEach(function (finding) {
-      (finding.grounding_evidence_ids || []).forEach(add);
-    });
-    return ids;
+    return topics;
   }
 
   function renderAdvancedDiagnostics(container, payload) {
@@ -3875,28 +4186,24 @@ _APP_JS = r"""(function () {
     details.appendChild(bilingual("summary", null, copyLabel(payload, "export.audit_detail_label")));
     renderAuditSourceExcerpts(details, payload);
     renderVerificationSignals(details, payload);
-    var diagnostic = el("section", "advanced-diagnostic", null);
+    var diagnostic = reviewFocusSignal(payload);
+    diagnostic.className += " advanced-diagnostic";
     diagnostic.setAttribute("data-advanced-diagnostic", "rule-focus-index");
-    diagnostic.appendChild(bilingual("h4", null, copyLabel(payload, "diagnostic.rule_focus_index")));
-    diagnostic.appendChild(
-      el("output", null, String(payload.dimensions.review_priority.score) + " / 100")
-    );
-    diagnostic.appendChild(bilingual("p", "hint", copyLabel(payload, "diagnostic.rule_focus_note")));
     details.appendChild(diagnostic);
-    var evidenceIds = collectAuditEvidenceIds(payload);
-    if (evidenceIds.length > 0) {
+    var evidenceTopics = collectAuditEvidenceTopics(payload);
+    if (evidenceTopics.length > 0) {
       var evidenceDetail = el("section", "advanced-diagnostic", null);
-      evidenceDetail.setAttribute("data-advanced-diagnostic", "raw-evidence-ids");
+      evidenceDetail.setAttribute("data-advanced-diagnostic", "evidence-topics");
       evidenceDetail.appendChild(
         bilingual("h4", null, {
-          ko: "근거 ID",
-          en: "Evidence IDs"
+          ko: "근거가 연결된 체크리스트",
+          en: "Evidence-supported topics"
         })
       );
-      var list = el("ul", null, null);
-      evidenceIds.forEach(function (id) {
+      var list = el("ul", "audit-topic-list", null);
+      evidenceTopics.forEach(function (topic) {
         var item = el("li", null, null);
-        item.appendChild(el("code", null, id));
+        item.appendChild(bilingual("span", null, topic));
         list.appendChild(item);
       });
       evidenceDetail.appendChild(list);
@@ -4678,7 +4985,7 @@ _APP_JS = r"""(function () {
         ? "Section 3 (Settlement) Payment is made within 90 days after the end of each quarter; the company may deduct general expenses."
         : "제3조(정산) 정산은 매 분기 종료일로부터 90일 이내에 지급하며, 회사는 일반 경비를 공제할 수 있다.";
     autoGrowComposer();
-    box.focus();
+    analyze();
   }
 
   function toggleNotice() {
@@ -4731,6 +5038,7 @@ _APP_JS = r"""(function () {
       }
       var exampleChip = target.closest("[data-example-chip]");
       if (exampleChip) {
+        event.preventDefault();
         fillExample();
       }
       var followUpChip = target.closest("[data-followup-chip]");
@@ -4746,6 +5054,11 @@ _APP_JS = r"""(function () {
       if (makeBriefButton) {
         event.preventDefault();
         showReviewBrief();
+      }
+      var downloadBriefButton = target.closest("[data-download-review-brief]");
+      if (downloadBriefButton) {
+        event.preventDefault();
+        downloadReviewBrief();
       }
     });
     document.addEventListener("change", function (event) {
