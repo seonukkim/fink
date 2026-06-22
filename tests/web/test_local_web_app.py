@@ -95,7 +95,7 @@ class WebSmokeTests(unittest.TestCase):
         for expected in (
             "does not make the final call on legality, fraud, contract validity",
             "scenario estimates",
-            "UNVERIFIED pending A0",
+            "needs evidence confirmation until confirmed",
             "Korean source language is canonical",
             "English UI text is a generated aid",
         ):
@@ -149,6 +149,11 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('data-composer="true"', markup)
         self.assertIn('data-paste-box="true"', markup)
         self.assertIn('data-analyze-button="true"', markup)
+        self.assertIn('class="paperclip-icon"', markup)
+        self.assertIn('viewBox="0 0 24 24"', markup)
+        self.assertNotIn("📎", markup)
+        self.assertIn('class="notice-button"', markup)
+        self.assertNotIn('class="notice-button secondary"', markup)
         self.assertIn(
             "계약서를 붙여넣거나 사진·PDF를 올려 주세요.",
             markup,

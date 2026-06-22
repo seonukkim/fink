@@ -342,15 +342,13 @@ class SourceHighlightTests(unittest.TestCase):
         script = WEB.app_js()
 
         self.assertIn("@media (min-width: 1100px)", markup)
-        self.assertIn(
-            "grid-template-columns: minmax(18rem, .9fr) minmax(0, 1.35fr)",
-            markup,
-        )
+        self.assertIn("grid-template-columns: minmax(0, 1fr)", markup)
         self.assertIn("scroll-margin: calc(var(--space-4) + 44px)", markup)
         self.assertIn('[data-active-anchor="true"]', markup)
         self.assertNotIn("position: sticky", markup)
 
         self.assertIn("function activateReaderAnchor(link)", script)
+        self.assertIn('workspace.setAttribute("data-reader-layout", "single-column")', script)
         self.assertIn("target.scrollIntoView", script)
         self.assertIn("target.focus({ preventScroll: true })", script)
         self.assertIn("data-active-anchor", script)

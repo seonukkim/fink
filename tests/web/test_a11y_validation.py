@@ -128,14 +128,12 @@ class WebA11yValidationTests(unittest.TestCase):
             'data-source-nav="finding-to-source"',
             'data-source-nav="source-to-finding"',
             'data-copy-question="true"',
-            'data-scenario-recalculate-button="true"',
             'data-finding-section="section.evidence"',
             'data-locale-button="toggle"',
             'aria-label="한국어와 영어 전환 / Switch between Korean and English"',
             'aria-label="물어볼 말 복사 / Copy question to ask"',
             'aria-label="원문에서 보기 / View source excerpt"',
             'aria-label="검토 항목으로 돌아가기 / Back to finding"',
-            'aria-label="시나리오 다시 계산 / Recalculate scenario"',
             'aria-label="출처 하이라이트 켜기 또는 끄기 / Toggle source highlights"',
             'aria-describedby="analyze-status"',
             'aria-describedby="pdf-error-region"',
@@ -146,7 +144,9 @@ class WebA11yValidationTests(unittest.TestCase):
             'button.setAttribute("aria-busy"',
             'button.setAttribute("aria-label", "물어볼 말 복사 / Copy question to ask")',
             'link.setAttribute("aria-label", "원문에서 보기 / View source excerpt")',
-            'button.setAttribute("aria-label", "시나리오 다시 계산 / Recalculate scenario")',
+            'workspace.setAttribute("data-reader-layout", "single-column")',
+            'creatorEvidenceLabel',
+            'collectAuditEvidenceIds',
             "[data-source-nav], [data-reader-jump]",
             "copyQuestion(copyButton)",
             # The single locale toggle flips KO<->EN on click instead of reading
@@ -154,6 +154,12 @@ class WebA11yValidationTests(unittest.TestCase):
             'setLocale(activeLocale() === "en" ? "ko" : "en")',
         ):
             self.assertIn(expected, script)
+        for removed in (
+            'data-scenario-recalculate-button',
+            'aria-label="시나리오 다시 계산 / Recalculate scenario"',
+            'data-highlight-cue=',
+        ):
+            self.assertNotIn(removed, script)
 
     def test_meaningful_states_have_non_color_labels_and_touch_targets(self) -> None:
         markup = WEB.render_index_html(WEB.resolve_bind_settings())
@@ -166,25 +172,33 @@ class WebA11yValidationTests(unittest.TestCase):
                 SCHEMAS.UILocale.KO,
             )
         )
+        script = WEB.app_js()
         # The creator flow no longer renders the empty report shell inside the
-        # index page, so the always-present "practice reference / non-scoring"
-        # non-color label is verified against the report renderer that owns it.
-        combined = markup + report + WEB.render_empty_report_shell_html()
+        # index page. Combine the shell, report renderer, and app script so this
+        # test covers the current chat result hooks and the report-only labels.
+        combined = markup + report + WEB.render_empty_report_shell_html() + script
 
         for cue in (
+            'data-source-highlight',
+            'source-highlight',
+            "정확한 출처 문구 확인됨",
+            "practice reference / non-scoring",
+            "근거 확인 필요",
+            "입력 필요",
+            "통화 확인 필요",
+        ):
+            self.assertIn(cue, combined)
+
+        for removed in (
             'data-highlight-cue="solid underline"',
             'data-highlight-cue="dashed underline"',
             'data-highlight-cue="left border"',
             'data-highlight-cue="double underline"',
             'data-highlight-cue="dotted underline"',
             'data-role-label-ko=',
-            "정확한 출처 문구 확인됨",
-            "practice reference / non-scoring",
             "UNVERIFIED",
-            "입력 필요",
-            "통화 확인 필요",
         ):
-            self.assertIn(cue, combined)
+            self.assertNotIn(removed, script)
 
         for expected in (
             "button, input, textarea",
