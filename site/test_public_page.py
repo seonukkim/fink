@@ -22,8 +22,6 @@ def main() -> None:
         "Selective, Evidence-Gated Cash-Flow Triage",
         "uv sync --extra web",
         "uv run fink-web",
-        "<mark>90일 이내</mark>",
-        "do not signal safe or risky",
     ):
         if snippet not in normalized:
             raise AssertionError(f"canonical page text missing: {snippet}")

@@ -18,9 +18,9 @@
     <nav class="nav" aria-label="Sections">
       <a href="#problem">Problem</a>
       <a href="#how">How it works</a>
-      <a href="#outputs">Outputs</a>
+      <a href="#data">Knowledge base</a>
+      <a href="#outputs">Review</a>
       <a href="#demo">Demo</a>
-      <a href="#evaluation">Evaluation</a>
       <a href="#cite">Citation</a>
     </nav>
     <div class="lang-switch" role="group" aria-label="Language">
@@ -38,7 +38,7 @@
          data-ko="창작자 계약서 현금흐름 분석 및 서명 전 확인 순서 검토 도구">Selective, Evidence-Gated Cash-Flow Triage for Creator Contracts</p>
       <p class="abstract"
          data-en="FInk is an on-device tool for creator contracts. It finds and marks the clauses that affect settlement, deductions, recoupment, payment timing, IP revenue, exclusivity, penalties, and production costs; only items backed by official evidence count toward the score; and it shows the result as four separate parts — what to review first, a low/base/high cost range, when the money moves, and how reliable the reading is."
-         data-ko="FInk은 창작자 계약서에서 정산·공제·선급금 회수·지급 시점·2차 수익·독점·위약금·제작비에 영향을 주는 조항을 찾아 짚어 줍니다. 점수에는 공식 출처 근거가 있는 항목만 반영하고, 결과는 먼저 볼 조항, 예상 비용(낮음·적정·높음), 돈이 오가는 시점, 판독 신뢰도의 네 가지로 나눠 보여 줍니다. 모든 분석은 내 기기 안에서만 이루어집니다.">FInk is an on-device tool for creator contracts…</p>
+         data-ko="FInk은 창작자 계약서에서 정산·공제·선급금 회수·지급 시점·2차 수익·독점·위약금·제작비에 영향을 주는 조항을 찾고, 각 조항을 공식 한국 자료로 정제한 지식 베이스에 근거해, 서명 전에 무엇을 따져야 하는지 우선순위 검토로 보여 줍니다. 모든 분석은 내 기기 안에서만 이루어집니다.">FInk is an on-device tool for creator contracts…</p>
       <div class="links">
         <a class="btn primary" href="https://github.com/seonukkim/fink">GitHub</a>
         <a class="btn" href="#demo">Demo</a>
@@ -59,41 +59,29 @@
 
     <section id="how" class="band">
       <h2>How it works</h2>
-      <p data-en="FInk runs entirely on your device and never conflates the different things it does — it detects, it calculates, and it measures. It reads photos, scans, or pasted text (OCR for images) and splits the document into clauses. In each clause it detects financial risk signals — risky terms that are present and protections that are missing — with fixed rules and an optional local model. It grounds each signal against official-source evidence; only signals an authoritative source supports (tiers A0–A2) are eligible to move the score. From those grounded signals it calculates, by fixed formulas, a bounded 0–100 Review-Priority Score and a light/careful/professional review-effort level, and — only once you supply the assumptions it needs — a low/base/high cost range; it invents no numbers, so the cost stays blank until then. It identifies the timing of each cash flow from the clauses, and separately measures how reliable the reading is from OCR quality and data completeness — ambiguous input lowers that confidence, never the cost or the score. A re-run reproduces exactly, and an optional local model can answer follow-up questions in plain language: a convenience whose wording can be imperfect, which never changes the detected signals, the calculated numbers, or the review order."
-         data-ko="FInk은 전부 기기 안에서 동작하며, 하는 일의 종류를 섞지 않습니다 — 검출하고, 계산하고, 측정하는 것이 각각 다릅니다. 먼저 사진·스캔·붙여넣은 텍스트를 읽고(이미지는 OCR), 본문을 조항 단위로 나눕니다. 각 조항에서 금융 위험 신호를 검출합니다 — 들어 있는 위험 조항과 빠져 있는 보호장치를 정해진 규칙과 선택적 로컬 모델로 찾습니다. 각 신호는 공식 출처 근거와 대조하고, 권위 있는 출처(A0–A2)가 뒷받침하는 신호만 점수에 반영될 수 있습니다. 그 근거가 연결된 신호로부터 정해진 수식으로 0–100 위험 지수와 가볍게·꼼꼼히·전문가 검토 권장 수준을 계산하고, 필요한 가정을 입력했을 때에만 낮음·적정·높음 예상 비용을 계산합니다 — 숫자를 지어내지 않으므로 그 전까지 비용은 비워 둡니다. 시점은 각 현금흐름이 발생하는 때를 조항에서 확인하고, 판독 신뢰도는 OCR 품질과 자료 완결성으로 따로 측정합니다 — 불명확한 입력은 비용이나 점수가 아니라 이 신뢰도를 낮춥니다. 다시 돌려도 같은 결과가 나오며, 선택적 로컬 모델은 추가 질문에 쉬운 말로 답할 수 있습니다 — 표현이 완벽하지 않을 수 있는 보조 도구이고, 검출된 신호·계산된 숫자·검토 순서를 바꾸지 않습니다.">FInk runs entirely on your device, detecting, calculating, and measuring distinct things…</p>
+      <p data-en="FInk works entirely on your device. It splits the contract into clauses and detects the financial risk in each. Every signal is grounded in a curated knowledge base of Korean creator-finance sources, so an issue is flagged only when an authoritative source backs it. From the grounded signals it builds a prioritized review: which clauses to question first, and why."
+         data-ko="FInk은 전부 기기 안에서 동작합니다. 계약서를 조항으로 나눈 뒤, 각 조항에서 금융과 직결된 위험을 검출합니다. 모든 신호는 한국 창작자 금융 자료로 정제한 지식 베이스에 근거하며, 권위 있는 출처가 뒷받침할 때만 표시합니다. 근거가 연결된 신호로 무엇을 먼저 따져야 하는지, 왜 그런지 우선순위 검토를 만듭니다.">FInk detects the financial risk in each clause, grounds it in a curated knowledge base, and builds a prioritized review…</p>
 
       <ol class="flow" aria-label="FInk pipeline">
-        <li><span class="step-n">1</span><span class="step-t" data-en="Input — photo · image · PDF · pasted text" data-ko="입력 — 사진 · 이미지 · PDF · 붙여넣은 텍스트">Input — photo · image · PDF · pasted text</span></li>
-        <li><span class="step-n">2</span><span class="step-t" data-en="Read &amp; segment — OCR and clause splitting (Korean and English)" data-ko="읽기 · 분할 — OCR과 조항 나누기 (한국어 · 영어)">Read &amp; segment — OCR and clause splitting</span></li>
-        <li><span class="step-n">3</span><span class="step-t" data-en="Detect risk signals — risky terms present &amp; protections missing" data-ko="위험 신호 검출 — 위험 조항 존재 · 보호장치 부재">Detect risk signals — terms present &amp; protections missing</span></li>
-        <li><span class="step-n">4</span><span class="step-t" data-en="Ground each signal in official sources — A0–A2 are score-eligible" data-ko="공식 출처로 근거 연결 — A0–A2만 점수 반영 가능">Ground each signal in official sources — A0–A2 score-eligible</span></li>
-        <li><span class="step-n">5</span><span class="step-t" data-en="Calculate priority score &amp; cost · measure reading confidence" data-ko="위험 지수·비용 계산 · 판독 신뢰도 측정">Calculate priority score &amp; cost · measure confidence</span></li>
-        <li><span class="step-n">6</span><span class="step-t" data-en="Review — summary, grouped findings, four outputs, Q&amp;A, brief" data-ko="검토 결과 — 요약 · 항목별 묶음 · 네 가지 출력 · 질문 · 의견서">Review — summary, grouped findings, four outputs, Q&amp;A, brief</span></li>
+        <li><span class="step-n">1</span><span class="step-t" data-en="Input — paste or upload the contract" data-ko="입력(계약서 붙여넣기 또는 업로드)">Input — paste or upload the contract</span></li>
+        <li><span class="step-n">2</span><span class="step-t" data-en="Split into clauses" data-ko="조항으로 분할">Split into clauses</span></li>
+        <li><span class="step-n">3</span><span class="step-t" data-en="Detect the financial risk" data-ko="금융 위험 상황 검출">Detect the financial risk</span></li>
+        <li><span class="step-n">4</span><span class="step-t" data-en="Ground each signal in the curated knowledge base" data-ko="정제된 지식 베이스로 근거 연결">Ground each signal in the curated knowledge base</span></li>
+        <li><span class="step-n">5</span><span class="step-t" data-en="Calculate the prioritized review — score &amp; ranked findings" data-ko="우선순위 검토 계산(위험 지수 · 검토 항목)">Calculate the prioritized review — score &amp; ranked findings</span></li>
+        <li><span class="step-n">6</span><span class="step-t" data-en="Ask follow-up questions · save a brief" data-ko="후속 질문 · 의견서 저장">Ask follow-up questions · save a brief</span></li>
       </ol>
     </section>
 
+    <section id="data" class="band">
+      <h2 data-en="Knowledge base" data-ko="지식 베이스">Knowledge base</h2>
+      <p data-en="Every flag is grounded in a knowledge base we curated from real Korean creator-finance sources — statutes, official standard contracts, official guidance, and creator legal books. Only the official sources can raise the score, so the review stays conservative; the books supply the questions worth asking. Nothing is flagged without a source behind it."
+         data-ko="모든 표시는 한국 창작자 금융과 관련된 실제 자료(법령, 공식 표준계약서, 공식 해설, 창작자 법률 서적 등)를 정제해 만든 지식 베이스에 근거합니다. 점수를 올릴 수 있는 건 공식 출처뿐이라 검토는 보수적으로 유지되고, 법률 서적은 물어볼 만한 질문을 더해 줍니다. 출처가 없으면 아무것도 표시하지 않습니다.">Every flag is grounded in a curated knowledge base of real Korean creator-finance sources…</p>
+    </section>
+
     <section id="outputs" class="band">
-      <h2>Outputs</h2>
-      <p data-en="After you analyze a contract, FInk summarizes it as a plain-language decision brief — a recommended action and the clause that most affects your cash flow — supported by four separate results. They are reported side by side and never merged into a single total-loss number: a cost range and a confidence level answer different questions, and combining them would hide what is uncertain. You can also ask follow-up questions about any clause — the on-device model answers in plain language, a convenience whose wording can be imperfect, so the structured results stay authoritative — and save the whole review as a one-page brief."
-         data-ko="계약서를 분석하면 FInk은 결과를 한눈에 보이는 요약으로 정리합니다. 가장 먼저 할 일과 현금흐름에 제일 큰 영향을 주는 조항을 짚어 주고, 그 근거로 아래 네 가지 결과를 함께 보여 줍니다. 네 결과는 나란히 보여 줄 뿐 하나의 ‘총손실’ 숫자로 합치지 않습니다. 예상 비용과 신뢰도는 서로 다른 질문에 답하기 때문에, 하나로 합치면 어디가 불확실한지가 가려집니다. 각 조항에 대해 추가로 질문할 수도 있는데, 기기 내 모델이 쉬운 말로 답합니다. 이 답변은 보조 도구라 표현이 완벽하지 않을 수 있어 위의 구조화된 결과가 최종 기준이며, 전체 검토 내용은 한 장짜리 의견서로 저장할 수 있습니다.">After you analyze a contract, FInk summarizes it into one at-a-glance review…</p>
-      <div class="grid4">
-        <article>
-          <h3><span class="out-n">1</span><span data-en="Review priority" data-ko="검토 우선순위">Review priority</span></h3>
-          <p data-en="Calculated from the grounded signals: a 0–100 Review-Priority Score and a review-effort level (light / careful / professional), with the clauses to review first ranked in order." data-ko="근거가 연결된 신호로부터 계산합니다: 0–100 위험 지수와 검토 권장 수준(가볍게 / 꼼꼼히 / 전문가), 그리고 가장 먼저 살펴볼 조항을 순서대로.">Calculated from the grounded signals: a 0–100 Review-Priority Score and a review-effort level, with the clauses to review first ranked in order.</p>
-        </article>
-        <article>
-          <h3><span class="out-n">2</span><span data-en="Cost (low / base / high)" data-ko="비용 (낮음 / 적정 / 높음)">Cost (low / base / high)</span></h3>
-          <p data-en="Calculated by fixed financial formulas from your editable assumptions — blank until you supply them, and always a range, never a single guessed figure." data-ko="정해진 금융 수식으로 계산합니다 — 직접 수정하는 가정을 입력하기 전까지 비워 두고, 단일 추정치가 아니라 항상 범위로 제시합니다.">Calculated by fixed financial formulas from your editable assumptions — a range, never a single guessed figure.</p>
-        </article>
-        <article>
-          <h3><span class="out-n">3</span><span data-en="Timing" data-ko="시점">Timing</span></h3>
-          <p data-en="Identified from the clauses: when each cash flow occurs — payment, recoupment, term, and delays." data-ko="조항에서 확인합니다: 각 현금흐름이 발생하는 시점 — 지급 · 회수 · 계약 기간 · 지연.">Identified from the clauses: when each cash flow occurs — payment, recoupment, term, and delays.</p>
-        </article>
-        <article>
-          <h3><span class="out-n">4</span><span data-en="Confidence" data-ko="신뢰도">Confidence</span></h3>
-          <p data-en="Measured from OCR quality and data completeness; ambiguous input lowers this confidence, not the cost or the score." data-ko="OCR 품질과 자료 완결성으로 측정합니다. 불명확한 입력은 비용이나 점수가 아니라 이 신뢰도를 낮춥니다.">Measured from OCR quality and data completeness; ambiguous input lowers this confidence.</p>
-        </article>
-      </div>
+      <h2 data-en="The review" data-ko="검토 결과">The review</h2>
+      <p data-en="FInk returns a prioritized risk review: a Review-Priority Score (0–100) with a review-effort level and a recommended next step, then the financial-risk issues ranked in order. Each one names its clause, why it matters financially, what to ask the other side, and the sources behind it. You can ask follow-up questions and save the review as a one-page brief."
+         data-ko="FInk은 우선순위 리스크 검토를 내놓습니다: 위험 지수(0–100)와 검토 권장 수준, 권장 다음 행동을 보여 준 뒤, 금융과 직결된 위험 항목을 우선순위 순으로 나열합니다. 각 항목은 어느 조항인지, 왜 재무적으로 중요한지, 상대방에게 무엇을 물어야 하는지, 그 근거가 된 자료를 함께 보여 줍니다. 추가로 질문할 수 있고, 검토 내용을 한 장짜리 의견서로 저장할 수 있습니다.">FInk returns a prioritized risk review…</p>
     </section>
 
     <section id="demo" class="band">
@@ -115,51 +103,6 @@ uv run fink-web --host 127.0.0.1 --port 8000
           <a href="https://github.com/seonukkim/fink">github.com/seonukkim/fink</a>
         </p>
       </div>
-    </section>
-
-    <section id="evaluation" class="band">
-      <h2>Evaluation</h2>
-      <p data-en="The example below mirrors the shape of the app's actual result. Highlighted words mean 'check this first' — the colors do not signal safe or risky. The app shows review priority, cost range, timing, and confidence separately. This clause is synthetic: no real contract is used, cost figures stay blank until you supply assumptions, and official-source grounding stays UNVERIFIED until confirmed."
-         data-ko="아래 예시는 실제 앱이 보여 주는 결과의 모습을 그대로 옮긴 것입니다. 강조된 단어는 ‘먼저 확인하라’는 표시일 뿐, 색이 안전이나 위험을 뜻하지는 않습니다. 앱은 검토 우선순위, 예상 비용, 시점, 신뢰도를 따로따로 보여 줍니다. 이 조항은 합성 예시여서 실제 계약은 쓰지 않으며, 비용은 가정을 입력하기 전까지 비워 두고, 공식 출처 근거는 공식 확인 전까지 확인 필요(UNVERIFIED) 상태로 표시합니다.">The example below mirrors the shape of the app's actual result…</p>
-
-      <figure class="example">
-        <figcaption data-en="Synthetic example clause" data-ko="합성 예시 조항">Synthetic example clause</figcaption>
-        <p class="clause" lang="ko"><mark>정산</mark>은 매 분기 종료일로부터 <mark>90일 이내</mark>에 지급하며, 회사는 <mark>‘일반 경비’</mark>를 공제할 수 있다.</p>
-        <p class="clause-gloss">“<mark>Settlement</mark> is paid <mark>within 90 days</mark> of each quarter's end, and the company may deduct ‘<mark>general expenses</mark>.’”</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th data-en="Output" data-ko="출력">Output</th>
-                <th class="cue"></th>
-                <th data-en="What FInk reports for this clause" data-ko="이 조항에 대해 FInk이 보고하는 내용">What FInk reports for this clause</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td data-en="Review priority" data-ko="검토 우선순위">Review priority</td>
-                <td class="cue cue-priority"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4 2.5 4H5"/></svg></td>
-                <td data-en="First-review group — the highlighted payment timing and deduction phrase are placed near the top of the review list." data-ko="우선 검토 그룹 — 표시된 지급 시점과 공제 표현이 검토 목록 상단에 배치됩니다.">First-review group — the highlighted payment timing and deduction phrase are placed near the top of the review list.</td>
-              </tr>
-              <tr>
-                <td data-en="Cost (low / base / high)" data-ko="비용 (낮음 / 적정 / 높음)">Cost (low / base / high)</td>
-                <td class="cue cue-cost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 20v-4"/><path d="M12 20v-8"/><path d="M19 20v-12"/></svg></td>
-                <td data-en="Blank until you supply a settlement basis and a deduction assumption; then a range, never a single figure." data-ko="정산 기준과 공제 가정을 입력하기 전까지 비워 둡니다. 입력 후에는 단일 값이 아닌 범위로 제시합니다.">Blank until you supply a settlement basis and a deduction assumption; then a range, not a single figure.</td>
-              </tr>
-              <tr>
-                <td data-en="Timing" data-ko="시점">Timing</td>
-                <td class="cue cue-timing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></td>
-                <td data-en="Payment falls roughly 90 days after each quarter's end — money the creator has earned but cannot yet use." data-ko="지급은 매 분기 종료 후 약 90일 뒤에 이루어집니다 — 창작자가 이미 벌었지만 아직 쓸 수 없는 돈입니다.">Payment falls roughly 90 days after each quarter's end — earned but not yet usable.</td>
-              </tr>
-              <tr>
-                <td data-en="Confidence" data-ko="신뢰도">Confidence</td>
-                <td class="cue cue-conf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.6a2.3 2.3 0 0 1 4.2 1.3c0 1.6-2 1.7-2.3 3"/><circle cx="11.6" cy="17" r="0.7" fill="currentColor" stroke="none"/></svg></td>
-                <td data-en="UNVERIFIED — the scope of “general expenses” is undefined, which lowers confidence rather than any cost figure." data-ko="확인 필요(UNVERIFIED) — ‘일반 경비’의 범위가 정의되지 않아, 비용이 아니라 신뢰도를 낮춥니다.">UNVERIFIED — the scope of “general expenses” is undefined, which lowers confidence, not the cost.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </figure>
     </section>
 
     <section id="cite" class="band">
