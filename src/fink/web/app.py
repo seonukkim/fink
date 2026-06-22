@@ -423,6 +423,9 @@ def _analysis_payload_from_request(body: dict[str, Any]) -> dict[str, Any]:
         ui_locale=locale,
     )
     payload = analysis_result_to_payload(result, locale)
+    # Expose the analyzed contract text back to the same local client so it can
+    # run on-device follow-up Q&A (for paste input this is the pasted text).
+    payload["extracted_contract_text"] = paste_text
     if isinstance(previous_assumptions, dict) or isinstance(changed_input, str):
         previous_inputs = _assumptions_from_payload(previous_assumptions)
         previous_result = run_local_analysis(
@@ -4866,6 +4869,31 @@ _APP_JS = r"""(function () {
     };
   }
 
+  function briefMergedClausePair(clauses) {
+    // Join the distinct clauses a merged item covers (제N조 …). Returns null
+    // when the item has no concrete clause so the "조항:" line is hidden.
+    var list = clauses || [];
+    var koParts = [];
+    var enParts = [];
+    list.forEach(function (pair) {
+      var ko = text(pair && pair.ko).trim();
+      var en = text(pair && pair.en).trim();
+      if (ko) {
+        koParts.push(ko);
+      }
+      if (en) {
+        enParts.push(en);
+      }
+    });
+    if (!koParts.length && !enParts.length) {
+      return null;
+    }
+    return {
+      ko: koParts.join(", "),
+      en: enParts.join(", ")
+    };
+  }
+
   function briefFieldPair(pair, fallbackPair) {
     return {
       ko: briefField(pair, "ko", fallbackPair),
@@ -4906,7 +4934,10 @@ _APP_JS = r"""(function () {
     root.setAttribute("aria-hidden", "true");
 
     var findings = (payload && payload.findings) || [];
-    var findingCount = findings.length;
+    // Merge findings by item (title) so the same kind of issue across several
+    // clauses appears once, renumbered 1..N, with its clauses listed inside.
+    var mergedItems = groupFindingsByItem(findings);
+    var findingCount = mergedItems.length;
     var article = el("article", "print-brief-document", null);
     article.setAttribute("data-print-brief-document", "true");
 
@@ -4937,7 +4968,7 @@ _APP_JS = r"""(function () {
     );
 
     var summary = el("section", "print-brief-summary", null);
-    summary.appendChild(bilingual("h2", null, { ko: "전체 정리", en: "Overall" }));
+    summary.appendChild(bilingual("h2", null, { ko: "전체 개요", en: "Overview" }));
     summary.appendChild(
       bilingual("p", "print-summary-line", recommendationActionPair(payload))
     );
@@ -4962,12 +4993,16 @@ _APP_JS = r"""(function () {
         })
       );
     }
-    findings.forEach(function (finding, index) {
+    mergedItems.forEach(function (group, index) {
+      var finding = group.finding;
       var item = el("section", "print-finding", null);
       var title = el("h3", null, String(index + 1) + ". ");
       title.appendChild(bilingual("span", null, briefFindingTitlePair(finding, index)));
       item.appendChild(title);
-      appendPrintLine(item, { ko: "조항:", en: "Clause:" }, briefClauseLabelPair(finding, index));
+      var clausePair = briefMergedClausePair(group.clauses);
+      if (clausePair) {
+        appendPrintLine(item, { ko: "조항:", en: "Clause:" }, clausePair);
+      }
       appendPrintLine(
         item,
         { ko: "왜 중요한지:", en: "Why it matters:" },
@@ -5979,7 +6014,19 @@ _APP_JS = r"""(function () {
         }
         lastResultPayload = result.data;
         if (!options.scenarioRecompute) {
-          analyzedContractText = files.length === 0 && pasteText && pasteText.trim() !== "" ? pasteText : "";
+          // Store the contract text the server actually analyzed so follow-up
+          // Q&A works for both pasted text and uploaded image/PDF input. The
+          // server returns the recovered/extracted text for file uploads; for
+          // pasted text it echoes the paste back. Fall back to the local paste
+          // only if the field is absent.
+          var extractedText =
+            result.data && typeof result.data.extracted_contract_text === "string"
+              ? result.data.extracted_contract_text
+              : "";
+          if (!extractedText && files.length === 0 && pasteText && pasteText.trim() !== "") {
+            extractedText = pasteText;
+          }
+          analyzedContractText = extractedText;
         }
         lastSubmittedAssumptions = request.assumptions;
       })

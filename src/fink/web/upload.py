@@ -178,17 +178,33 @@ def analyze_multipart_request(
             scenario_inputs=scenario_inputs,
             ui_locale=ui_locale,
         )
-        return analysis_result_to_payload(result, ui_locale)
+        return _with_extracted_text(
+            analysis_result_to_payload(result, ui_locale), combined_text
+        )
     if has_paste:
         result = run_local_analysis(
             pasted_text=paste_text,
             scenario_inputs=scenario_inputs,
             ui_locale=ui_locale,
         )
-        return analysis_result_to_payload(result, ui_locale)
+        return _with_extracted_text(
+            analysis_result_to_payload(result, ui_locale), paste_text
+        )
     if not uploads:
         raise _empty_input_error()
     return _analyze_upload(uploads[0], scenario_inputs=scenario_inputs, ui_locale=ui_locale)
+
+
+def _with_extracted_text(payload: dict[str, Any], text: str) -> dict[str, Any]:
+    """Attach the recovered/extracted contract text to the response payload.
+
+    The same local client that uploaded the file (or pasted text) needs the
+    text the pipeline actually analyzed so it can run on-device follow-up Q&A.
+    Returning it to that local client only is fine; it is never persisted.
+    """
+
+    payload["extracted_contract_text"] = text or ""
+    return payload
 
 
 def _analyze_upload(
@@ -210,7 +226,9 @@ def _analyze_upload(
             scenario_inputs=scenario_inputs,
             ui_locale=ui_locale,
         )
-    return analysis_result_to_payload(result, ui_locale)
+    return _with_extracted_text(
+        analysis_result_to_payload(result, ui_locale), recovered.text
+    )
 
 
 def _recover_upload_text(
