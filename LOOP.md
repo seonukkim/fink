@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T19:31:16+09:00`
+- Generated: `2026-06-22T20:36:41+09:00`
 - Current branch: `main`
-- Base commit: `e7bcd11c9683e9d1638c0624de0868ff08523c50`
+- Base commit: `d78924c2d66dfa271712bb6b8167ecd37d9908eb`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -17,8 +17,9 @@
 - Paper-sync status: scaffold ledgers present; no measured results claimed.
 - Fixes: quieted optional PaddleOCR-VL upload OCR logs, cached the local
   PaddleOCR-VL backend across upload calls, added image/PDF pending and
-  friendly OCR-failure chat bubbles, and kept the work local-only with no
-  paper-template changes.
+  friendly OCR-failure chat bubbles, replaced the dense creator result report
+  with a single-column messenger-style result sequence, and kept the work
+  local-only with no paper-template changes.
 
 ## Human Gates
 

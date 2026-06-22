@@ -92,8 +92,9 @@ class WebA11yValidationTests(unittest.TestCase):
         self.assertIn("function prefersReducedMotion()", script)
         self.assertIn('matchMedia("(prefers-reduced-motion: reduce)")', script)
         self.assertIn('behavior: prefersReducedMotion() ? "auto" : "smooth"', script)
-        self.assertIn('scrollIntoView(scrollOptions("start"))', script)
-        self.assertIn('scrollIntoView(scrollOptions("center"))', script)
+        self.assertIn('scrollIntoView(scrollOptions("end"))', script)
+        self.assertIn("@keyframes fink-result-message-in", markup)
+        self.assertIn(".result-sequence-msg", markup)
 
     def test_keyboard_and_screen_reader_oriented_path_uses_native_named_controls(self) -> None:
         result = ANALYZE.run_local_analysis(
@@ -142,13 +143,13 @@ class WebA11yValidationTests(unittest.TestCase):
 
         for expected in (
             'button.setAttribute("aria-busy"',
-            'button.setAttribute("aria-label", "물어볼 말 복사 / Copy question to ask")',
-            'link.setAttribute("aria-label", "원문 위치로 이동 / Open source excerpt")',
-            'workspace.setAttribute("data-reader-layout", "single-column")',
-            'creatorEvidenceLabel',
+            "function prepareResultOpeningMessage(targetItem, container)",
+            "function appendResultContentBubble(className, content, index)",
+            "function renderFindingLine(record)",
+            "function renderDimensionChips(appendBubble, payload)",
+            'item.setAttribute("data-result-sequence-item", "true")',
+            'row.setAttribute("data-result-dimension-chips", "true")',
             'collectAuditEvidenceIds',
-            "[data-source-nav], [data-reader-jump]",
-            "copyQuestion(copyButton)",
             # The single locale toggle flips KO<->EN on click instead of reading
             # a per-button locale value.
             'setLocale(activeLocale() === "en" ? "ko" : "en")',
@@ -158,6 +159,11 @@ class WebA11yValidationTests(unittest.TestCase):
             'data-scenario-recalculate-button',
             'aria-label="시나리오 다시 계산 / Recalculate scenario"',
             'data-highlight-cue=',
+            "function renderCheckFirst",
+            "function renderDimensions",
+            "function renderGroundedQa",
+            "[data-source-nav], [data-reader-jump]",
+            "copyQuestion(copyButton)",
         ):
             self.assertNotIn(removed, script)
 

@@ -261,7 +261,10 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("function submitComposer()", script)
         self.assertIn("function submitFollowUpQuestion(question, options)", script)
         self.assertIn("function firstChangedAssumption(previous, current)", script)
-        self.assertIn("function renderCheckFirst(container, payload)", script)
+        self.assertIn("function prepareResultOpeningMessage(targetItem, container)", script)
+        self.assertIn("function appendResultContentBubble(className, content, index)", script)
+        self.assertIn("function renderDimensionChips(appendBubble, payload)", script)
+        self.assertIn("function renderFindingLine(record)", script)
         self.assertIn("function renderAdvancedDiagnostics(container, payload)", script)
         self.assertIn("function renderSuggestedFollowUps(container, payload)", script)
         self.assertIn("function buildReviewBriefText(payload, locale)", script)
@@ -275,13 +278,12 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('button.setAttribute("data-make-review-brief", "true")', script)
         self.assertIn('copy.setAttribute("data-copy-review-brief", "true")', script)
         self.assertIn('download.setAttribute("data-download-review-brief", "markdown")', script)
-        self.assertIn('list.setAttribute("data-chat-citations", "true")', script)
+        self.assertIn('summary.setAttribute("data-chat-citations", "summary")', script)
         self.assertIn('ko: "이런 걸 물어볼 수 있어요"', script)
         self.assertIn('en: "You could ask"', script)
         self.assertIn('ko: "의견서 만들기"', script)
         self.assertIn('en: "Make a review brief"', script)
         self.assertIn("이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.", script)
-        self.assertIn('setAttribute("data-copy-question", "true")', script)
         self.assertIn('paste_text: analyzedContractText', script)
         self.assertIn('question: asked', script)
         self.assertIn('locale: activeLocale()', script)
@@ -296,6 +298,19 @@ class WebSmokeTests(unittest.TestCase):
         )
         self.assertIn("window.localStorage.getItem(LOCALE_STORAGE_KEY)", script)
         self.assertIn("setLocale(readStoredLocale() || activeLocale());", script)
+        for removed in (
+            "function renderCheckFirst",
+            "function renderDimensions",
+            "function renderGroundedQa",
+            "function renderSourceHighlights",
+            "dimension-grid",
+            "grounded-qa",
+            "확인 표시",
+            "Q&A 복사",
+            "검토 항목으로 이동",
+            'setAttribute("data-copy-question"',
+        ):
+            self.assertNotIn(removed, script)
 
     def test_lan_binding_is_gated_by_opt_in_warning_and_private_host(self) -> None:
         loopback = WEB.resolve_bind_settings(host="localhost")

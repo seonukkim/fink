@@ -167,6 +167,7 @@ class ReportUITests(unittest.TestCase):
             ),
         )
         markup = WEB.render_report_html(view_model)
+        script = WEB.app_js()
 
         self.assertEqual(
             WEB.report_dimension_ids(),
@@ -177,32 +178,46 @@ class ReportUITests(unittest.TestCase):
                 "evidence-ocr-confidence",
             ),
         )
-        self.assertEqual(markup.count('data-report-dimension="'), 4)
-        for dimension_id in WEB.report_dimension_ids():
-            self.assertIn(f'data-report-dimension="{dimension_id}"', markup)
-
-        self.assertLess(markup.index('data-check-first="true"'), markup.index('data-dimension-count="4"'))
-        self.assertLess(markup.index('data-exact-excerpt="true"'), markup.index(" / 100"))
-        self.assertGreater(markup.index(" / 100"), markup.index('data-audit-detail="true"'))
+        self.assertIn("function resultOpeningPair(payload)", script)
+        self.assertIn("function renderFindingLine(record)", script)
+        self.assertIn("function renderDimensionChips(appendBubble, payload)", script)
+        self.assertIn('section.setAttribute("data-finding-line", "true")', script)
+        self.assertIn('row.setAttribute("data-result-dimension-chips", "true")', script)
+        self.assertIn("renderAuditSourceExcerpts(details, payload)", script)
+        for removed in (
+            "function renderCheckFirst",
+            "function renderDimensions",
+            "function renderGroundedQa",
+            "function renderSourceHighlights",
+            "dimension-grid",
+            "grounded-qa",
+            "확인 표시",
+            "Q&A 복사",
+            "검토 항목으로 이동",
+        ):
+            self.assertNotIn(removed, script)
+        render_result_body = script.split("function renderResult(payload, targetItem)", 1)[1].split(
+            "function collectAssumptions", 1
+        )[0]
+        self.assertLess(
+            render_result_body.index("renderIntegratedJudgmentCard"),
+            render_result_body.index("renderFindings"),
+        )
+        self.assertLess(
+            render_result_body.index("renderFindings"),
+            render_result_body.index("renderDimensionChips"),
+        )
+        self.assertLess(
+            render_result_body.index("renderDimensionChips"),
+            render_result_body.index("renderReviewBriefAction"),
+        )
+        self.assertLess(
+            render_result_body.index("renderReviewBriefAction"),
+            render_result_body.index("renderSuggestedFollowUps"),
+        )
         self.assertIn("규칙 기반 검토 집중도 지수", markup)
         self.assertIn("위험 확률, 손실액, 안전 판정이 아닙니다.", markup)
-        self.assertIn("물어볼 말 복사", markup)
-        self.assertIn("원문으로 이동", markup)
         self.assertIn("통화 확인 필요", markup)
-        self.assertIn('data-collapsed-badge-count="3"', markup)
-        self.assertIn('<details id=', markup)
-        first_finding = markup.split('data-finding-rank="1"', 1)[1].split("</details>", 1)[0]
-        self.assertIn("open", first_finding)
-        section_order = [
-            'data-finding-section="section.why_check"',
-            'data-finding-section="section.wording"',
-            'data-finding-section="section.impact"',
-            'data-finding-section="section.question"',
-            'data-finding-section="section.evidence"',
-            'data-finding-section="section.detail"',
-        ]
-        positions = [first_finding.index(section) for section in section_order]
-        self.assertEqual(positions, sorted(positions))
 
         self.assertEqual(view_model.view_model, "CreatorReviewViewModel")
         self.assertIn("reading_status", view_model.statuses)

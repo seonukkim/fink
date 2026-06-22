@@ -1266,6 +1266,7 @@ def _css() -> str:
 * { box-sizing: border-box; }
 html {
   scroll-padding: calc(var(--space-4) + 44px);
+  background: var(--canvas);
 }
 body {
   margin: 0;
@@ -1274,13 +1275,12 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.6;
   overflow-wrap: anywhere;
-  /* Full-height messenger column: header, privacy line, scrolling thread, and
-     a composer pinned to the bottom. The thread is the only scroll region, so
-     the composer stays put via flex layout, no sticky positioning needed. */
+  /* Messenger content should follow the conversation height. The page itself
+     scrolls when needed, so there is no reserved empty pane after the thread. */
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  height: 100vh;
+  min-height: 0;
+  height: auto;
 }
 img, svg, video, canvas {
   max-width: 100%;
@@ -1534,11 +1534,6 @@ textarea {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
-.dimension-grid {
-  display: grid;
-  gap: .75rem;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-}
 .report-ui {
   display: grid;
   gap: 1rem;
@@ -1571,76 +1566,10 @@ textarea {
   outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
 }
-.grounded-qa {
-  display: grid;
-  gap: var(--space-1);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--line);
-}
-.grounded-qa-list {
-  display: grid;
-  gap: var(--space-1);
-}
-.qa-followup {
-  display: grid;
-  gap: .5rem;
-  margin-bottom: var(--space-1);
-  padding: var(--space-2);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--accent-tint);
-}
-.qa-followup-label { font-weight: 800; }
-.qa-followup-row {
-  display: flex;
-  gap: .5rem;
-  flex-wrap: wrap;
-}
-.qa-followup-row input {
-  flex: 1 1 14rem;
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: .55rem .7rem;
-}
-.qa-followup-answer {
-  border-left: 4px solid var(--accent);
-  background: #fff;
-}
-.grounded-qa-item {
-  display: grid;
-  gap: .75rem;
-  padding: .85rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfcfe;
-}
-.qa-check {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  font-weight: 700;
-}
-.qa-check input {
-  width: 1.2rem;
-  min-height: 1.2rem;
-}
-.qa-body {
-  display: grid;
-  gap: .5rem;
-}
-.qa-citations {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  padding-left: 0;
-  list-style: none;
-}
-.qa-citations code {
-  padding: .18rem .4rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #fff;
+.chat-citation-summary {
+  margin: .5rem 0 0;
+  color: var(--muted);
+  font-size: .9rem;
 }
 [data-active-anchor="true"] {
   outline: 3px solid var(--focus-ring);
@@ -1693,9 +1622,6 @@ article {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 1rem;
-}
-.dimension-grid article {
-  background: var(--panel);
 }
 .category-cards, .non-scoring-context {
   border-top: 1px solid var(--line);
@@ -1900,13 +1826,13 @@ footer {
 .integrated-judgment-card {
   display: grid;
   gap: var(--space-1);
-  margin: 0 0 var(--space-2);
-  padding: var(--space-2);
+  min-height: 0;
+  margin: 0;
+  padding: .85rem;
   border: 1px solid var(--line);
-  border-top: 4px solid var(--accent);
   border-radius: var(--radius);
   background: #f9fcfd;
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 .glance-heading {
   display: flex;
@@ -1997,24 +1923,13 @@ footer {
   max-width: var(--reading-measure);
   color: var(--muted);
 }
-.check-first, .recommended-action {
-  display: grid;
-  gap: var(--space-1);
-  margin: var(--space-2) 0;
-  padding: var(--space-2);
-  border: 1px solid var(--accent);
-  border-left: 6px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--accent-tint);
-}
-.check-first h2, .check-first h3 {
+.result-source-quote {
   margin: 0;
-}
-.check-first blockquote, .finding-section blockquote {
-  margin: 0;
-  padding: .75rem .85rem;
-  border-left: 4px solid var(--accent);
-  background: #fff;
+  padding: .55rem .7rem;
+  border-left: 3px solid var(--accent);
+  background: #f9fcfd;
+  color: var(--muted);
+  font-size: .92rem;
   max-width: var(--reading-measure);
 }
 .status-row {
@@ -2030,15 +1945,6 @@ footer {
   font-size: .9rem;
   margin: var(--space-1) 0 var(--space-2);
 }
-.dimension-card {
-  display: grid;
-  gap: .5rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: .85rem;
-  background: var(--panel);
-}
-.dimension-card h4 { margin: 0; }
 .exposure-line { margin: 0; font-weight: 700; }
 .exposure-ranges {
   display: grid;
@@ -2113,47 +2019,15 @@ footer {
   border-radius: 8px;
   background: #fff;
 }
-.finding-sort-control {
-  display: inline-flex;
-  gap: .25rem;
-  align-items: center;
-  width: fit-content;
-  margin: .1rem 0 .25rem;
-  padding: .18rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-}
-.finding-sort-option {
-  min-height: 44px;
-  padding: .35rem .7rem;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--accent-strong);
-  font-size: .85rem;
-  font-weight: 700;
-}
-.finding-sort-option:hover,
-.finding-sort-option[aria-pressed="true"] {
-  border-color: var(--accent);
-}
-.finding-sort-option[aria-pressed="true"] {
-  background: var(--accent-tint);
-}
 .ranked-findings, .guidance-card ul {
   display: grid;
   gap: .6rem;
   margin: 0;
 }
-.ranked-findings {
-  list-style: none;
-  padding-left: 0;
-}
 .guidance-card ul {
   padding-left: 1.15rem;
 }
-.finding-card, .guidance-card {
+.guidance-card {
   display: grid;
   gap: var(--space-1);
   border: 1px solid var(--line);
@@ -2161,40 +2035,6 @@ footer {
   padding: var(--space-2);
   background: var(--panel);
   box-shadow: var(--shadow);
-}
-.finding-card[open] {
-  border-color: var(--accent);
-}
-.finding-summary {
-  cursor: pointer;
-  display: grid;
-  gap: .5rem;
-  list-style-position: inside;
-}
-.finding-title {
-  font-weight: 800;
-}
-.finding-badges {
-  display: flex;
-  gap: .35rem;
-  flex-wrap: wrap;
-}
-.finding-priority-badge {
-  min-width: 1.65rem;
-  text-align: center;
-  color: var(--accent-strong);
-  background: var(--accent-tint);
-  border-color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-.finding-section {
-  display: grid;
-  gap: .45rem;
-  padding-top: var(--space-1);
-  border-top: 1px solid var(--line-soft);
-}
-.finding-section h4 {
-  margin: 0;
 }
 .advanced-diagnostic {
   display: grid;
@@ -2217,11 +2057,82 @@ footer {
 .finding-snippet { margin: 0; max-width: var(--reading-measure); color: var(--muted); }
 .guidance-card h4 { margin: 0; }
 .guidance-why { margin: 0; max-width: var(--reading-measure); font-weight: 600; }
+.finding-line {
+  display: grid;
+  gap: .45rem;
+}
+.finding-line-head {
+  display: flex;
+  gap: .55rem;
+  align-items: flex-start;
+}
+.finding-number-badge {
+  display: inline-flex;
+  width: 1.65rem;
+  height: 1.65rem;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.finding-line-title {
+  margin: .1rem 0 0;
+  color: var(--ink);
+  font-weight: 800;
+}
+.finding-line-why,
+.finding-line-question {
+  margin: 0;
+  max-width: var(--reading-measure);
+}
+.finding-line-why {
+  color: var(--muted);
+}
+.finding-line-question strong {
+  color: var(--accent-strong);
+}
+.result-chip-row {
+  display: flex;
+  gap: .45rem;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.result-chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: .3rem .6rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: .9rem;
+  font-weight: 700;
+}
+.audit-source-excerpts {
+  display: grid;
+  gap: .55rem;
+  margin-top: var(--space-1);
+}
+.audit-source-excerpts h4 {
+  margin: 0;
+}
+.audit-source-excerpts blockquote {
+  margin: 0;
+  padding: .65rem .75rem;
+  border-left: 3px solid var(--accent);
+  background: #fff;
+  color: var(--muted);
+}
 @media (max-width: 480px) {
   .workspace {
     padding: var(--space-1);
   }
-  .dimension-grid,
   .scenario-field-list,
   .assumption-fields,
   .metric-list {
@@ -2484,9 +2395,9 @@ footer {
   padding-left: 1.15rem;
 }
 .chat {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: visible;
   padding: var(--space-2) clamp(.75rem, 4vw, 2rem);
 }
 .thread {
@@ -2527,6 +2438,25 @@ footer {
 .bubble-text {
   margin: 0;
   max-width: var(--reading-measure);
+}
+.result-sequence-msg {
+  opacity: 0;
+  transform: translateY(.35rem);
+  animation: fink-result-message-in .34s ease-out forwards;
+  animation-delay: calc(var(--result-index, 0) * 70ms);
+}
+.result-sequence-msg .bubble {
+  max-width: min(100%, 40rem);
+}
+@keyframes fink-result-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .pending-bubble {
   position: relative;
@@ -2673,8 +2603,7 @@ footer {
   }
 }
 .bubble-result {
-  max-width: 100%;
-  width: 100%;
+  max-width: min(100%, 40rem);
 }
 .file-chip {
   display: inline-flex;
@@ -2697,6 +2626,10 @@ footer {
   font-weight: 700;
 }
 .result-pane {
+  display: grid;
+  gap: var(--space-1);
+}
+.result-inline-panel {
   display: grid;
   gap: var(--space-1);
 }
@@ -2800,6 +2733,11 @@ footer {
   .pending-progress {
     display: none;
   }
+  .result-sequence-msg {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
   .typing-dots {
     display: none;
   }
@@ -2841,7 +2779,6 @@ _APP_JS = r"""(function () {
   var lastResultPayload = null;
   var lastReviewBriefItem = null;
   var lastSubmittedAssumptions = {};
-  var qaCheckState = {};
   var ANALYSIS_STAGE_LABELS = [
     { ko: "계약서 읽는 중", en: "Reading the contract" },
     { ko: "조항 나누는 중", en: "Splitting clauses" },
@@ -2963,31 +2900,6 @@ _APP_JS = r"""(function () {
     return fallback;
   }
 
-  function creatorEvidenceLabel(evidence) {
-    var ids = evidence && evidence.grounding_evidence_ids ? evidence.grounding_evidence_ids : [];
-    if (ids.length > 0) {
-      return {
-        ko: "공식 자료 근거 있음",
-        en: "Official source support available"
-      };
-    }
-    return {
-      ko: "근거 확인 필요",
-      en: "Evidence confirmation needed"
-    };
-  }
-
-  function creatorEvidenceCount(evidence) {
-    var ids = evidence && evidence.grounding_evidence_ids ? evidence.grounding_evidence_ids : [];
-    if (ids.length === 0) {
-      return creatorEvidenceLabel(evidence);
-    }
-    return {
-      ko: "공식 자료 " + ids.length + "건",
-      en: ids.length + " official source item(s)"
-    };
-  }
-
   function creatorStatusLabel(status) {
     if (status && status.state === "unverified") {
       return {
@@ -3025,70 +2937,6 @@ _APP_JS = r"""(function () {
 
   function copyLabel(payload, key) {
     return copyPair(payload, key);
-  }
-
-  function renderOpenSourceLink(finding, payload) {
-    var source = finding.source || {};
-    var status = el("p", "source-status", null);
-    var targetId = source.focus_anchor_id || source.anchor_id || "source-reader";
-    status.setAttribute("data-highlight-status", source.highlight_status || "missing_exact_span");
-    var link = el("a", null, null);
-    link.href = "#" + targetId;
-    link.setAttribute("data-source-nav", "finding-to-source");
-    link.setAttribute("data-source-focus-target", targetId);
-    link.setAttribute("aria-label", "원문 위치로 이동 / Open source excerpt");
-    link.appendChild(bilingual("span", null, source.source_link_label || copyLabel(payload, "action.open_source")));
-    status.appendChild(link);
-    status.appendChild(document.createTextNode(" "));
-    status.appendChild(
-      bilingual(
-        "span",
-        null,
-        source.highlight_status_label || {
-          ko: "정확한 문구 위치 확인 필요",
-          en: "Exact source phrase position needs confirmation"
-        }
-      )
-    );
-    return status;
-  }
-
-  function renderCopyQuestionButton(question, payload) {
-    var button = el("button", "secondary", null);
-    button.type = "button";
-    button.setAttribute("data-copy-question", "true");
-    button.setAttribute("data-copy-value", text(question && question.ko));
-    button.setAttribute("aria-label", "물어볼 말 복사 / Copy question to ask");
-    button.appendChild(bilingual("span", null, copyLabel(payload, "action.copy_question")));
-    return button;
-  }
-
-  function renderCopyQaButton(item, qa) {
-    var actions = (qa && qa.copy_actions) || {};
-    var button = el("button", "secondary", null);
-    button.type = "button";
-    button.setAttribute("data-copy-qa", "one");
-    button.setAttribute("data-copy-value", text(item.copy_text && item.copy_text.ko));
-    button.setAttribute("aria-label", "Q&A 복사 / Copy Q&A");
-    button.appendChild(
-      bilingual("span", null, actions.copy_one || { ko: "Q&A 복사", en: "Copy Q&A" })
-    );
-    return button;
-  }
-
-  function renderFindingSection(labelPair, contentClass) {
-    var section = el("section", "finding-section", null);
-    section.setAttribute("data-finding-section", contentClass);
-    section.appendChild(bilingual("h4", null, labelPair));
-    return section;
-  }
-
-  function renderFindingEvidence(section, finding) {
-    var evidence = finding.evidence || {};
-    section.appendChild(bilingual("p", "finding-snippet", creatorEvidenceLabel(evidence)));
-    if (evidence.grounding_evidence_ids && evidence.grounding_evidence_ids.length > 0) {
-      section.appendChild(bilingual("p", "finding-snippet", creatorEvidenceCount(evidence)));
-    }
   }
 
   function finiteNumberOrNull(value) {
@@ -3182,419 +3030,48 @@ _APP_JS = r"""(function () {
     return sorted;
   }
 
-  function setFindingSortState(control, sortMode) {
-    control.setAttribute("data-active-sort", sortMode);
-    control.querySelectorAll("[data-finding-sort]").forEach(function (button) {
-      var active = button.getAttribute("data-finding-sort") === sortMode;
-      button.setAttribute("aria-pressed", active ? "true" : "false");
-      if (active) {
-        button.setAttribute("data-active", "true");
-      } else {
-        button.removeAttribute("data-active");
-      }
-    });
-  }
-
-  function renderFindingSortControl(onChange) {
-    var control = el("div", "finding-sort-control", null);
-    control.setAttribute("role", "group");
-    control.setAttribute("aria-label", "발견사항 정렬 / Sort findings");
-    control.setAttribute("data-finding-sort-control", "true");
-    [
-      { mode: "priority", label: { ko: "우선순위순", en: "By priority" } },
-      { mode: "clause", label: { ko: "조항순", en: "By clause order" } }
-    ].forEach(function (option) {
-      var button = el("button", "finding-sort-option", null);
-      button.type = "button";
-      button.setAttribute("data-finding-sort", option.mode);
-      button.appendChild(bilingual("span", null, option.label));
-      button.addEventListener("click", function () {
-        onChange(option.mode);
-      });
-      control.appendChild(button);
-    });
-    setFindingSortState(control, "priority");
-    return control;
-  }
-
-  function renderFindingItem(record, payload) {
+  function renderFindingLine(record) {
     var finding = record.finding;
-    var source = finding.source || {};
-    var listItem = el("li", null, null);
-    var item = el("details", "finding-card", null);
-    item.id =
-      source.finding_anchor_id
-        ? source.finding_anchor_id
-        : finding.finding_id;
-    item.tabIndex = -1;
-    item.setAttribute("data-finding-id", finding.finding_id);
-    item.setAttribute("data-finding-rank", String(record.priorityRank));
-    item.setAttribute("data-finding-original-index", String(record.originalIndex));
-    if (source.clause_id) {
-      item.setAttribute("data-clause-id", source.clause_id);
-    }
-    if (record.clauseOrder != null) {
-      item.setAttribute("data-clause-order", String(record.clauseOrder));
-    }
-    item.setAttribute("data-reader-focus-target", "finding");
-    if (Number(record.priorityRank) === 1) {
-      item.open = true;
-    }
-    var summary = el("summary", "finding-summary", null);
-    summary.appendChild(bilingual("span", "finding-title", finding.title));
-    var badges = el("span", "finding-badges", null);
-    badges.setAttribute("data-collapsed-badge-count", "3");
-    var priorityBadge = el("span", "badge finding-priority-badge", null);
-    priorityBadge.setAttribute("data-priority-rank-badge", "true");
-    priorityBadge.appendChild(
-      bilingual("span", "sr-only", { ko: "검토 우선순위", en: "Review priority" })
+    var section = el("section", "finding-line", null);
+    section.setAttribute("data-finding-line", "true");
+    section.setAttribute("data-finding-rank", String(record.priorityRank));
+    var head = el("div", "finding-line-head", null);
+    var badge = el("span", "finding-number-badge", String(record.priorityRank));
+    badge.setAttribute("aria-hidden", "true");
+    head.appendChild(badge);
+    head.appendChild(bilingual("p", "finding-line-title", finding.title));
+    section.appendChild(head);
+    section.appendChild(bilingual("p", "finding-line-why", finding.why_it_matters));
+    var question = el("p", "finding-line-question", null);
+    question.appendChild(
+      bilingual("strong", null, {
+        ko: "물어볼 말: ",
+        en: "Ask: "
+      })
     );
-    priorityBadge.appendChild(document.createTextNode(String(record.priorityRank)));
-    badges.appendChild(priorityBadge);
-    badges.appendChild(
-      bilingual("span", "badge unverified-badge", creatorEvidenceLabel(finding.evidence || {}))
-    );
-    badges.appendChild(
-      bilingual(
-        "span",
-        "badge",
-        payload.dimensions.monetary.quantification_status.label
-      )
-    );
-    summary.appendChild(badges);
-    item.appendChild(summary);
-
-    var why = renderFindingSection(copyLabel(payload, "section.why_check"), "section.why_check");
-    why.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
-    item.appendChild(why);
-
-    var wording = renderFindingSection(copyLabel(payload, "section.wording"), "section.wording");
-    if (finding.source && finding.source.exact_excerpt) {
+    question.appendChild(bilingual("span", null, finding.question_to_ask));
+    section.appendChild(question);
+    if (Number(record.priorityRank) === 1 && finding.source && finding.source.exact_excerpt) {
       var quote = el("blockquote", null, finding.source.exact_excerpt);
       quote.setAttribute("data-exact-excerpt", "true");
-      wording.appendChild(quote);
+      quote.className = "result-source-quote";
+      section.appendChild(quote);
     }
-    wording.appendChild(renderOpenSourceLink(finding, payload));
-    item.appendChild(wording);
-
-    var impact = renderFindingSection(copyLabel(payload, "section.impact"), "section.impact");
-    impact.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
-    item.appendChild(impact);
-
-    var question = renderFindingSection(copyLabel(payload, "section.question"), "section.question");
-    question.appendChild(bilingual("p", "action-line", finding.question_to_ask));
-    question.appendChild(renderCopyQuestionButton(finding.question_to_ask, payload));
-    if (finding.additional_questions && finding.additional_questions.length > 0) {
-      var moreQuestions = el("ul", null, null);
-      finding.additional_questions.forEach(function (extraQuestion) {
-        moreQuestions.appendChild(bilingual("li", null, extraQuestion));
-      });
-      question.appendChild(moreQuestions);
-    }
-    item.appendChild(question);
-
-    var evidence = renderFindingSection(copyLabel(payload, "section.evidence"), "section.evidence");
-    renderFindingEvidence(evidence, finding);
-    item.appendChild(evidence);
-
-    var detail = renderFindingSection(copyLabel(payload, "section.detail"), "section.detail");
-    detail.appendChild(bilingual("p", "finding-snippet", finding.priority_basis));
-    item.appendChild(detail);
-
-    listItem.appendChild(item);
-    return listItem;
+    return section;
   }
 
-  function renderFindings(container, payload) {
+  function renderFindings(appendBubble, payload) {
     var findings = payload.findings;
     if (!findings || findings.length === 0) {
       return;
     }
     var records = findingRecords(findings);
-    var sortMode = "priority";
-    var list = el("ol", "ranked-findings", null);
-    list.setAttribute("data-ranked-findings", "true");
-
-    function redrawList() {
-      clearNode(list);
-      sortedFindingRecords(records, sortMode).forEach(function (record) {
-        list.appendChild(renderFindingItem(record, payload));
-      });
-    }
-
-    var control = renderFindingSortControl(function (nextMode) {
-      sortMode = nextMode;
-      setFindingSortState(control, sortMode);
-      redrawList();
-    });
-    container.appendChild(control);
-    redrawList();
-    container.appendChild(list);
-  }
-
-  function renderQaFollowUp(payload) {
-    // A conversational follow-up box. The creator types a question and FInk
-    // answers from the analysis already on screen (findings + their citations)
-    // without any network call, so the response stays grounded and local.
-    var form = el("div", "qa-followup", null);
-    form.setAttribute("data-qa-followup", "true");
-    var label = el("label", "qa-followup-label", null);
-    label.setAttribute("for", "qa-followup-input");
-    label.appendChild(
-      bilingual("span", null, {
-        ko: "이 계약에 대해 더 질문하기",
-        en: "Ask more about this contract"
-      })
-    );
-    form.appendChild(label);
-    var row = el("div", "qa-followup-row", null);
-    var input = document.createElement("input");
-    input.type = "text";
-    input.id = "qa-followup-input";
-    input.setAttribute("data-qa-followup-input", "true");
-    input.setAttribute("autocomplete", "off");
-    input.setAttribute(
-      "placeholder",
-      activeLocale() === "en"
-        ? "e.g. When does the money arrive?"
-        : "예: 정산 대금은 언제 들어오나요?"
-    );
-    input.setAttribute("aria-label", "후속 질문 입력 / Ask a follow-up question");
-    row.appendChild(input);
-    var ask = el("button", "secondary", null);
-    ask.type = "button";
-    ask.setAttribute("data-qa-followup-ask", "true");
-    ask.setAttribute("aria-label", "후속 질문하기 / Ask follow-up question");
-    ask.appendChild(bilingual("span", null, { ko: "질문하기", en: "Ask" }));
-    row.appendChild(ask);
-    form.appendChild(row);
-    form.appendChild(
-      bilingual("p", "hint", {
-        ko: "답변은 화면의 분석 결과와 연결된 근거에서만 가져옵니다.",
-        en: "Answers are drawn only from the on-screen analysis and its grounded evidence."
-      })
-    );
-    return form;
-  }
-
-  function scoreFindingForQuestion(finding, terms) {
-    var haystack = [
-      localized(finding.title),
-      localized(finding.why_it_matters),
-      localized(finding.cash_flow_consequence),
-      localized(finding.question_to_ask),
-      finding.source && finding.source.exact_excerpt ? finding.source.exact_excerpt : "",
-      finding.source && finding.source.clause_id ? finding.source.clause_id : ""
-    ]
-      .join(" ")
-      .toLowerCase();
-    var score = 0;
-    terms.forEach(function (term) {
-      if (term && haystack.indexOf(term) !== -1) {
-        score += 1;
-      }
-    });
-    return score;
-  }
-
-  function answerFollowUpQuestion(question) {
-    var payload = lastResultPayload;
-    var list = document.querySelector("[data-qa-answer-list]");
-    if (!payload || !list) {
-      return;
-    }
-    var asked = String(question || "").trim();
-    if (asked === "") {
-      return;
-    }
-    var findings = payload.findings || [];
-    var terms = asked
-      .toLowerCase()
-      .split(/[\s,.;:!?()/]+/)
-      .filter(function (term) {
-        return term.length >= 2;
-      });
-    var best = null;
-    var bestScore = 0;
-    findings.forEach(function (finding) {
-      var score = scoreFindingForQuestion(finding, terms);
-      if (score > bestScore) {
-        bestScore = score;
-        best = finding;
-      }
-    });
-    if (!best && findings.length > 0) {
-      best = findings[0];
-    }
-
-    var card = el("article", "grounded-qa-item qa-followup-answer", null);
-    card.setAttribute("data-qa-followup-answer", "true");
-    if (best) {
-      card.setAttribute("data-finding-id", best.finding_id);
-    }
-    var body = el("section", "qa-body", null);
-    var askedPair = { ko: asked, en: asked };
-    body.appendChild(bilingual("h4", null, askedPair));
-    if (best) {
-      body.appendChild(bilingual("p", null, best.cash_flow_consequence));
-      body.appendChild(bilingual("p", "hint", best.why_it_matters));
-      if (best.source && best.source.exact_excerpt) {
-        var quote = el("blockquote", null, best.source.exact_excerpt);
-        quote.setAttribute("data-exact-excerpt", "true");
-        body.appendChild(quote);
-      }
-      if (best.citations && best.citations.length > 0) {
-        body.appendChild(bilingual("p", "hint", creatorEvidenceCount(best.evidence || {})));
-      } else {
-        body.appendChild(
-          bilingual("p", "hint", {
-            ko: "근거 확인 필요",
-            en: "Evidence confirmation needed"
-          })
-        );
-      }
-    } else {
-      body.appendChild(
-        bilingual("p", null, {
-          ko: "화면의 분석 결과에서 관련 항목을 찾지 못했습니다. 먼저 계약을 분석해 보세요.",
-          en: "No related item was found in the on-screen analysis. Try analyzing the contract first."
-        })
-      );
-    }
-    card.appendChild(body);
-    list.insertBefore(card, list.firstChild);
-    card.scrollIntoView(scrollOptions("center"));
-    qaStatusMessage({
-      ko: "후속 질문에 분석 결과로 답했습니다.",
-      en: "Answered your follow-up from the analysis."
+    sortedFindingRecords(records, "priority").forEach(function (record) {
+      appendBubble("finding-bubble", renderFindingLine(record));
     });
   }
 
-  function renderGroundedQa(container, payload) {
-    var qa = payload.grounded_qa || {};
-    var items = qa.items || [];
-    if (items.length === 0) {
-      return;
-    }
-    var actions = qa.copy_actions || {};
-    var section = el("section", "grounded-qa", null);
-    section.setAttribute("data-grounded-qa", "true");
-    section.setAttribute("data-grounded-qa-placement", qa.placement || "after_findings_non_floating");
-    section.setAttribute("data-session-local-check-state", "true");
-
-    var heading = el("div", "section-heading", null);
-    heading.appendChild(el("p", "eyebrow", "Grounded Q&A"));
-    heading.appendChild(bilingual("h3", null, { ko: "근거 기반 Q&A", en: "Grounded Q&A" }));
-    section.appendChild(heading);
-    if (qa.analysis_method_detail) {
-      section.appendChild(bilingual("p", "hint", qa.analysis_method_detail));
-    }
-
-    var actionsRow = el("div", "action-row", null);
-    actionsRow.setAttribute("role", "group");
-    actionsRow.setAttribute("aria-label", "Q&A copy and export actions");
-    var copyAll = el("button", "secondary", null);
-    copyAll.type = "button";
-    copyAll.setAttribute("data-copy-qa", "all");
-    copyAll.setAttribute("data-copy-value", text(qa.copy_all_text && qa.copy_all_text.ko));
-    copyAll.setAttribute("aria-label", "전체 Q&A 복사 / Copy all Q&A");
-    copyAll.appendChild(
-      bilingual("span", null, actions.copy_all || { ko: "전체 Q&A 복사", en: "Copy all Q&A" })
-    );
-    actionsRow.appendChild(copyAll);
-
-    var exportButton = el("button", "secondary", null);
-    exportButton.type = "button";
-    exportButton.setAttribute("data-export-qa", "markdown");
-    exportButton.setAttribute("data-export-filename", qa.export_filename || "fink-grounded-qa.md");
-    exportButton.setAttribute("data-export-value", text(qa.export_markdown));
-    exportButton.setAttribute("aria-label", "Q&A 내보내기 / Export Q&A");
-    exportButton.appendChild(
-      bilingual("span", null, actions.export || { ko: "Q&A 내보내기", en: "Export Q&A" })
-    );
-    actionsRow.appendChild(exportButton);
-    section.appendChild(actionsRow);
-
-    section.appendChild(renderQaFollowUp(payload));
-
-    var status = el("p", "hint", "Q&A 확인 표시는 이 브라우저 세션에만 남습니다.");
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    status.setAttribute("data-qa-status-region", "true");
-    section.appendChild(status);
-
-    var list = el("div", "grounded-qa-list", null);
-    list.setAttribute("data-qa-answer-list", "true");
-    items.forEach(function (item) {
-      var card = el("article", "grounded-qa-item", null);
-      card.id = item.qa_id;
-      card.setAttribute("data-grounded-qa-item", "true");
-      card.setAttribute("data-finding-id", item.finding_id);
-      card.setAttribute(
-        "data-highlight-href",
-        item.links && item.links.highlight_href ? item.links.highlight_href : "#source-reader"
-      );
-
-      var checkLabel = el("label", "qa-check", null);
-      var check = document.createElement("input");
-      check.type = "checkbox";
-      check.checked = qaCheckState[item.finding_id] === true;
-      check.setAttribute("data-qa-check-state", "true");
-      check.setAttribute("data-finding-id", item.finding_id);
-      check.setAttribute("data-mutates-engine-output", "false");
-      check.setAttribute("aria-label", "Q&A 확인 표시 / Mark Q&A checked");
-      checkLabel.appendChild(check);
-      checkLabel.appendChild(el("span", null, "확인 표시"));
-      card.appendChild(checkLabel);
-
-      var body = el("section", "qa-body", null);
-      body.appendChild(bilingual("h4", null, item.primary_question));
-      body.appendChild(bilingual("p", null, item.answer));
-      if (item.citations && item.citations.length > 0) {
-        body.appendChild(
-          bilingual("p", "hint", {
-            ko: "공식 자료 " + item.citations.length + "건",
-            en: item.citations.length + " official source item(s)"
-          })
-        );
-      } else {
-        body.appendChild(
-          bilingual("p", "hint", {
-            ko: "근거 확인 필요",
-            en: "Evidence confirmation needed"
-          })
-        );
-      }
-
-      var links = item.links || {};
-      var linkRow = el("p", "source-status", null);
-      var findingLink = el("a", null, "검토 항목으로 이동");
-      findingLink.href = links.finding_href || "#review-reader";
-      findingLink.setAttribute("data-source-nav", "qa-to-finding");
-      findingLink.setAttribute(
-        "data-source-focus-target",
-        text(findingLink.getAttribute("href")).replace(/^#/, "")
-      );
-      linkRow.appendChild(findingLink);
-      linkRow.appendChild(document.createTextNode(" "));
-      var highlightLink = el("a", null, "하이라이트로 이동");
-      highlightLink.href = links.highlight_href || "#source-reader";
-      highlightLink.setAttribute("data-source-nav", "qa-to-highlight");
-      highlightLink.setAttribute(
-        "data-source-focus-target",
-        text(highlightLink.getAttribute("href")).replace(/^#/, "")
-      );
-      linkRow.appendChild(highlightLink);
-      body.appendChild(linkRow);
-      body.appendChild(renderCopyQaButton(item, qa));
-      card.appendChild(body);
-      list.appendChild(card);
-    });
-    section.appendChild(list);
-    container.appendChild(section);
-  }
-
-  function renderSourceSegments(container, segments) {
+  function renderPlainSourceSegments(container, segments) {
     (segments || []).forEach(function (segment) {
       if (!segment.highlighted) {
         container.appendChild(document.createTextNode(text(segment.text)));
@@ -3602,205 +3079,91 @@ _APP_JS = r"""(function () {
       }
       var marker = document.createElement("mark");
       marker.className = "source-highlight";
-      if (segment.anchor_id) {
-        marker.id = segment.anchor_id;
-        marker.tabIndex = -1;
-        marker.setAttribute("data-source-focus-target", "exact-span");
-      }
-      marker.setAttribute("data-source-highlight", "true");
-      marker.setAttribute("data-source-span-ids", (segment.source_span_ids || []).join(" "));
-      if (segment.page_boxes && segment.page_boxes.length > 0) {
-        marker.setAttribute("data-bbox-provenance", segment.bbox_provenance || "");
-        marker.setAttribute("data-page-box-overlay", "real-bbox");
-        marker.setAttribute("data-page-boxes", JSON.stringify(segment.page_boxes));
-      }
       marker.appendChild(document.createTextNode(text(segment.text)));
       container.appendChild(marker);
     });
   }
 
-  function renderSourceHighlights(container, payload) {
-    var highlights = payload.source_highlights || {};
-    var section = el("section", "source-highlights", null);
-    section.id = "source-reader";
-    section.tabIndex = -1;
-    section.setAttribute("data-source-highlights", "true");
-    section.setAttribute("data-source-highlights-enabled", "true");
-    section.setAttribute("data-reader-source-content", "true");
-    section.setAttribute("data-reader-pane", "source");
-    section.setAttribute("aria-labelledby", "source-highlights-heading");
+  function prefixedChip(prefixKo, prefixEn, pair) {
+    var ko = localizedFor(pair, "ko").trim();
+    var en = localizedFor(pair, "en").trim();
+    if (!ko && !en) {
+      return null;
+    }
+    return {
+      ko: prefixKo + (ko || en),
+      en: prefixEn + (en || ko)
+    };
+  }
 
-    var header = el("div", "source-highlight-header", null);
-    var heading = bilingual("h3", null, {
-      ko: "표시된 원문",
-      en: "Marked source text"
+  function collectDimensionChips(payload) {
+    var dims = (payload && payload.dimensions) || {};
+    var chips = [];
+    var monetary = dims.monetary || {};
+    var monetaryPair = monetary.quantification_status && monetary.quantification_status.label;
+    var monetaryChip = prefixedChip("예상 비용 ", "Estimated cost: ", monetaryPair);
+    if (monetaryChip) {
+      chips.push(monetaryChip);
+    }
+    var time = dims.time || {};
+    var timing = time.contract_timing || time.timing_state;
+    var timingPair = typeof timing === "string" ? { ko: timing, en: timing } : timing;
+    var timeChip = prefixedChip("시점 ", "Timing: ", timingPair);
+    if (timeChip) {
+      chips.push(timeChip);
+    }
+    var evidence = dims.evidence || {};
+    var evidenceChip = prefixedChip(
+      "신뢰도 ",
+      "Confidence: ",
+      creatorStatusLabel(evidence.evidence_status)
+    );
+    if (evidenceChip) {
+      chips.push(evidenceChip);
+    }
+    return chips;
+  }
+
+  function renderDimensionChips(appendBubble, payload) {
+    var chips = collectDimensionChips(payload);
+    if (chips.length === 0) {
+      return;
+    }
+    var row = el("p", "result-chip-row", null);
+    row.setAttribute("data-result-dimension-chips", "true");
+    chips.forEach(function (chip) {
+      row.appendChild(bilingual("span", "result-chip", chip));
     });
-    heading.id = "source-highlights-heading";
-    header.appendChild(heading);
-    var toggle = el("label", "source-toggle", null);
-    var checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = highlights.enabled_default !== false;
-    checkbox.setAttribute("data-source-highlight-toggle", "true");
-    checkbox.setAttribute(
-      "aria-label",
-      "출처 하이라이트 켜기 또는 끄기 / Toggle source highlights"
-    );
-    toggle.appendChild(checkbox);
-    toggle.appendChild(
-      bilingual("span", null, {
-        ko: "하이라이트",
-        en: "Highlights"
-      })
-    );
-    header.appendChild(toggle);
-    section.appendChild(header);
+    appendBubble("dimension-chip-bubble", row);
+  }
 
-    var sourceList = el("div", "source-list", null);
+  function renderAuditSourceExcerpts(details, payload) {
+    var highlights = (payload && payload.source_highlights) || {};
     var sources = highlights.sources || [];
     if (sources.length === 0) {
-      sourceList.appendChild(
-        bilingual("p", "hint", {
-          ko: "정확한 문구 위치 확인 필요",
-          en: "Exact source phrase position needs confirmation"
-        })
-      );
+      return;
     }
-    sources.forEach(function (source) {
-      var card = el("article", "source-highlight-card", null);
-      card.id = source.anchor_id || source.source_id;
-      card.tabIndex = -1;
-      card.setAttribute("data-source-highlight-status", source.status || "missing_exact_span");
-      card.setAttribute("data-clause-id", source.clause_id || "");
-      card.setAttribute("data-text-source", source.text_source || "");
-      card.setAttribute("data-render-mode", source.render_mode || "");
-      card.setAttribute(
-        "data-has-real-bbox-provenance",
-        source.has_real_bbox_provenance ? "true" : "false"
-      );
-      card.setAttribute("data-focus-anchor-id", source.focus_anchor_id || card.id);
-      var cardHeader = el("header", null, null);
-      cardHeader.appendChild(
-        bilingual("strong", null, {
-          ko: "원문 문구",
-          en: "Source wording"
-        })
-      );
-      cardHeader.appendChild(
-        el("span", "badge", localized(source.status_label) || "정확한 문구 위치 확인 필요")
-      );
-      card.appendChild(cardHeader);
-      var sourceText = el("p", "source-text", null);
-      sourceText.setAttribute("data-source-text", "true");
-      renderSourceSegments(sourceText, source.segments || []);
-      card.appendChild(sourceText);
-      if (source.finding_anchor_id) {
-        var back = el("a", null, null);
-        back.href = "#" + source.finding_anchor_id;
-        back.setAttribute("data-source-nav", "source-to-finding");
-        back.setAttribute("data-source-focus-target", source.finding_anchor_id);
-        back.setAttribute("aria-label", "검토 항목으로 돌아가기 / Back to finding");
-        back.appendChild(
-          bilingual("span", null, {
-            ko: "검토 항목으로 돌아가기",
-            en: "Back to finding"
-          })
-        );
-        card.appendChild(back);
+    var section = el("section", "audit-source-excerpts", null);
+    section.setAttribute("data-audit-source-excerpts", "true");
+    section.appendChild(
+      bilingual("h4", null, {
+        ko: "원문 하이라이트",
+        en: "Source highlights"
+      })
+    );
+    sources.slice(0, 3).forEach(function (source) {
+      var quote = el("blockquote", null, null);
+      renderPlainSourceSegments(quote, source.segments || []);
+      if (!quote.textContent.trim() && source.exact_excerpt) {
+        quote.textContent = text(source.exact_excerpt);
       }
-      sourceList.appendChild(card);
+      if (quote.textContent.trim()) {
+        section.appendChild(quote);
+      }
     });
-    section.appendChild(sourceList);
-    container.appendChild(section);
-  }
-
-  function renderReaderShortcutNav() {
-    var nav = el("nav", "reader-jump-links", null);
-    nav.setAttribute("aria-label", "Reader shortcuts");
-    nav.setAttribute("data-mobile-reader-links", "true");
-    var sourceLink = el("a", null, null);
-    sourceLink.href = "#source-reader";
-    sourceLink.setAttribute("data-reader-jump", "source");
-    sourceLink.setAttribute("aria-label", "원문으로 이동 / Go to source");
-    sourceLink.appendChild(
-      bilingual("span", null, {
-        ko: "원문으로 이동",
-        en: "Go to source"
-      })
-    );
-    nav.appendChild(sourceLink);
-    var reportLink = el("a", null, null);
-    reportLink.href = "#review-reader";
-    reportLink.setAttribute("data-reader-jump", "report");
-    reportLink.setAttribute("aria-label", "검토 항목으로 돌아가기 / Back to findings");
-    reportLink.appendChild(
-      bilingual("span", null, {
-        ko: "검토 항목으로 돌아가기",
-        en: "Back to findings"
-      })
-    );
-    nav.appendChild(reportLink);
-    return nav;
-  }
-
-  function dimensionCard(titlePair, dimensionId) {
-    var card = el("article", "dimension-card", null);
-    card.setAttribute("data-report-dimension", dimensionId);
-    card.appendChild(bilingual("h4", null, titlePair));
-    return card;
-  }
-
-  function renderDimensions(container, payload) {
-    var dims = payload.dimensions;
-    var grid = el("div", "dimension-grid", null);
-    grid.setAttribute("data-dimension-grid", "true");
-    grid.setAttribute("data-dimension-count", "4");
-
-    var priority = dims.review_priority;
-    var priorityCard = dimensionCard(priority.label, "review-priority-score");
-    priorityCard.appendChild(bilingual("p", "state-line", priority.reading_status.label));
-    priorityCard.appendChild(bilingual("p", "hint", payload.recommendation.action));
-    grid.appendChild(priorityCard);
-
-    var monetary = dims.monetary;
-    var monetaryCard = dimensionCard(monetary.label, "monetary-exposure-range");
-    monetaryCard.setAttribute("data-grand-total", "absent");
-    monetaryCard.appendChild(bilingual("p", "state-line", monetary.scenario_status.label));
-    monetaryCard.appendChild(bilingual("p", "state-line", monetary.quantification_status.label));
-    monetaryCard.appendChild(bilingual("p", "state-line", monetary.currency_status));
-    if (monetary.ranges && monetary.ranges.length > 0) {
-      var ranges = el("div", "exposure-ranges", null);
-      var labels = el("p", "exposure-range-labels", null);
-      labels.appendChild(bilingual("span", null, { ko: "저", en: "Low" }));
-      labels.appendChild(bilingual("span", null, { ko: "기준", en: "Base" }));
-      labels.appendChild(bilingual("span", null, { ko: "고", en: "High" }));
-      ranges.appendChild(labels);
-      monetary.ranges.forEach(function (range) {
-        var values = el("p", "exposure-range-values", null);
-        values.appendChild(el("span", null, text(range.low)));
-        values.appendChild(el("span", null, text(range.base)));
-        values.appendChild(el("span", null, text(range.high)));
-        ranges.appendChild(values);
-      });
-      monetaryCard.appendChild(ranges);
-    } else if (monetary.note) {
-      monetaryCard.appendChild(bilingual("p", "hint", monetary.note));
+    if (section.childNodes.length > 1) {
+      details.appendChild(section);
     }
-    grid.appendChild(monetaryCard);
-
-    var time = dims.time;
-    var timeCard = dimensionCard(time.label, "time-exposure");
-    timeCard.appendChild(bilingual("p", "state-line", time.timing_state));
-    timeCard.appendChild(bilingual("p", "hint", time.contract_timing));
-    grid.appendChild(timeCard);
-
-    var evidence = dims.evidence;
-    var evidenceCard = dimensionCard(evidence.label, "evidence-ocr-confidence");
-    evidenceCard.appendChild(bilingual("p", "state-line", evidence.reading_status.label));
-    evidenceCard.appendChild(bilingual("p", "state-line", creatorStatusLabel(evidence.evidence_status)));
-    grid.appendChild(evidenceCard);
-
-    container.appendChild(grid);
   }
 
   function renderVerificationSignals(container, payload) {
@@ -3943,12 +3306,8 @@ _APP_JS = r"""(function () {
   function briefClauseLabel(finding, index, locale) {
     var source = (finding && finding.source) || {};
     var order = clauseOrderValue(finding || {});
-    var clauseId = text(source.clause_id || (finding && finding.clause_id)).trim();
-    if (order != null && clauseId.toLowerCase().indexOf("clause") !== -1) {
+    if (order != null) {
       return normalizeLocale(locale) === "en" ? "Clause " + order : "조항 " + order;
-    }
-    if (clauseId) {
-      return clauseId;
     }
     return normalizeLocale(locale) === "en"
       ? "Item " + (index + 1)
@@ -4206,7 +3565,6 @@ _APP_JS = r"""(function () {
     concern.setAttribute("data-glance-concern", "true");
     if (findings.length > 0) {
       var finding = findings[0];
-      concern.setAttribute("data-top-finding-id", finding.finding_id || "");
       concern.appendChild(
         bilingual("p", "glance-concern-label", {
           ko: "가장 먼저 확인할 항목",
@@ -4239,41 +3597,6 @@ _APP_JS = r"""(function () {
       })
     );
     container.appendChild(card);
-  }
-
-  function renderCheckFirst(container, payload) {
-    var section = el("section", "check-first", null);
-    section.setAttribute("data-check-first", "true");
-    section.appendChild(bilingual("p", "eyebrow", copyLabel(payload, "app.recommendation_heading")));
-    section.appendChild(bilingual("h2", null, copyLabel(payload, "app.summary_heading")));
-    section.appendChild(bilingual("p", "action-line", payload.recommendation.action));
-
-    var finding = payload.findings && payload.findings.length > 0 ? payload.findings[0] : null;
-    if (finding) {
-      section.setAttribute("data-top-finding-id", finding.finding_id);
-      section.appendChild(bilingual("h3", null, finding.title));
-      if (finding.source && finding.source.exact_excerpt) {
-        var quote = el("blockquote", null, finding.source.exact_excerpt);
-        quote.setAttribute("data-exact-excerpt", "true");
-        section.appendChild(quote);
-      }
-      section.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
-      var actions = el("div", "action-row", null);
-      actions.appendChild(renderCopyQuestionButton(finding.question_to_ask, payload));
-      actions.appendChild(renderOpenSourceLink(finding, payload));
-      section.appendChild(actions);
-    }
-
-    var statuses = el("p", "status-row", null);
-    statuses.setAttribute("data-check-first-statuses", "true");
-    statuses.appendChild(
-      bilingual("span", "badge", creatorStatusLabel(payload.dimensions.evidence.evidence_status))
-    );
-    statuses.appendChild(
-      bilingual("span", "badge", payload.dimensions.monetary.quantification_status.label)
-    );
-    section.appendChild(statuses);
-    container.appendChild(section);
   }
 
   function collectAuditEvidenceIds(payload) {
@@ -4311,6 +3634,8 @@ _APP_JS = r"""(function () {
     var details = el("details", "audit-detail", null);
     details.setAttribute("data-audit-detail", "true");
     details.appendChild(bilingual("summary", null, copyLabel(payload, "export.audit_detail_label")));
+    renderAuditSourceExcerpts(details, payload);
+    renderVerificationSignals(details, payload);
     var diagnostic = el("section", "advanced-diagnostic", null);
     diagnostic.setAttribute("data-advanced-diagnostic", "rule-focus-index");
     diagnostic.appendChild(bilingual("h4", null, copyLabel(payload, "diagnostic.rule_focus_index")));
@@ -4352,32 +3677,96 @@ _APP_JS = r"""(function () {
     }
   }
 
-  function revealResultMessage(targetItem) {
-    // The result bubble lives in the thread shell; reveal it and move it to the
-    // end so the freshest analysis sits at the bottom like a chat reply.
-    var bubble = document.querySelector("[data-result-message]");
-    var thread = threadElement();
-    if (targetItem && bubble && targetItem !== bubble) {
-      var resultBubble = bubble.querySelector(".bubble-result");
-      if (resultBubble) {
-        clearNode(targetItem);
-        targetItem.className = "msg bot result-msg";
-        targetItem.setAttribute("data-message-role", "bot");
-        targetItem.setAttribute("data-result-message", "true");
-        targetItem.removeAttribute("data-pending-message");
-        targetItem.hidden = false;
-        targetItem.appendChild(resultBubble);
-        if (bubble.parentNode) {
-          bubble.parentNode.removeChild(bubble);
-        }
-        return targetItem;
+  function ensureResultContainer() {
+    var container = document.getElementById("result");
+    if (container) {
+      return container;
+    }
+    container = el("section", "result-pane", null);
+    container.id = "result";
+    container.setAttribute("aria-labelledby", "result-heading");
+    container.setAttribute("aria-live", "polite");
+    container.setAttribute("role", "region");
+    container.setAttribute("data-analysis-result", "true");
+    return container;
+  }
+
+  function resetResultContainer(container) {
+    clearNode(container);
+    var heading = el("h2", "sr-only", null);
+    heading.id = "result-heading";
+    heading.appendChild(bilingual("span", null, { ko: "검토 결과", en: "Review result" }));
+    container.appendChild(heading);
+  }
+
+  function removePriorResultMessages(keepItem) {
+    document.querySelectorAll("[data-result-sequence-item]").forEach(function (item) {
+      if (item !== keepItem && item.parentNode) {
+        item.parentNode.removeChild(item);
       }
+    });
+    document.querySelectorAll("[data-result-message]").forEach(function (item) {
+      if (item !== keepItem && !item.hasAttribute("data-result-sequence-item") && item.parentNode) {
+        item.parentNode.removeChild(item);
+      }
+    });
+  }
+
+  function markResultSequenceItem(item, index) {
+    item.className = "msg bot result-msg result-sequence-msg";
+    item.setAttribute("data-message-role", "bot");
+    item.setAttribute("data-result-sequence-item", "true");
+    item.setAttribute("data-result-sequence-index", String(index));
+    item.style.setProperty("--result-index", String(index));
+    item.hidden = false;
+    item.removeAttribute("data-pending-message");
+  }
+
+  function prepareResultOpeningMessage(targetItem, container) {
+    var thread = threadElement();
+    if (!thread) {
+      return null;
     }
-    if (bubble && thread) {
-      bubble.hidden = false;
-      thread.appendChild(bubble);
+    var item = targetItem || el("li", null, null);
+    if (container.parentNode) {
+      container.parentNode.removeChild(container);
     }
-    return bubble;
+    clearNode(item);
+    markResultSequenceItem(item, 0);
+    item.setAttribute("data-result-message", "true");
+    var bubble = el("div", "bubble bubble-result result-opening-bubble", null);
+    bubble.appendChild(container);
+    item.appendChild(bubble);
+    thread.appendChild(item);
+    return item;
+  }
+
+  function appendResultContentBubble(className, content, index) {
+    var thread = threadElement();
+    if (!thread || !content) {
+      return null;
+    }
+    var item = el("li", null, null);
+    markResultSequenceItem(item, index);
+    var bubble = el("div", "bubble " + className, null);
+    bubble.appendChild(content);
+    item.appendChild(bubble);
+    thread.appendChild(item);
+    return item;
+  }
+
+  function resultOpeningPair(payload) {
+    var count = ((payload && payload.findings) || []).length;
+    if (count > 0) {
+      return {
+        ko: "계약서를 살펴봤어요. 서명 전에 확인하면 좋은 항목 " + count + "개를 정리했어요.",
+        en: "I reviewed the contract and lined up " + count + " item(s) to check before signing."
+      };
+    }
+    return {
+      ko: "계약서를 살펴봤어요. 서명 전에 지급, 기간, 해지 조건을 차분히 확인해 주세요.",
+      en: "I reviewed the contract. Before signing, calmly confirm payment, term, and termination terms."
+    };
   }
 
   function appendUserMessage(content, isFile) {
@@ -4488,24 +3877,12 @@ _APP_JS = r"""(function () {
     if (!container || !citations || citations.length === 0) {
       return;
     }
-    var list = el("ul", "qa-citations", null);
-    list.setAttribute("data-chat-citations", "true");
-    citations.forEach(function (citation) {
-      var label =
-        typeof citation === "string"
-          ? citation
-          : citation.evidence_id || citation.citation_id || citation.source_id || "";
-      if (!label) {
-        return;
-      }
-      var item = el("li", null, null);
-      item.setAttribute("data-chat-citation", "true");
-      item.appendChild(el("code", null, label));
-      list.appendChild(item);
+    var summary = bilingual("p", "chat-citation-summary", {
+      ko: "근거 " + citations.length + "건을 바탕으로 답했어요.",
+      en: "Answered from " + citations.length + " supporting source item(s)."
     });
-    if (list.childNodes.length > 0) {
-      container.appendChild(list);
-    }
+    summary.setAttribute("data-chat-citations", "summary");
+    container.appendChild(summary);
   }
 
   function replaceBotMessageWithText(item, content, citations) {
@@ -4608,54 +3985,52 @@ _APP_JS = r"""(function () {
   }
 
   function renderResult(payload, targetItem) {
-    var container = document.getElementById("result");
-    if (!container) {
+    var container = ensureResultContainer();
+    var thread = threadElement();
+    if (!container || !thread) {
       return;
     }
-    var bubble = revealResultMessage(targetItem);
-    clearNode(container);
+    if (container.parentNode) {
+      container.parentNode.removeChild(container);
+    }
+    removePriorResultMessages(targetItem);
+    resetResultContainer(container);
     removeReviewBriefBubble();
-    var heading = el("h2", "sr-only", null);
-    heading.id = "result-heading";
-    heading.appendChild(bilingual("span", null, { ko: "검토 결과", en: "Review result" }));
-    container.appendChild(heading);
+    var opening = prepareResultOpeningMessage(targetItem, container);
+    container.appendChild(bilingual("p", "bubble-text", resultOpeningPair(payload)));
 
-    renderIntegratedJudgmentCard(container, payload);
-    renderReviewBriefAction(container);
-    renderSuggestedFollowUps(container, payload);
-    container.appendChild(renderReaderShortcutNav());
+    var sequenceIndex = 1;
+    var latest = opening;
+    function appendBubble(className, content) {
+      if (!content || content.childNodes.length === 0) {
+        return;
+      }
+      latest = appendResultContentBubble(className, content, sequenceIndex) || latest;
+      sequenceIndex += 1;
+    }
+    function appendRenderedBubble(className, render) {
+      var wrap = el("div", "result-inline-panel", null);
+      render(wrap);
+      appendBubble(className, wrap);
+    }
 
-    var workspace = el("div", "synchronized-reader", null);
-    workspace.setAttribute("data-contract-reader", "synchronized");
-    workspace.setAttribute("data-reader-layout", "single-column");
-    workspace.setAttribute("data-mobile-layout", "single-column");
-
-    var reportPane = el("section", "report-reader-panel", null);
-    reportPane.id = "review-reader";
-    reportPane.tabIndex = -1;
-    reportPane.setAttribute("data-reader-pane", "report");
-    reportPane.setAttribute("aria-labelledby", "reader-report-heading");
-    var reportHeading = el("h3", "sr-only", "검토 항목");
-    reportHeading.id = "reader-report-heading";
-    reportPane.appendChild(reportHeading);
-
-    renderCheckFirst(reportPane, payload);
-    renderDimensions(reportPane, payload);
-    renderSourceHighlights(reportPane, payload);
-    renderVerificationSignals(reportPane, payload);
-
-    var findingsHeading = bilingual("h3", null, copyPair(payload, "app.findings_heading"));
-    reportPane.appendChild(findingsHeading);
-    renderFindings(reportPane, payload);
-    renderAdvancedDiagnostics(reportPane, payload);
-    renderGroundedQa(reportPane, payload);
-
-    workspace.appendChild(reportPane);
-    container.appendChild(workspace);
+    appendRenderedBubble("glance-bubble", function (wrap) {
+      renderIntegratedJudgmentCard(wrap, payload);
+    });
+    renderFindings(appendBubble, payload);
+    renderDimensionChips(appendBubble, payload);
+    appendRenderedBubble("review-action-bubble", function (wrap) {
+      renderReviewBriefAction(wrap);
+    });
+    appendRenderedBubble("followup-chip-bubble", function (wrap) {
+      renderSuggestedFollowUps(wrap, payload);
+    });
+    appendRenderedBubble("audit-bubble", function (wrap) {
+      renderAdvancedDiagnostics(wrap, payload);
+    });
 
     setLocale(activeLocale());
-    container.scrollIntoView(scrollOptions("start"));
-    scrollThreadToLatest(bubble || document.querySelector("[data-result-message]"));
+    scrollThreadToLatest(latest || opening);
   }
 
   function collectAssumptions() {
@@ -5017,6 +4392,11 @@ _APP_JS = r"""(function () {
     if (resultMessage) {
       resultMessage.hidden = true;
     }
+    document.querySelectorAll("[data-result-sequence-item]").forEach(function (item) {
+      if (item.parentNode) {
+        item.parentNode.removeChild(item);
+      }
+    });
     removeReviewBriefBubble();
     autoGrowComposer();
     analyzedContractText = "";
@@ -5025,77 +4405,6 @@ _APP_JS = r"""(function () {
     statusMessage({
       ko: "입력을 지웠습니다.",
       en: "Input cleared."
-    });
-  }
-
-  function targetIdFromLink(link) {
-    var explicit = link.getAttribute("data-source-focus-target");
-    if (explicit) {
-      return explicit;
-    }
-    var href = link.getAttribute("href") || "";
-    if (href.charAt(0) !== "#") {
-      return "";
-    }
-    try {
-      return decodeURIComponent(href.slice(1));
-    } catch (error) {
-      return href.slice(1);
-    }
-  }
-
-  function activateReaderAnchor(link) {
-    var targetId = targetIdFromLink(link);
-    if (!targetId) {
-      return false;
-    }
-    var target = document.getElementById(targetId);
-    if (!target) {
-      return false;
-    }
-    if (!target.hasAttribute("tabindex")) {
-      target.setAttribute("tabindex", "-1");
-    }
-    target.scrollIntoView(scrollOptions("center"));
-    try {
-      target.focus({ preventScroll: true });
-    } catch (error) {
-      target.focus();
-    }
-    var active = document.querySelectorAll("[data-active-anchor='true']");
-    active.forEach(function (item) {
-      item.removeAttribute("data-active-anchor");
-    });
-    target.setAttribute("data-active-anchor", "true");
-    window.setTimeout(function () {
-      target.removeAttribute("data-active-anchor");
-    }, 2400);
-    if (window.history && window.history.pushState) {
-      window.history.pushState(null, "", "#" + targetId);
-    }
-    return true;
-  }
-
-  function copyQuestion(button) {
-    var value = button.getAttribute("data-copy-value") || "";
-    if (!value) {
-      return;
-    }
-    copyText(value, {
-      ko: "물어볼 말을 복사했습니다.",
-      en: "Question copied."
-    });
-  }
-
-  function copyQa(button) {
-    var value = button.getAttribute("data-copy-value") || "";
-    if (!value) {
-      return;
-    }
-    var isAll = button.getAttribute("data-copy-qa") === "all";
-    copyText(value, {
-      ko: isAll ? "전체 Q&A를 복사했습니다." : "Q&A를 복사했습니다.",
-      en: isAll ? "All Q&A copied." : "Q&A copied."
     });
   }
 
@@ -5109,43 +4418,6 @@ _APP_JS = r"""(function () {
     }
     fallbackCopy(value);
     done();
-  }
-
-  function copyText(value, messagePair) {
-    writeClipboardText(value, function () {
-      qaStatusMessage(messagePair);
-    });
-  }
-
-  function qaStatusMessage(pair) {
-    var regions = document.querySelectorAll("[data-qa-status-region]");
-    regions.forEach(function (region) {
-      clearNode(region);
-      region.appendChild(bilingual("span", null, pair));
-    });
-    statusMessage(pair);
-  }
-
-  function exportQa(button) {
-    var value = button.getAttribute("data-export-value") || "";
-    if (!value) {
-      return;
-    }
-    var filename = button.getAttribute("data-export-filename") || "fink-grounded-qa.md";
-    var blob = new Blob([value], { type: "text/markdown;charset=utf-8" });
-    var link = document.createElement("a");
-    link.download = filename;
-    link.href = URL.createObjectURL(blob);
-    document.body.appendChild(link);
-    link.click();
-    window.setTimeout(function () {
-      URL.revokeObjectURL(link.href);
-      document.body.removeChild(link);
-    }, 0);
-    qaStatusMessage({
-      ko: "Q&A 파일을 만들었습니다.",
-      en: "Q&A export created."
-    });
   }
 
   function copyReviewBrief(button) {
@@ -5182,18 +4454,6 @@ _APP_JS = r"""(function () {
     briefStatusMessage({
       ko: "의견서 파일을 만들었습니다.",
       en: "Review brief download created."
-    });
-  }
-
-  function updateQaCheckState(input) {
-    var findingId = input.getAttribute("data-finding-id") || "";
-    if (!findingId) {
-      return;
-    }
-    qaCheckState[findingId] = input.checked === true;
-    qaStatusMessage({
-      ko: "확인 표시는 이 세션에만 저장되며 검토 순서를 바꾸지 않습니다.",
-      en: "The check mark is saved only for this session and does not change review order."
     });
   }
 
@@ -5301,10 +4561,6 @@ _APP_JS = r"""(function () {
             : followUpChip.getAttribute("data-question-ko")
         );
       }
-      var readerLink = target.closest("[data-source-nav], [data-reader-jump]");
-      if (readerLink && activateReaderAnchor(readerLink)) {
-        event.preventDefault();
-      }
       var makeBriefButton = target.closest("[data-make-review-brief]");
       if (makeBriefButton) {
         event.preventDefault();
@@ -5320,49 +4576,11 @@ _APP_JS = r"""(function () {
         event.preventDefault();
         downloadReviewBrief(downloadBriefButton);
       }
-      var copyButton = target.closest("[data-copy-question]");
-      if (copyButton) {
-        event.preventDefault();
-        copyQuestion(copyButton);
-      }
-      var copyQaButton = target.closest("[data-copy-qa]");
-      if (copyQaButton) {
-        event.preventDefault();
-        copyQa(copyQaButton);
-      }
-      var exportQaButton = target.closest("[data-export-qa]");
-      if (exportQaButton) {
-        event.preventDefault();
-        exportQa(exportQaButton);
-      }
-      var followUpButton = target.closest("[data-qa-followup-ask]");
-      if (followUpButton) {
-        event.preventDefault();
-        var followUpInput = document.querySelector("[data-qa-followup-input]");
-        if (followUpInput) {
-          answerFollowUpQuestion(followUpInput.value);
-          followUpInput.value = "";
-        }
-      }
-      var highlightToggle = target.closest("[data-source-highlight-toggle]");
-      if (highlightToggle) {
-        var sourceSection = highlightToggle.closest("[data-source-highlights]");
-        if (sourceSection) {
-          sourceSection.setAttribute(
-            "data-source-highlights-enabled",
-            highlightToggle.checked ? "true" : "false"
-          );
-        }
-      }
     });
     document.addEventListener("change", function (event) {
       var target = event.target;
       if (!target || !target.closest) {
         return;
-      }
-      var qaCheck = target.closest("[data-qa-check-state]");
-      if (qaCheck) {
-        updateQaCheckState(qaCheck);
       }
       // Picking a file in the composer sends it straight away, like attaching in
       // a chat. A pasted draft and a file cannot be sent together, so clear the
@@ -5380,12 +4598,6 @@ _APP_JS = r"""(function () {
     document.addEventListener("keydown", function (event) {
       var target = event.target;
       if (!target || !target.closest) {
-        return;
-      }
-      if (event.key === "Enter" && target.closest("[data-qa-followup-input]")) {
-        event.preventDefault();
-        answerFollowUpQuestion(target.value);
-        target.value = "";
         return;
       }
       // Enter sends; Shift+Enter inserts a newline in the composer.

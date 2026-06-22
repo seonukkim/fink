@@ -347,13 +347,14 @@ class SourceHighlightTests(unittest.TestCase):
         self.assertIn('[data-active-anchor="true"]', markup)
         self.assertNotIn("position: sticky", markup)
 
-        self.assertIn("function activateReaderAnchor(link)", script)
-        self.assertIn('workspace.setAttribute("data-reader-layout", "single-column")', script)
+        self.assertIn("function renderAuditSourceExcerpts(details, payload)", script)
+        self.assertIn("function renderPlainSourceSegments(container, segments)", script)
+        self.assertIn('section.setAttribute("data-audit-source-excerpts", "true")', script)
+        self.assertIn("renderAuditSourceExcerpts(details, payload)", script)
         self.assertIn("target.scrollIntoView", script)
-        self.assertIn("target.focus({ preventScroll: true })", script)
-        self.assertIn("data-active-anchor", script)
-        self.assertIn("[data-source-nav], [data-reader-jump]", script)
-        self.assertIn("data-page-box-overlay", script)
+        self.assertNotIn("function activateReaderAnchor(link)", script)
+        self.assertNotIn("[data-source-nav], [data-reader-jump]", script)
+        self.assertNotIn("data-page-box-overlay", script)
 
 
 if __name__ == "__main__":

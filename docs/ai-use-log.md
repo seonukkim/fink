@@ -76,6 +76,28 @@
   weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
   committed. No paper-template file was touched.
 
+## 2026-06-22 — Chat UI messenger-style result sequence
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: `src/fink/web/app.py` `_APP_JS` / `_css` and pinned web assertions.
+  The browser result now renders as calm bot bubbles: opening line, compact
+  "한눈에 정리" card, one compact bubble per finding, cost/timing/confidence
+  chips, 의견서 action, follow-up chips, and collapsed audit details. Removed
+  the app-side check-first duplicate, dimension grid, grounded-Q&A widget,
+  Q&A copy/export/session-check controls, source-navigation panel, and raw
+  evidence-ID display outside collapsed audit details.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web -q` passed;
+  `PYTHONPATH=src python3 -c "import fink.web.app"` passed;
+  `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import fink.web.app"` passed;
+  `renderResult()` no longer calls the removed renderers; `app_js()` does not
+  contain the removed grid/Q&A/check-first strings; the rendered shell contains
+  no inline request code or external URL strings. Plain
+  `python3 -c "import fink.web.app"` still requires the package to be installed
+  or `src` on `PYTHONPATH` in this sandbox's `src/` layout.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed. No paper-template file was touched.
+
 ## 2026-06-22 — P0 web robustness (structured errors, secondary_rights, locale)
 
 - Tooling: Claude Code (Opus 4.8), implementing directly under the loop's

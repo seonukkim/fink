@@ -52,16 +52,17 @@ class GroundedQATests(unittest.TestCase):
         self.assertLessEqual(cited, allowed)
         self.assertEqual(first["links"]["finding_href"], "#" + finding["source"]["finding_anchor_id"])
         self.assertEqual(first["links"]["highlight_href"], "#" + finding["source"]["focus_anchor_id"])
-        self.assertIn("로컬 공식 근거 ID", first["answer"]["ko"])
+        self.assertIn("상대방", first["answer"]["ko"])
         self.assertIn("Evidence:", first["copy_text"]["ko"])
 
-        markup = WEB.render_report_html(view_model)
-        self.assertLess(markup.index('data-ranked-findings="true"'), markup.index('data-grounded-qa="true"'))
-        self.assertIn('data-copy-qa="one"', markup)
-        self.assertIn('data-copy-qa="all"', markup)
-        self.assertIn('data-export-qa="markdown"', markup)
-        self.assertIn('data-qa-check-state="true"', markup)
-        self.assertIn('data-mutates-engine-output="false"', markup)
+        script = WEB.app_js()
+        self.assertIn("function renderFindings(appendBubble, payload)", script)
+        self.assertNotIn("function renderGroundedQa", script)
+        self.assertNotIn('data-copy-qa="one"', script)
+        self.assertNotIn('data-copy-qa="all"', script)
+        self.assertNotIn('data-export-qa="markdown"', script)
+        self.assertNotIn('data-qa-check-state="true"', script)
+        self.assertNotIn('data-mutates-engine-output="false"', script)
 
         exported = WEB.export_grounded_qa_markdown(qa)
         for evidence_id in cited:
@@ -157,10 +158,10 @@ class GroundedQATests(unittest.TestCase):
         self.assertTrue(checked_qa["items"][0]["check_state"]["mutates_engine_output"] is False)
 
         script = WEB.app_js()
-        self.assertIn("var qaCheckState = {};", script)
-        self.assertIn("function updateQaCheckState(input)", script)
-        self.assertIn('setAttribute("data-mutates-engine-output", "false")', script)
-        self.assertNotIn("qaCheckState", script.split("function buildAnalyzeRequest", 1)[1].split("function recomputeMessage", 1)[0])
+        self.assertNotIn("var qaCheckState = {};", script)
+        self.assertNotIn("function updateQaCheckState(input)", script)
+        self.assertNotIn('setAttribute("data-mutates-engine-output", "false")', script)
+        self.assertNotIn("qaCheckState", script)
 
 
 if __name__ == "__main__":
