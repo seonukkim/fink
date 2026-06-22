@@ -15,7 +15,7 @@ from fink.model.explanation_llm import (
 def _context() -> GroundedContext:
     return GroundedContext(
         locale="ko",
-        recommendation_action="권장 행동: 몇 가지 항목을 확인한 뒤 서명을 검토하세요.",
+        recommendation_action="권장: 몇 가지 항목을 확인한 뒤 서명을 검토하세요.",
         recommendation_cashflow="현금 흐름 영향은 작아 보이지만 확인 후 진행하는 것이 안전합니다.",
         summary="자동 정리 요약입니다.",
         findings=(

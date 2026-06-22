@@ -4213,8 +4213,8 @@ _APP_JS = r"""(function () {
       return recommendation.action;
     }
     return {
-      ko: "권장 행동: 확인할 항목을 먼저 살펴보세요.",
-      en: "Recommended action: review the items to check first."
+      ko: "권장: 확인할 항목을 먼저 살펴보세요.",
+      en: "Recommendation: review the items to check first."
     };
   }
 
@@ -4527,8 +4527,8 @@ _APP_JS = r"""(function () {
     heading.appendChild(atAGlanceIcon());
     heading.appendChild(
       bilingual("h3", null, {
-        ko: "한눈에 정리",
-        en: "At a glance"
+        ko: "정리",
+        en: "Summary"
       })
     );
     card.appendChild(heading);
