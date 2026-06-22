@@ -4,7 +4,7 @@ This module turns the deterministic analysis into a conversational, decision-
 support reply for the creator. It is built for a **mobile on-device** footprint:
 
 - When a small local instruct model is installed (default target:
-  ``Qwen3-1.7B`` GGUF, Apache-2.0, run via ``llama_cpp``) and a health/availability
+  ``Qwen2.5-1.5B-Instruct`` GGUF, Apache-2.0, run via ``llama_cpp``) and a health/availability
   check passes, the model *rephrases and answers grounded only on the supplied
   ``GroundedContext``* — it never invents amounts, laws, or a legal verdict.
 - When no model is installed (CI, fresh checkout, constrained device), a genuine
@@ -29,7 +29,7 @@ from typing import Any
 
 CHAT_MODEL_PATH_ENV = "FINK_CHAT_MODEL_PATH"
 CHAT_LLM_DISABLED_ENV = "FINK_CHAT_LLM_DISABLED"
-DEFAULT_CHAT_MODEL_RELPATH = Path("models") / "chat" / "qwen3-1_7b-instruct-q4_k_m.gguf"
+DEFAULT_CHAT_MODEL_RELPATH = Path("models") / "chat" / "qwen2.5-1.5b-instruct-q4_k_m.gguf"
 
 # The reply is decision support, not a verdict. These Korean-canonical prompts
 # only *instruct* the model to avoid verdicts; they contain no assertive

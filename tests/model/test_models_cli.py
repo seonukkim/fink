@@ -19,8 +19,8 @@ class ModelsCliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("Qwen/Qwen3-Embedding-0.6B", output)
         self.assertIn("Qwen/Qwen3-Reranker-0.6B", output)
-        self.assertIn("Qwen/Qwen3-1.7B-GGUF", output)
-        self.assertIn("qwen3-1_7b-instruct-q4_k_m.gguf", output)
+        self.assertIn("Qwen/Qwen2.5-1.5B-Instruct-GGUF", output)
+        self.assertIn("qwen2.5-1.5b-instruct-q4_k_m.gguf", output)
 
     def test_dry_run_without_enable_flag_prints_instruction_without_importing_hub(self) -> None:
         with (
