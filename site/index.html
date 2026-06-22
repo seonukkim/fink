@@ -59,16 +59,16 @@
 
     <section id="how" class="band">
       <h2>How it works</h2>
-      <p data-en="FInk processes the document entirely on your device. Photos and scans are read by OCR. The text is split into clauses, and each clause is matched against official-source evidence. The review order is ranked by fixed financial rules, and the low, base, and high cash-flow scenarios are computed the same way — so a re-run reproduces exactly. Optional local models assist OCR, retrieval, or explanation only when you install them yourself and they pass a health check. They never fabricate evidence, invent amounts, or change the review order."
-         data-ko="FInk은 문서를 전부 기기 안에서 처리합니다. 사진과 스캔은 OCR로 글자를 읽어 냅니다. 본문은 조항 단위로 나누고, 각 조항을 공식 출처 근거와 대조합니다. 검토 순서는 정해진 금융 규칙으로 매기고, 낮음·적정·높음 현금흐름 시나리오도 같은 규칙으로 계산합니다. 그래서 다시 돌려도 같은 결과가 나옵니다. 로컬 모델은 사용자가 직접 설치하고 상태 점검을 통과했을 때만 OCR·검색·설명을 보조합니다. 근거를 지어내거나 금액을 만들어 내지 않고, 검토 순서도 바꾸지 않습니다.">FInk processes the document entirely on your device…</p>
+      <p data-en="FInk runs entirely on your device and never conflates the different things it does — it detects, it calculates, and it measures. It reads photos, scans, or pasted text (OCR for images) and splits the document into clauses. In each clause it detects financial risk signals — risky terms that are present and protections that are missing — with fixed rules and an optional local model. It grounds each signal against official-source evidence; only signals an authoritative source supports (tiers A0–A2) are eligible to move the score. From those grounded signals it calculates, by fixed formulas, a bounded 0–100 Review-Priority Score and a light/careful/professional review-effort level, and — only once you supply the assumptions it needs — a low/base/high cost range; it invents no numbers, so the cost stays blank until then. It identifies the timing of each cash flow from the clauses, and separately measures how reliable the reading is from OCR quality and data completeness — ambiguous input lowers that confidence, never the cost or the score. A re-run reproduces exactly, and an optional local model can answer follow-up questions in plain language: a convenience whose wording can be imperfect, which never changes the detected signals, the calculated numbers, or the review order."
+         data-ko="FInk은 전부 기기 안에서 동작하며, 하는 일의 종류를 섞지 않습니다 — 검출하고, 계산하고, 측정하는 것이 각각 다릅니다. 먼저 사진·스캔·붙여넣은 텍스트를 읽고(이미지는 OCR), 본문을 조항 단위로 나눕니다. 각 조항에서 금융 위험 신호를 검출합니다 — 들어 있는 위험 조항과 빠져 있는 보호장치를 정해진 규칙과 선택적 로컬 모델로 찾습니다. 각 신호는 공식 출처 근거와 대조하고, 권위 있는 출처(A0–A2)가 뒷받침하는 신호만 점수에 반영될 수 있습니다. 그 근거가 연결된 신호로부터 정해진 수식으로 0–100 위험 지수와 가볍게·꼼꼼히·전문가 검토 권장 수준을 계산하고, 필요한 가정을 입력했을 때에만 낮음·적정·높음 예상 비용을 계산합니다 — 숫자를 지어내지 않으므로 그 전까지 비용은 비워 둡니다. 시점은 각 현금흐름이 발생하는 때를 조항에서 확인하고, 판독 신뢰도는 OCR 품질과 자료 완결성으로 따로 측정합니다 — 불명확한 입력은 비용이나 점수가 아니라 이 신뢰도를 낮춥니다. 다시 돌려도 같은 결과가 나오며, 선택적 로컬 모델은 추가 질문에 쉬운 말로 답할 수 있습니다 — 표현이 완벽하지 않을 수 있는 보조 도구이고, 검출된 신호·계산된 숫자·검토 순서를 바꾸지 않습니다.">FInk runs entirely on your device, detecting, calculating, and measuring distinct things…</p>
 
       <ol class="flow" aria-label="FInk pipeline">
-        <li><span class="step-n">1</span><span class="step-t" data-en="Input — photo · image · PDF · clause" data-ko="입력 — 사진 · 이미지 · PDF · 조항">Input — photo · image · PDF · clause</span></li>
-        <li><span class="step-n">2</span><span class="step-t" data-en="OCR &amp; page reconstruction (Korean and English)" data-ko="OCR · 페이지 재구성 (한국어 · 영어)">OCR &amp; page reconstruction (Korean and English)</span></li>
-        <li><span class="step-n">3</span><span class="step-t" data-en="Clause segmentation" data-ko="조항 분할">Clause segmentation</span></li>
-        <li><span class="step-n">4</span><span class="step-t" data-en="Evidence retrieval from official sources" data-ko="공식 출처에서 근거 검색">Evidence retrieval from official sources</span></li>
-        <li><span class="step-n">5</span><span class="step-t" data-en="Financial risk signals &amp; cash-flow scenarios" data-ko="금융 위험 신호 · 현금흐름 시나리오">Financial risk signals &amp; cash-flow scenarios</span></li>
-        <li><span class="step-n">6</span><span class="step-t" data-en="Review report — the four outputs below" data-ko="검토 리포트 — 아래 네 가지 출력">Review report — the four outputs below</span></li>
+        <li><span class="step-n">1</span><span class="step-t" data-en="Input — photo · image · PDF · pasted text" data-ko="입력 — 사진 · 이미지 · PDF · 붙여넣은 텍스트">Input — photo · image · PDF · pasted text</span></li>
+        <li><span class="step-n">2</span><span class="step-t" data-en="Read &amp; segment — OCR and clause splitting (Korean and English)" data-ko="읽기 · 분할 — OCR과 조항 나누기 (한국어 · 영어)">Read &amp; segment — OCR and clause splitting</span></li>
+        <li><span class="step-n">3</span><span class="step-t" data-en="Detect risk signals — risky terms present &amp; protections missing" data-ko="위험 신호 검출 — 위험 조항 존재 · 보호장치 부재">Detect risk signals — terms present &amp; protections missing</span></li>
+        <li><span class="step-n">4</span><span class="step-t" data-en="Ground each signal in official sources — A0–A2 are score-eligible" data-ko="공식 출처로 근거 연결 — A0–A2만 점수 반영 가능">Ground each signal in official sources — A0–A2 score-eligible</span></li>
+        <li><span class="step-n">5</span><span class="step-t" data-en="Calculate priority score &amp; cost · measure reading confidence" data-ko="위험 지수·비용 계산 · 판독 신뢰도 측정">Calculate priority score &amp; cost · measure confidence</span></li>
+        <li><span class="step-n">6</span><span class="step-t" data-en="Review — summary, grouped findings, four outputs, Q&amp;A, brief" data-ko="검토 결과 — 요약 · 항목별 묶음 · 네 가지 출력 · 질문 · 의견서">Review — summary, grouped findings, four outputs, Q&amp;A, brief</span></li>
       </ol>
     </section>
 
@@ -79,19 +79,19 @@
       <div class="grid4">
         <article>
           <h3><span class="out-n">1</span><span data-en="Review priority" data-ko="검토 우선순위">Review priority</span></h3>
-          <p data-en="A 0–100 Review-Priority Score and a review-effort level (light / careful / professional), with the clauses that warrant the closest review ranked in order." data-ko="0–100 위험 지수와 검토 권장 수준(가볍게 / 꼼꼼히 / 전문가)을 제시하고, 가장 먼저 자세히 살펴볼 조항을 순서대로 보여 줍니다.">A 0–100 Review-Priority Score and a review-effort level, with the clauses to review first ranked in order.</p>
+          <p data-en="Calculated from the grounded signals: a 0–100 Review-Priority Score and a review-effort level (light / careful / professional), with the clauses to review first ranked in order." data-ko="근거가 연결된 신호로부터 계산합니다: 0–100 위험 지수와 검토 권장 수준(가볍게 / 꼼꼼히 / 전문가), 그리고 가장 먼저 살펴볼 조항을 순서대로.">Calculated from the grounded signals: a 0–100 Review-Priority Score and a review-effort level, with the clauses to review first ranked in order.</p>
         </article>
         <article>
           <h3><span class="out-n">2</span><span data-en="Cost (low / base / high)" data-ko="비용 (낮음 / 적정 / 높음)">Cost (low / base / high)</span></h3>
-          <p data-en="A cost range derived from extracted values or your own editable assumptions." data-ko="추출된 값이나 사용자가 직접 수정하는 가정에서 도출한 예상 비용입니다.">A cost range from extracted values or your editable assumptions.</p>
+          <p data-en="Calculated by fixed financial formulas from your editable assumptions — blank until you supply them, and always a range, never a single guessed figure." data-ko="정해진 금융 수식으로 계산합니다 — 직접 수정하는 가정을 입력하기 전까지 비워 두고, 단일 추정치가 아니라 항상 범위로 제시합니다.">Calculated by fixed financial formulas from your editable assumptions — a range, never a single guessed figure.</p>
         </article>
         <article>
           <h3><span class="out-n">3</span><span data-en="Timing" data-ko="시점">Timing</span></h3>
-          <p data-en="When each cash flow occurs: payment, recoupment, term, and delays." data-ko="각 현금흐름이 발생하는 시점: 지급, 회수, 계약 기간, 지연입니다.">When each cash flow occurs: payment, recoupment, term, and delays.</p>
+          <p data-en="Identified from the clauses: when each cash flow occurs — payment, recoupment, term, and delays." data-ko="조항에서 확인합니다: 각 현금흐름이 발생하는 시점 — 지급 · 회수 · 계약 기간 · 지연.">Identified from the clauses: when each cash flow occurs — payment, recoupment, term, and delays.</p>
         </article>
         <article>
           <h3><span class="out-n">4</span><span data-en="Confidence" data-ko="신뢰도">Confidence</span></h3>
-          <p data-en="How reliable the reading is; ambiguous input lowers confidence, not the cost estimate." data-ko="판독의 신뢰도입니다. 불명확한 입력은 비용이 아니라 신뢰도를 낮춥니다.">How reliable the reading is; ambiguous input lowers confidence.</p>
+          <p data-en="Measured from OCR quality and data completeness; ambiguous input lowers this confidence, not the cost or the score." data-ko="OCR 품질과 자료 완결성으로 측정합니다. 불명확한 입력은 비용이나 점수가 아니라 이 신뢰도를 낮춥니다.">Measured from OCR quality and data completeness; ambiguous input lowers this confidence.</p>
         </article>
       </div>
     </section>
