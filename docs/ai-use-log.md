@@ -100,6 +100,15 @@
   weight/threshold value changed (constants remain versioned heuristics per
   INV-9); only documentation, defensive guards, and a test were added.
   `pytest tests/scoring tests/finance -q` green, `run_gates.sh` `GATES_OK`.
+- Claude follow-up 7 (owner: the saved PDF carries browser header/footer chrome —
+  date/time, page title, URL, page number — remove it): set the print
+  stylesheet's `@page` margin to 0 (the margin box is where the browser draws
+  that chrome) and moved the visual page margin onto the printable root as 16mm
+  padding so the brief layout is unchanged. Verified by rendering the brief under
+  print-media emulation: the document keeps its margin and is not clipped. The
+  brief's own "작성일" line is document content, not browser chrome, and is kept.
+  `pytest tests/web/test_report_ui.py tests/web/test_local_web_app.py
+  tests/web/test_a11y_validation.py -q` green, `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 

@@ -2668,8 +2668,11 @@ footer {
   display: none;
 }
 @page {
+  /* margin:0 removes the browser-drawn header/footer chrome (date, page title,
+     URL, page number) from the saved PDF; the visual page margin is restored as
+     padding on the printable root below. */
   size: A4;
-  margin: 16mm;
+  margin: 0;
 }
 @media print {
   html,
@@ -2689,6 +2692,8 @@ footer {
   }
   .print-brief-root {
     display: block !important;
+    padding: 16mm;
+    background: #fff;
   }
   .print-brief-document {
     color: #211d18;
