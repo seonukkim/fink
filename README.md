@@ -12,7 +12,7 @@ monetary exposure, time exposure, and evidence/OCR confidence.
 FInk은 창작자 계약서에서 서명 전 확인해야 할 현금흐름 질문을 먼저 추리는
 로컬 우선 도구입니다. 정산, 공제, 선급금 회수, 지급 시점, 2차 수익, 독점,
 해지·위약금, 제작비와 관련된 조항 표현을 표시하고, 공식 근거가 있는 신호만
-점수 산정에 사용하며, 검토 우선순위, 저/기준/고 금액 노출, 시간 노출,
+점수 산정에 사용하며, 검토 우선순위, 낮음·적정·높음 금액 노출, 시간 노출,
 근거/OCR 신뢰도를 서로 분리해 보여줍니다.
 
 **UNIST · IE412 AI for Finance · 2026 Spring · Final Project.**
