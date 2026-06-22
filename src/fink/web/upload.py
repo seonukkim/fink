@@ -44,6 +44,12 @@ class MultipartAnalyzeRequest:
     file: UploadedAnalyzeFile | None
 
 
+@dataclass(frozen=True)
+class RecoveredUploadText:
+    text: str
+    ingested: IngestedDocument | None = None
+
+
 class AnalyzeRequestError(ValueError):
     """Structured analyze-request error with no raw input or path details."""
 
@@ -155,15 +161,15 @@ def analyze_multipart_request(
     has_file = upload is not None and bool(upload.data)
 
     if has_paste and has_file:
-        raise AnalyzeRequestError(
-            error_code="BOTH_INPUTS_SUPPLIED",
-            status_code=422,
-            validation_status="rejected_both_inputs",
-            message_ko="붙여넣기와 파일 업로드 중 하나만 선택하세요.",
-            message_en="Send either pasted text or one uploaded file, not both.",
-            action_ko="파일을 지우거나 붙여넣은 텍스트를 비운 뒤 다시 분석하세요.",
-            action_en="Remove the file or clear the pasted text, then analyze again.",
+        assert upload is not None
+        recovered = _recover_upload_text(upload, ui_locale=ui_locale, allow_empty=True)
+        combined_text = _combine_paste_and_upload_text(paste_text, recovered.text)
+        result = run_local_analysis(
+            pasted_text=combined_text,
+            scenario_inputs=scenario_inputs,
+            ui_locale=ui_locale,
         )
+        return analysis_result_to_payload(result, ui_locale)
     if has_paste:
         result = run_local_analysis(
             pasted_text=paste_text,
@@ -182,6 +188,28 @@ def _analyze_upload(
     scenario_inputs: Any | None,
     ui_locale: UILocale,
 ) -> dict[str, Any]:
+    recovered = _recover_upload_text(upload, ui_locale=ui_locale)
+    if recovered.ingested is not None:
+        result = run_local_analysis(
+            ingested=recovered.ingested,
+            scenario_inputs=scenario_inputs,
+            ui_locale=ui_locale,
+        )
+    else:
+        result = run_local_analysis(
+            pasted_text=recovered.text,
+            scenario_inputs=scenario_inputs,
+            ui_locale=ui_locale,
+        )
+    return analysis_result_to_payload(result, ui_locale)
+
+
+def _recover_upload_text(
+    upload: UploadedAnalyzeFile,
+    *,
+    ui_locale: UILocale = UILocale.KO,
+    allow_empty: bool = False,
+) -> RecoveredUploadText:
     if not upload.data:
         raise _empty_file_error()
     if len(upload.data) > DEFAULT_UPLOAD_LIMITS.max_bytes:
@@ -191,13 +219,10 @@ def _analyze_upload(
     if upload_kind == "text":
         text = _decode_text_upload(upload.data)
         if not text.strip():
+            if allow_empty:
+                return RecoveredUploadText(text="")
             raise _empty_file_error()
-        result = run_local_analysis(
-            pasted_text=text,
-            scenario_inputs=scenario_inputs,
-            ui_locale=ui_locale,
-        )
-        return analysis_result_to_payload(result, ui_locale)
+        return RecoveredUploadText(text=text)
 
     with tempfile.TemporaryDirectory(prefix="fink-web-upload-") as temp_root:
         root = Path(temp_root)
@@ -218,13 +243,12 @@ def _analyze_upload(
                 )
                 _raise_for_rejected_document(ingested)
                 _raise_for_missing_ocr(ingested)
-                _raise_for_empty_document(ingested)
-                result = run_local_analysis(
-                    ingested=ingested,
-                    scenario_inputs=scenario_inputs,
-                    ui_locale=ui_locale,
-                )
-                return analysis_result_to_payload(result, ui_locale)
+                text = _text_from_ingested_document(ingested)
+                if not text.strip():
+                    if allow_empty:
+                        return RecoveredUploadText(text="")
+                    raise _empty_file_error()
+                return RecoveredUploadText(text=text, ingested=ingested)
 
             ingested = session.ingest_image(
                 source_path,
@@ -232,14 +256,36 @@ def _analyze_upload(
                 content_type=upload.content_type,
             )
             _raise_for_rejected_document(ingested)
-            ingested = _ocr_image_upload(ingested)
-            _raise_for_empty_document(ingested)
-            result = run_local_analysis(
-                ingested=ingested,
-                scenario_inputs=scenario_inputs,
-                ui_locale=ui_locale,
-            )
-            return analysis_result_to_payload(result, ui_locale)
+            try:
+                ingested = _ocr_image_upload(ingested)
+            except AnalyzeRequestError as exc:
+                if allow_empty and exc.error_code == "OCR_NO_TEXT":
+                    return RecoveredUploadText(text="")
+                raise
+            text = _text_from_ingested_document(ingested)
+            if not text.strip():
+                if allow_empty:
+                    return RecoveredUploadText(text="")
+                raise _empty_file_error()
+            return RecoveredUploadText(text=text, ingested=ingested)
+
+
+def _combine_paste_and_upload_text(paste_text: str, upload_text: str) -> str:
+    parts = [part.strip() for part in (paste_text, upload_text) if part.strip()]
+    return "\n\n".join(parts)
+
+
+def _text_from_ingested_document(ingested: IngestedDocument) -> str:
+    document = ingested.document
+    if document is None:
+        return ""
+    lines: list[str] = []
+    for page in document.pages:
+        for span in page.spans:
+            span_text = span.corrected_text or span.text
+            if span_text.strip():
+                lines.append(span_text.strip())
+    return "\n".join(lines)
 
 
 def _ocr_image_upload(ingested: IngestedDocument) -> IngestedDocument:

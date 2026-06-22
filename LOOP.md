@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-23T00:11:48+09:00`
+- Generated: `2026-06-23T00:51:12+09:00`
 - Current branch: `main`
-- Base commit: `180eb273ffaa0ed97a5a73fc1c127415bf02326d`
+- Base commit: `64df6427f73834c0d783c684409a43e2c6c8b889`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -36,7 +36,10 @@
   globally deduped across the result. Added English distilled checkpoint fields
   to the public knowledge YAML, renamed the integrated summary card to `요약`,
   gave it a subtle pink emphasis, and changed chat so raw checklist prompts stay
-  reference-only rather than being printed.
+  reference-only rather than being printed. Enabled combined paste-text plus
+  local file analysis by recovering upload text through the existing txt/PDF/OCR
+  path, joining paste first and file text second, and added a minimal composer
+  attachment preview with local object-URL image thumbnails and no auto-send.
 
 ## Human Gates
 
@@ -80,14 +83,13 @@ touch loop/STOP
 
 ## Latest Verification
 
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web/test_upload_analyze_endpoint.py -q`
+  passed.
 - `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests -q` passed.
-- `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import fink.web.analyze,
-  fink.web.view_model, fink.web.app, fink.knowledge.checkpoints,
-  fink.model.explanation_llm"` passed.
-- `PYTHONPATH=src python3 -c "import fink.web.analyze, fink.web.view_model,
-  fink.web.app, fink.knowledge.checkpoints, fink.model.explanation_llm"` passed.
-- The exact bare `python3 -c "import fink.web.analyze, fink.web.view_model,
-  fink.web.app, fink.knowledge.checkpoints, fink.model.explanation_llm"` command
-  was attempted and failed because the system interpreter does not have this
-  `src/` layout package installed on `sys.path`.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import fink.web.upload,
+  fink.web.app"` passed.
+- `PYTHONPATH=src python3 -c "import fink.web.upload, fink.web.app"` passed.
+- The exact bare `python3 -c "import fink.web.upload, fink.web.app"` command was
+  attempted and failed because the system interpreter does not have this `src/`
+  layout package installed on `sys.path`.
 - `bash scripts/agent_loop/run_gates.sh` ended with `GATES_OK`.

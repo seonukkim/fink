@@ -247,16 +247,37 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
         self.assertEqual(captured.get("lang"), "korean")
 
     def test_both_paste_and_file_returns_clear_validation_state(self) -> None:
+        file_text = "Revenue share 10% Payment due 30 days"
         body, headers = _multipart_body(
             fields={"locale": "ko", "paste_text": SAMPLE_KO},
             filename="contract.txt",
             content_type="text/plain",
-            data=b"Revenue share 10%",
+            data=file_text.encode("utf-8"),
         )
         status, _, payload = asyncio.run(_asgi_post(_fallback_app(), body, headers))
-        self.assertEqual(status, 422)
-        self.assertEqual(payload["error_code"], "BOTH_INPUTS_SUPPLIED")
-        self.assertEqual(payload["validation_status"], "rejected_both_inputs")
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["local_only"])
+        self.assertEqual(payload["view_model"], "CreatorReviewViewModel")
+        rendered = json.dumps(payload["findings"], ensure_ascii=False)
+        self.assertIn("위약금", rendered)
+        self.assertIn("Payment due 30 days", rendered)
+        self.assertGreaterEqual(payload["audit_detail"]["clause_count"], 2)
+
+    def test_combined_paste_and_text_file_merges_clause_markers(self) -> None:
+        paste_text = "제1조(정산) 정산 자료와 감사권은 제공하지 않는다."
+        file_text = "제2조(지급) 지급시기는 회사가 추후 정하는 일정에 따른다."
+        body, headers = _multipart_body(
+            fields={"locale": "ko", "paste_text": paste_text},
+            filename="contract.txt",
+            content_type="text/plain",
+            data=file_text.encode("utf-8"),
+        )
+        status, _, payload = asyncio.run(_asgi_post(_fallback_app(), body, headers))
+        self.assertEqual(status, 200)
+        rendered = json.dumps(payload["findings"], ensure_ascii=False)
+        self.assertIn("정산 자료", rendered)
+        self.assertIn("지급시기는 회사가 추후 정하는 일정", rendered)
+        self.assertGreaterEqual(payload["audit_detail"]["signal_count"], 2)
 
     def test_upload_validation_errors_are_structured_and_sanitized(self) -> None:
         cases = (

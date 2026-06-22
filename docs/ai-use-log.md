@@ -1,5 +1,30 @@
 # AI Use Log
 
+## 2026-06-23 — Combined file and text upload input
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: enabled local combined paste-text plus one uploaded file analysis in
+  the chat upload path. The backend now reuses the existing txt/PDF/image
+  recovery and OCR flow to join pasted text before recovered file text, while
+  preserving oversized, unsupported, corrupt/encrypted, and OCR-not-installed
+  guards. The composer now previews an attached file without auto-sending,
+  shows an object-URL thumbnail for image uploads, allows optional pasted text,
+  echoes one combined user bubble, and revokes preview object URLs. No network,
+  remote runtime API, model weight, private input, paper, template, or
+  `icml2026` file was changed.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest
+  tests/web/test_upload_analyze_endpoint.py -q` passed; `UV_CACHE_DIR=/tmp/uv-cache
+  uv run pytest tests -q` passed; `PYTHONPATH=src python3 -c "import
+  fink.web.upload, fink.web.app"` passed; `UV_CACHE_DIR=/tmp/uv-cache uv run
+  python3 -c "import fink.web.upload, fink.web.app"` passed; the exact bare
+  `python3 -c "import fink.web.upload, fink.web.app"` command was attempted and
+  failed because the system interpreter does not have the checkout's `src/`
+  layout package on `sys.path`; `bash scripts/agent_loop/run_gates.sh` ended
+  with `GATES_OK`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
 ## 2026-06-23 — Inline RAG-grounded finding checklists
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

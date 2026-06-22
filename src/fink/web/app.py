@@ -291,6 +291,7 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
       data-file-input="true"
       aria-describedby="pdf-error-region"
       accept="text/plain,.txt,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.heic,.heif">
+    <div class="attachment-preview thumbnail-strip" data-attachment-preview="true" hidden></div>
     <label class="composer-label sr-only" for="paste-box">
       <span lang="ko" data-locale-text="ko">계약 조항 붙여넣기</span>
       <span lang="en" data-locale-text="en">Paste clause text</span>
@@ -2967,6 +2968,44 @@ footer {
   align-items: center;
   gap: .4rem;
   font-weight: 700;
+  min-width: 0;
+}
+.file-chip span {
+  overflow-wrap: anywhere;
+}
+.user-attachment-stack {
+  display: grid;
+  gap: .5rem;
+}
+.user-attachment-thumb,
+.attachment-thumbnail {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: cover;
+  background: #fff;
+}
+.attachment-preview {
+  order: -1;
+  flex: 1 0 100%;
+  min-width: 0;
+}
+.attachment-card {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+}
+.attachment-remove-button {
+  flex: 0 0 auto;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-color: var(--line);
+  background: #fff;
+  color: var(--ink);
 }
 .chip-row {
   display: flex;
@@ -3108,6 +3147,7 @@ footer {
 .composer {
   flex: 0 0 auto;
   display: flex;
+  flex-wrap: wrap;
   gap: .5rem;
   align-items: flex-end;
   padding: .75rem clamp(.75rem, 4vw, 2rem);
@@ -3241,6 +3281,7 @@ _APP_JS = r"""(function () {
   var lastResultPayload = null;
   var lastReviewBriefItem = null;
   var lastSubmittedAssumptions = {};
+  var attachmentPreviewUrl = "";
   var ANALYSIS_STAGE_LABELS = [
     { ko: "계약서 읽는 중", en: "Reading the contract" },
     { ko: "조항 나누는 중", en: "Splitting clauses" },
@@ -3372,6 +3413,57 @@ _APP_JS = r"""(function () {
     var fallback = el("span", null, "file");
     fallback.setAttribute("aria-hidden", "true");
     return fallback;
+  }
+
+  function createFileObjectUrl(file) {
+    if (!file || !window.URL || !window.URL.createObjectURL) {
+      return "";
+    }
+    return window.URL.createObjectURL(file);
+  }
+
+  function revokeObjectUrl(url) {
+    if (url && window.URL && window.URL.revokeObjectURL) {
+      window.URL.revokeObjectURL(url);
+    }
+  }
+
+  function revokeAttachmentPreviewUrl() {
+    revokeObjectUrl(attachmentPreviewUrl);
+    attachmentPreviewUrl = "";
+  }
+
+  function isImageUpload(file) {
+    if (!file) {
+      return false;
+    }
+    var type = text(file.type).toLowerCase();
+    var name = text(file.name).toLowerCase();
+    return type.indexOf("image/") === 0 || /\.(png|jpe?g|webp|heic|heif)$/.test(name);
+  }
+
+  function fileChip(fileName) {
+    var chip = el("span", "file-chip", null);
+    chip.setAttribute("data-file-chip", "true");
+    chip.appendChild(paperclipIcon());
+    chip.appendChild(el("span", null, text(fileName || "첨부 파일")));
+    return chip;
+  }
+
+  function attachmentImage(src, className, fileName, revokeAfterLoad) {
+    var image = el("img", className, null);
+    image.src = src;
+    image.alt = text(fileName || "첨부 이미지");
+    image.loading = "lazy";
+    if (revokeAfterLoad) {
+      image.addEventListener("load", function () {
+        revokeObjectUrl(src);
+      });
+      image.addEventListener("error", function () {
+        revokeObjectUrl(src);
+      });
+    }
+    return image;
   }
 
   function creatorStatusLabel(status) {
@@ -4897,7 +4989,8 @@ _APP_JS = r"""(function () {
     };
   }
 
-  function appendUserMessage(content, isFile) {
+  function appendUserMessage(content, isFile, options) {
+    options = options || {};
     var thread = threadElement();
     if (!thread) {
       return;
@@ -4906,11 +4999,22 @@ _APP_JS = r"""(function () {
     item.setAttribute("data-message-role", "user");
     var bubble = el("div", "bubble", null);
     if (isFile) {
-      var chip = el("span", "file-chip", null);
-      chip.setAttribute("data-file-chip", "true");
-      chip.appendChild(paperclipIcon());
-      chip.appendChild(el("span", null, text(content)));
-      bubble.appendChild(chip);
+      var stack = el("div", "user-attachment-stack", null);
+      if (options.imageUrl) {
+        stack.appendChild(
+          attachmentImage(
+            options.imageUrl,
+            "user-attachment-thumb",
+            options.fileName || content,
+            true
+          )
+        );
+      }
+      stack.appendChild(fileChip(options.fileName || content || "첨부 파일"));
+      if (content && text(content).trim() !== "") {
+        stack.appendChild(el("p", "bubble-text", text(content)));
+      }
+      bubble.appendChild(stack);
     } else {
       bubble.appendChild(el("p", "bubble-text", text(content)));
     }
@@ -5195,6 +5299,55 @@ _APP_JS = r"""(function () {
     return input.files[0];
   }
 
+  function attachmentPreviewElement() {
+    return document.querySelector("[data-attachment-preview]");
+  }
+
+  function renderAttachmentPreview() {
+    var container = attachmentPreviewElement();
+    if (!container) {
+      return;
+    }
+    clearNode(container);
+    var file = selectedFile();
+    if (!file) {
+      container.hidden = true;
+      return;
+    }
+    container.hidden = false;
+    var card = el("div", "attachment-card", null);
+    if (isImageUpload(file) && attachmentPreviewUrl) {
+      card.appendChild(
+        attachmentImage(attachmentPreviewUrl, "attachment-thumbnail", file.name, false)
+      );
+    }
+    card.appendChild(fileChip(file.name || "첨부 파일"));
+    var remove = el("button", "attachment-remove-button", "x");
+    remove.type = "button";
+    remove.setAttribute("data-clear-attachment", "true");
+    remove.setAttribute("aria-label", "첨부 파일 제거 / Remove attachment");
+    card.appendChild(remove);
+    container.appendChild(card);
+  }
+
+  function updateAttachmentPreviewForSelection() {
+    revokeAttachmentPreviewUrl();
+    var file = selectedFile();
+    if (file && isImageUpload(file)) {
+      attachmentPreviewUrl = createFileObjectUrl(file);
+    }
+    renderAttachmentPreview();
+  }
+
+  function clearSelectedAttachment() {
+    var input = document.getElementById("contract-file");
+    if (input) {
+      input.value = "";
+    }
+    revokeAttachmentPreviewUrl();
+    renderAttachmentPreview();
+  }
+
   function isImageOrPdfUpload(file) {
     if (!file) {
       return false;
@@ -5312,13 +5465,6 @@ _APP_JS = r"""(function () {
       });
       return;
     }
-    if (pasteText && pasteText.trim() !== "" && file) {
-      statusMessage({
-        ko: "붙여넣기와 파일 중 하나만 선택하세요.",
-        en: "Use either paste text or one file, not both."
-      });
-      return;
-    }
     var pendingResult = null;
     if (options.scenarioRecompute) {
       scenarioStatusMessage({
@@ -5329,7 +5475,13 @@ _APP_JS = r"""(function () {
       // Echo the creator's turn as a user bubble before sending, then clear the
       // composer so it behaves like a chat input.
       if (file) {
-        appendUserMessage(file.name || "첨부 파일", true);
+        appendUserMessage(pasteText, true, {
+          fileName: file.name || "첨부 파일",
+          imageUrl: isImageUpload(file) ? createFileObjectUrl(file) : ""
+        });
+        box.value = "";
+        clearSelectedAttachment();
+        autoGrowComposer();
       } else {
         appendUserMessage(pasteText, false);
         box.value = "";
@@ -5489,7 +5641,7 @@ _APP_JS = r"""(function () {
   }
 
   function submitComposer() {
-    if (lastResultPayload) {
+    if (lastResultPayload && !selectedFile()) {
       var box = document.getElementById("paste-box");
       submitFollowUpQuestion(box ? box.value : "", { clearComposer: true });
       return;
@@ -5502,10 +5654,7 @@ _APP_JS = r"""(function () {
     if (box) {
       box.value = "";
     }
-    var input = document.getElementById("contract-file");
-    if (input) {
-      input.value = "";
-    }
+    clearSelectedAttachment();
     var container = document.getElementById("result");
     if (container) {
       clearNode(container);
@@ -5544,10 +5693,7 @@ _APP_JS = r"""(function () {
     if (!box) {
       return;
     }
-    var input = document.getElementById("contract-file");
-    if (input) {
-      input.value = "";
-    }
+    clearSelectedAttachment();
     box.value =
       activeLocale() === "en"
         ? "Section 3 (Settlement) Payment is made within 90 days after the end of each quarter; the company may deduct general expenses."
@@ -5609,6 +5755,11 @@ _APP_JS = r"""(function () {
         event.preventDefault();
         fillExample();
       }
+      var clearAttachmentButton = target.closest("[data-clear-attachment]");
+      if (clearAttachmentButton) {
+        event.preventDefault();
+        clearSelectedAttachment();
+      }
       var followUpChip = target.closest("[data-followup-chip]");
       if (followUpChip) {
         event.preventDefault();
@@ -5634,17 +5785,15 @@ _APP_JS = r"""(function () {
       if (!target || !target.closest) {
         return;
       }
-      // Picking a file in the composer sends it straight away, like attaching in
-      // a chat. A pasted draft and a file cannot be sent together, so clear the
-      // draft first.
       var picked = target.closest("[data-file-input]");
-      if (picked && picked.files && picked.files.length > 0) {
-        var box = document.getElementById("paste-box");
-        if (box) {
-          box.value = "";
-          autoGrowComposer();
+      if (picked) {
+        updateAttachmentPreviewForSelection();
+        if (picked.files && picked.files.length > 0) {
+          statusMessage({
+            ko: "첨부 파일을 추가했습니다. 필요한 문구를 더 입력한 뒤 보내세요.",
+            en: "File attached. Add any needed text, then send."
+          });
         }
-        analyze();
       }
     });
     document.addEventListener("keydown", function (event) {
