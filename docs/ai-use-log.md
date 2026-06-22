@@ -42,6 +42,24 @@
   weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
   committed.
 
+## 2026-06-22 — Chat UI conversational follow-up wiring
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: `src/fink/web/app.py` `_APP_JS` and pinned web assertions. The chat
+  composer now keeps the first text submit on `/api/analyze`, stores the analyzed
+  contract text in browser state, sends later composer turns to the local
+  `/api/chat` endpoint, renders pending/reply/error bot bubbles, shows returned
+  citation chips, and adds up to three suggested follow-up chips from analyzed
+  findings.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web -q` passed;
+  `PYTHONPATH=src python3 -c "import fink.web.app"` passed; the rendered shell
+  contains no `fetch(` or `https://`, and `app_js()` contains the `/api/chat`
+  fetch. Plain `python3 -c "import fink.web.app"` still requires the package to
+  be installed or `src` on `PYTHONPATH` in this sandbox's `src/` layout.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
 ## 2026-06-22 — P0 web robustness (structured errors, secondary_rights, locale)
 
 - Tooling: Claude Code (Opus 4.8), implementing directly under the loop's

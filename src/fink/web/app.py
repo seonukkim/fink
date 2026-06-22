@@ -2479,6 +2479,8 @@ _APP_JS = r"""(function () {
 
   var LOCALE_STORAGE_KEY = "fink.ui_locale";
   var analyzeInFlight = false;
+  var chatInFlight = false;
+  var analyzedContractText = "";
   var lastResultPayload = null;
   var lastSubmittedAssumptions = {};
   var qaCheckState = {};
@@ -3465,6 +3467,131 @@ _APP_JS = r"""(function () {
     return item;
   }
 
+  function appendPendingBotMessage() {
+    return appendBotMessage({ ko: "생각 중...", en: "..." });
+  }
+
+  function renderChatCitations(container, citations) {
+    if (!container || !citations || citations.length === 0) {
+      return;
+    }
+    var list = el("ul", "qa-citations", null);
+    list.setAttribute("data-chat-citations", "true");
+    citations.forEach(function (citation) {
+      var label =
+        typeof citation === "string"
+          ? citation
+          : citation.evidence_id || citation.citation_id || citation.source_id || "";
+      if (!label) {
+        return;
+      }
+      var item = el("li", null, null);
+      item.setAttribute("data-chat-citation", "true");
+      item.appendChild(el("code", null, label));
+      list.appendChild(item);
+    });
+    if (list.childNodes.length > 0) {
+      container.appendChild(list);
+    }
+  }
+
+  function replaceBotMessageWithText(item, content, citations) {
+    if (!item) {
+      item = appendBotMessage({ ko: "", en: "" });
+    }
+    if (!item) {
+      return null;
+    }
+    var bubble = item.querySelector(".bubble");
+    if (!bubble) {
+      return item;
+    }
+    clearNode(bubble);
+    bubble.appendChild(el("p", "bubble-text", text(content)));
+    renderChatCitations(bubble, citations || []);
+    scrollThreadToLatest(item);
+    return item;
+  }
+
+  function replaceBotMessageWithPair(item, pair) {
+    if (!item) {
+      return appendBotMessage(pair);
+    }
+    var bubble = item.querySelector(".bubble");
+    if (!bubble) {
+      return item;
+    }
+    clearNode(bubble);
+    bubble.appendChild(bilingual("p", "bubble-text", pair));
+    scrollThreadToLatest(item);
+    return item;
+  }
+
+  function questionPair(value) {
+    if (!value) {
+      return null;
+    }
+    if (typeof value === "string") {
+      var raw = value.trim();
+      return raw ? { ko: raw, en: raw } : null;
+    }
+    var ko = text(value.ko).trim();
+    var en = text(value.en).trim();
+    if (!ko && !en) {
+      return null;
+    }
+    return { ko: ko || en, en: en || ko };
+  }
+
+  function collectSuggestedFollowUps(payload) {
+    var suggestions = [];
+    var seen = {};
+    function add(value) {
+      var pair = questionPair(value);
+      if (!pair || suggestions.length >= 3) {
+        return;
+      }
+      var key = (pair.ko + "\n" + pair.en).toLowerCase();
+      if (seen[key]) {
+        return;
+      }
+      seen[key] = true;
+      suggestions.push(pair);
+    }
+    (payload.findings || []).forEach(function (finding) {
+      add(finding.question_to_ask);
+      (finding.additional_questions || []).forEach(add);
+    });
+    return suggestions;
+  }
+
+  function renderSuggestedFollowUps(container, payload) {
+    var suggestions = collectSuggestedFollowUps(payload);
+    if (suggestions.length === 0) {
+      return;
+    }
+    var section = el("section", "followup-suggestions", null);
+    section.setAttribute("data-followup-suggestions", "true");
+    section.appendChild(
+      bilingual("p", "hint", {
+        ko: "이런 걸 물어볼 수 있어요",
+        en: "You could ask"
+      })
+    );
+    var row = el("div", "chip-row", null);
+    suggestions.forEach(function (question) {
+      var button = el("button", "example-chip", null);
+      button.type = "button";
+      button.setAttribute("data-followup-chip", "true");
+      button.setAttribute("data-question-ko", question.ko);
+      button.setAttribute("data-question-en", question.en);
+      button.appendChild(bilingual("span", null, question));
+      row.appendChild(button);
+    });
+    section.appendChild(row);
+    container.appendChild(section);
+  }
+
   function renderResult(payload) {
     var container = document.getElementById("result");
     if (!container) {
@@ -3477,6 +3604,7 @@ _APP_JS = r"""(function () {
     heading.appendChild(bilingual("span", null, { ko: "검토 결과", en: "Review result" }));
     container.appendChild(heading);
 
+    renderSuggestedFollowUps(container, payload);
     container.appendChild(renderReaderShortcutNav());
 
     var workspace = el("div", "synchronized-reader", null);
@@ -3565,6 +3693,19 @@ _APP_JS = r"""(function () {
     }
   }
 
+  function setChatBusy(isBusy) {
+    chatInFlight = isBusy;
+    var button = document.getElementById("analyze-btn");
+    var pane = document.querySelector(".input-pane");
+    if (button) {
+      button.disabled = isBusy;
+      button.setAttribute("aria-busy", isBusy ? "true" : "false");
+    }
+    if (pane) {
+      pane.setAttribute("aria-busy", isBusy ? "true" : "false");
+    }
+  }
+
   function buildAnalyzeRequest(pasteText, file, options) {
     options = options || {};
     var assumptions = collectAssumptions();
@@ -3612,7 +3753,7 @@ _APP_JS = r"""(function () {
 
   function analyze(options) {
     options = options || {};
-    if (analyzeInFlight) {
+    if (analyzeInFlight || chatInFlight) {
       return;
     }
     var box = document.getElementById("paste-box");
@@ -3686,6 +3827,9 @@ _APP_JS = r"""(function () {
           scenarioStatusMessage(recomputeMessage(result.data, request.changedInput));
         }
         lastResultPayload = result.data;
+        if (!options.scenarioRecompute) {
+          analyzedContractText = !file && pasteText && pasteText.trim() !== "" ? pasteText : "";
+        }
         lastSubmittedAssumptions = request.assumptions;
       })
       .catch(function () {
@@ -3701,6 +3845,96 @@ _APP_JS = r"""(function () {
       .finally(function () {
         setAnalyzeBusy(false);
       });
+  }
+
+  function submitFollowUpQuestion(question, options) {
+    options = options || {};
+    if (chatInFlight || analyzeInFlight) {
+      return;
+    }
+    var asked = String(question || "").trim();
+    if (!asked) {
+      statusMessage({
+        ko: "질문을 입력하세요.",
+        en: "Enter a follow-up question."
+      });
+      return;
+    }
+    if (!lastResultPayload || !analyzedContractText || analyzedContractText.trim() === "") {
+      appendBotMessage({
+        ko: "먼저 계약 텍스트를 분석한 뒤 이어서 질문할 수 있습니다.",
+        en: "Analyze contract text first, then ask a follow-up."
+      });
+      statusMessage({
+        ko: "먼저 계약 텍스트를 분석하세요.",
+        en: "Analyze contract text first."
+      });
+      return;
+    }
+    appendUserMessage(asked, false);
+    if (options.clearComposer) {
+      var box = document.getElementById("paste-box");
+      if (box) {
+        box.value = "";
+        autoGrowComposer();
+      }
+    }
+    var pending = appendPendingBotMessage();
+    setChatBusy(true);
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paste_text: analyzedContractText,
+        question: asked,
+        locale: activeLocale()
+      })
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          replaceBotMessageWithPair(pending, {
+            ko: "답변을 만들지 못했습니다. 다시 시도해 주세요.",
+            en: "Could not create a reply. Please try again."
+          });
+          statusMessage({
+            ko: "후속 답변 요청에 실패했습니다.",
+            en: "Follow-up reply failed."
+          });
+          return;
+        }
+        replaceBotMessageWithText(pending, result.data && result.data.reply, result.data.citations || []);
+        statusMessage({
+          ko: "후속 질문에 답했습니다.",
+          en: "Answered your follow-up."
+        });
+      })
+      .catch(function () {
+        replaceBotMessageWithPair(pending, {
+          ko: "답변 요청에 실패했습니다. 다시 시도해 주세요.",
+          en: "Reply request failed. Please try again."
+        });
+        statusMessage({
+          ko: "후속 답변 요청에 실패했습니다.",
+          en: "Follow-up reply failed."
+        });
+      })
+      .finally(function () {
+        setChatBusy(false);
+      });
+  }
+
+  function submitComposer() {
+    if (lastResultPayload) {
+      var box = document.getElementById("paste-box");
+      submitFollowUpQuestion(box ? box.value : "", { clearComposer: true });
+      return;
+    }
+    analyze();
   }
 
   function clearAll() {
@@ -3721,6 +3955,7 @@ _APP_JS = r"""(function () {
       resultMessage.hidden = true;
     }
     autoGrowComposer();
+    analyzedContractText = "";
     lastResultPayload = null;
     lastSubmittedAssumptions = {};
     statusMessage({
@@ -3925,7 +4160,7 @@ _APP_JS = r"""(function () {
     var analyzeButton = document.getElementById("analyze-btn");
     if (analyzeButton) {
       analyzeButton.addEventListener("click", function () {
-        analyze();
+        submitComposer();
       });
     }
     var attachButton = document.querySelector("[data-attach-button]");
@@ -3952,6 +4187,15 @@ _APP_JS = r"""(function () {
       var exampleChip = target.closest("[data-example-chip]");
       if (exampleChip) {
         fillExample();
+      }
+      var followUpChip = target.closest("[data-followup-chip]");
+      if (followUpChip) {
+        event.preventDefault();
+        submitFollowUpQuestion(
+          activeLocale() === "en"
+            ? followUpChip.getAttribute("data-question-en")
+            : followUpChip.getAttribute("data-question-ko")
+        );
       }
       var readerLink = target.closest("[data-source-nav], [data-reader-jump]");
       if (readerLink && activateReaderAnchor(readerLink)) {
@@ -4032,7 +4276,7 @@ _APP_JS = r"""(function () {
         target.closest("[data-paste-box]")
       ) {
         event.preventDefault();
-        analyze();
+        submitComposer();
       }
     });
     setLocale(readStoredLocale() || activeLocale());
