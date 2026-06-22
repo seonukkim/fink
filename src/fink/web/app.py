@@ -2113,10 +2113,44 @@ footer {
   border-radius: 8px;
   background: #fff;
 }
+.finding-sort-control {
+  display: inline-flex;
+  gap: .25rem;
+  align-items: center;
+  width: fit-content;
+  margin: .1rem 0 .25rem;
+  padding: .18rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.finding-sort-option {
+  min-height: 44px;
+  padding: .35rem .7rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: .85rem;
+  font-weight: 700;
+}
+.finding-sort-option:hover,
+.finding-sort-option[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+.finding-sort-option[aria-pressed="true"] {
+  background: var(--accent-tint);
+}
 .ranked-findings, .guidance-card ul {
   display: grid;
   gap: .6rem;
   margin: 0;
+}
+.ranked-findings {
+  list-style: none;
+  padding-left: 0;
+}
+.guidance-card ul {
   padding-left: 1.15rem;
 }
 .finding-card, .guidance-card {
@@ -2144,6 +2178,14 @@ footer {
   display: flex;
   gap: .35rem;
   flex-wrap: wrap;
+}
+.finding-priority-badge {
+  min-width: 1.65rem;
+  text-align: center;
+  color: var(--accent-strong);
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 .finding-section {
   display: grid;
@@ -2256,6 +2298,7 @@ footer {
   .integrated-judgment-card,
   .tool-details,
   .source-highlights,
+  .finding-sort-control,
   .finding-card,
   .scenario-inputs,
   .assumptions-panel,
@@ -2269,7 +2312,9 @@ footer {
   }
   button,
   button.secondary,
-  .locale-toggle button {
+  .locale-toggle button,
+  .finding-sort-option,
+  .finding-sort-option[aria-pressed="true"] {
     color: ButtonText;
     background: ButtonFace;
     border-color: ButtonText;
@@ -2822,85 +2867,244 @@ _APP_JS = r"""(function () {
     }
   }
 
+  function finiteNumberOrNull(value) {
+    if (value == null || value === "") {
+      return null;
+    }
+    var parsed = Number(value);
+    return isFinite(parsed) ? parsed : null;
+  }
+
+  function priorityRank(finding, fallbackIndex) {
+    var parsed = finiteNumberOrNull(finding && finding.rank);
+    return parsed && parsed > 0 ? parsed : fallbackIndex + 1;
+  }
+
+  function clauseOrderFromId(clauseId) {
+    var value = text(clauseId).trim();
+    if (!value) {
+      return null;
+    }
+    var matches = value.match(/\d+/g);
+    if (!matches || matches.length === 0) {
+      return null;
+    }
+    return finiteNumberOrNull(matches[matches.length - 1]);
+  }
+
+  function clauseOrderValue(finding) {
+    var source = (finding && finding.source) || {};
+    var candidates = [
+      finding && finding.clause_order,
+      finding && finding.clauseOrder,
+      finding && finding.clause_index,
+      finding && finding.clauseIndex,
+      source.clause_order,
+      source.clauseOrder,
+      source.clause_index,
+      source.clauseIndex,
+      source.order
+    ];
+    for (var index = 0; index < candidates.length; index += 1) {
+      var explicitOrder = finiteNumberOrNull(candidates[index]);
+      if (explicitOrder != null) {
+        return explicitOrder;
+      }
+    }
+    return clauseOrderFromId(
+      source.clause_id || (finding && (finding.clause_id || finding.clauseId))
+    );
+  }
+
+  function findingRecords(findings) {
+    return findings.map(function (finding, index) {
+      return {
+        finding: finding,
+        originalIndex: index,
+        priorityRank: priorityRank(finding, index),
+        clauseOrder: clauseOrderValue(finding)
+      };
+    });
+  }
+
+  function sortedFindingRecords(records, sortMode) {
+    var sorted = records.slice();
+    if (sortMode === "clause") {
+      var hasClauseOrder = sorted.some(function (record) {
+        return record.clauseOrder != null;
+      });
+      if (hasClauseOrder) {
+        sorted.sort(function (left, right) {
+          if (left.clauseOrder != null && right.clauseOrder != null) {
+            if (left.clauseOrder !== right.clauseOrder) {
+              return left.clauseOrder - right.clauseOrder;
+            }
+            return left.originalIndex - right.originalIndex;
+          }
+          if (left.clauseOrder != null) {
+            return -1;
+          }
+          if (right.clauseOrder != null) {
+            return 1;
+          }
+          return left.originalIndex - right.originalIndex;
+        });
+        return sorted;
+      }
+    }
+    sorted.sort(function (left, right) {
+      return left.originalIndex - right.originalIndex;
+    });
+    return sorted;
+  }
+
+  function setFindingSortState(control, sortMode) {
+    control.setAttribute("data-active-sort", sortMode);
+    control.querySelectorAll("[data-finding-sort]").forEach(function (button) {
+      var active = button.getAttribute("data-finding-sort") === sortMode;
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+      if (active) {
+        button.setAttribute("data-active", "true");
+      } else {
+        button.removeAttribute("data-active");
+      }
+    });
+  }
+
+  function renderFindingSortControl(onChange) {
+    var control = el("div", "finding-sort-control", null);
+    control.setAttribute("role", "group");
+    control.setAttribute("aria-label", "발견사항 정렬 / Sort findings");
+    control.setAttribute("data-finding-sort-control", "true");
+    [
+      { mode: "priority", label: { ko: "우선순위순", en: "By priority" } },
+      { mode: "clause", label: { ko: "조항순", en: "By clause order" } }
+    ].forEach(function (option) {
+      var button = el("button", "finding-sort-option", null);
+      button.type = "button";
+      button.setAttribute("data-finding-sort", option.mode);
+      button.appendChild(bilingual("span", null, option.label));
+      button.addEventListener("click", function () {
+        onChange(option.mode);
+      });
+      control.appendChild(button);
+    });
+    setFindingSortState(control, "priority");
+    return control;
+  }
+
+  function renderFindingItem(record, payload) {
+    var finding = record.finding;
+    var source = finding.source || {};
+    var listItem = el("li", null, null);
+    var item = el("details", "finding-card", null);
+    item.id =
+      source.finding_anchor_id
+        ? source.finding_anchor_id
+        : finding.finding_id;
+    item.tabIndex = -1;
+    item.setAttribute("data-finding-id", finding.finding_id);
+    item.setAttribute("data-finding-rank", String(record.priorityRank));
+    item.setAttribute("data-finding-original-index", String(record.originalIndex));
+    if (source.clause_id) {
+      item.setAttribute("data-clause-id", source.clause_id);
+    }
+    if (record.clauseOrder != null) {
+      item.setAttribute("data-clause-order", String(record.clauseOrder));
+    }
+    item.setAttribute("data-reader-focus-target", "finding");
+    if (Number(record.priorityRank) === 1) {
+      item.open = true;
+    }
+    var summary = el("summary", "finding-summary", null);
+    summary.appendChild(bilingual("span", "finding-title", finding.title));
+    var badges = el("span", "finding-badges", null);
+    badges.setAttribute("data-collapsed-badge-count", "3");
+    var priorityBadge = el("span", "badge finding-priority-badge", null);
+    priorityBadge.setAttribute("data-priority-rank-badge", "true");
+    priorityBadge.appendChild(
+      bilingual("span", "sr-only", { ko: "검토 우선순위", en: "Review priority" })
+    );
+    priorityBadge.appendChild(document.createTextNode(String(record.priorityRank)));
+    badges.appendChild(priorityBadge);
+    badges.appendChild(
+      bilingual("span", "badge unverified-badge", creatorEvidenceLabel(finding.evidence || {}))
+    );
+    badges.appendChild(
+      bilingual(
+        "span",
+        "badge",
+        payload.dimensions.monetary.quantification_status.label
+      )
+    );
+    summary.appendChild(badges);
+    item.appendChild(summary);
+
+    var why = renderFindingSection(copyLabel(payload, "section.why_check"), "section.why_check");
+    why.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
+    item.appendChild(why);
+
+    var wording = renderFindingSection(copyLabel(payload, "section.wording"), "section.wording");
+    if (finding.source && finding.source.exact_excerpt) {
+      var quote = el("blockquote", null, finding.source.exact_excerpt);
+      quote.setAttribute("data-exact-excerpt", "true");
+      wording.appendChild(quote);
+    }
+    wording.appendChild(renderOpenSourceLink(finding, payload));
+    item.appendChild(wording);
+
+    var impact = renderFindingSection(copyLabel(payload, "section.impact"), "section.impact");
+    impact.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
+    item.appendChild(impact);
+
+    var question = renderFindingSection(copyLabel(payload, "section.question"), "section.question");
+    question.appendChild(bilingual("p", "action-line", finding.question_to_ask));
+    question.appendChild(renderCopyQuestionButton(finding.question_to_ask, payload));
+    if (finding.additional_questions && finding.additional_questions.length > 0) {
+      var moreQuestions = el("ul", null, null);
+      finding.additional_questions.forEach(function (extraQuestion) {
+        moreQuestions.appendChild(bilingual("li", null, extraQuestion));
+      });
+      question.appendChild(moreQuestions);
+    }
+    item.appendChild(question);
+
+    var evidence = renderFindingSection(copyLabel(payload, "section.evidence"), "section.evidence");
+    renderFindingEvidence(evidence, finding);
+    item.appendChild(evidence);
+
+    var detail = renderFindingSection(copyLabel(payload, "section.detail"), "section.detail");
+    detail.appendChild(bilingual("p", "finding-snippet", finding.priority_basis));
+    item.appendChild(detail);
+
+    listItem.appendChild(item);
+    return listItem;
+  }
+
   function renderFindings(container, payload) {
     var findings = payload.findings;
     if (!findings || findings.length === 0) {
       return;
     }
+    var records = findingRecords(findings);
+    var sortMode = "priority";
     var list = el("ol", "ranked-findings", null);
     list.setAttribute("data-ranked-findings", "true");
-    findings.forEach(function (finding) {
-      var listItem = el("li", null, null);
-      var item = el("details", "finding-card", null);
-      item.id =
-        finding.source && finding.source.finding_anchor_id
-          ? finding.source.finding_anchor_id
-          : finding.finding_id;
-      item.tabIndex = -1;
-      item.setAttribute("data-finding-id", finding.finding_id);
-      item.setAttribute("data-finding-rank", String(finding.rank));
-      item.setAttribute("data-reader-focus-target", "finding");
-      if (Number(finding.rank) === 1) {
-        item.open = true;
-      }
-      var summary = el("summary", "finding-summary", null);
-      summary.appendChild(bilingual("span", "finding-title", finding.title));
-      var badges = el("span", "finding-badges", null);
-      badges.setAttribute("data-collapsed-badge-count", "3");
-      badges.appendChild(el("span", "badge", "#" + finding.rank));
-      badges.appendChild(
-        bilingual("span", "badge unverified-badge", creatorEvidenceLabel(finding.evidence || {}))
-      );
-      badges.appendChild(
-        bilingual(
-          "span",
-          "badge",
-          payload.dimensions.monetary.quantification_status.label
-        )
-      );
-      summary.appendChild(badges);
-      item.appendChild(summary);
 
-      var why = renderFindingSection(copyLabel(payload, "section.why_check"), "section.why_check");
-      why.appendChild(bilingual("p", "guidance-why", finding.why_it_matters));
-      item.appendChild(why);
+    function redrawList() {
+      clearNode(list);
+      sortedFindingRecords(records, sortMode).forEach(function (record) {
+        list.appendChild(renderFindingItem(record, payload));
+      });
+    }
 
-      var wording = renderFindingSection(copyLabel(payload, "section.wording"), "section.wording");
-      if (finding.source && finding.source.exact_excerpt) {
-        var quote = el("blockquote", null, finding.source.exact_excerpt);
-        quote.setAttribute("data-exact-excerpt", "true");
-        wording.appendChild(quote);
-      }
-      wording.appendChild(renderOpenSourceLink(finding, payload));
-      item.appendChild(wording);
-
-      var impact = renderFindingSection(copyLabel(payload, "section.impact"), "section.impact");
-      impact.appendChild(bilingual("p", "cash-flow-line", finding.cash_flow_consequence));
-      item.appendChild(impact);
-
-      var question = renderFindingSection(copyLabel(payload, "section.question"), "section.question");
-      question.appendChild(bilingual("p", "action-line", finding.question_to_ask));
-      question.appendChild(renderCopyQuestionButton(finding.question_to_ask, payload));
-      if (finding.additional_questions && finding.additional_questions.length > 0) {
-        var moreQuestions = el("ul", null, null);
-        finding.additional_questions.forEach(function (extraQuestion) {
-          moreQuestions.appendChild(bilingual("li", null, extraQuestion));
-        });
-        question.appendChild(moreQuestions);
-      }
-      item.appendChild(question);
-
-      var evidence = renderFindingSection(copyLabel(payload, "section.evidence"), "section.evidence");
-      renderFindingEvidence(evidence, finding);
-      item.appendChild(evidence);
-
-      var detail = renderFindingSection(copyLabel(payload, "section.detail"), "section.detail");
-      detail.appendChild(bilingual("p", "finding-snippet", finding.priority_basis));
-      item.appendChild(detail);
-
-      listItem.appendChild(item);
-      list.appendChild(listItem);
+    var control = renderFindingSortControl(function (nextMode) {
+      sortMode = nextMode;
+      setFindingSortState(control, sortMode);
+      redrawList();
     });
+    container.appendChild(control);
+    redrawList();
     container.appendChild(list);
   }
 
