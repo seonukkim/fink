@@ -14,14 +14,7 @@
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="topbar">
-    <div class="brand-lockup">
-      <a class="wordmark" href="#top" aria-label="FInk">F<span>I</span>nk</a>
-      <span class="brand-divider" aria-hidden="true"></span>
-      <div class="titles">
-        <span class="t-ko">창작자를 위한 금융 계약 검토</span>
-        <span class="t-en">Financial Contract Review for Creators</span>
-      </div>
-    </div>
+    <a class="wordmark" href="#top" aria-label="FInk">F<span>I</span>nk</a>
     <nav class="nav" aria-label="Sections">
       <a href="#problem">Problem</a>
       <a href="#how">How it works</a>
@@ -81,8 +74,8 @@
 
     <section id="outputs" class="band">
       <h2>Outputs</h2>
-      <p data-en="After you analyze a contract, FInk returns a plain-language decision brief — a recommended action and the clause that most affects your cash flow — supported by four separate results. They are reported side by side and never merged into a single total-loss number: a cost range and a confidence level answer different questions, and combining them would hide what is uncertain."
-         data-ko="계약서를 분석하면 FInk은 가장 먼저 할 일과 현금흐름에 제일 큰 영향을 주는 조항을 짚고, 그 근거로 아래 네 가지 결과를 함께 보여 줍니다. 네 결과는 나란히 보여 줄 뿐 하나의 ‘총손실’ 숫자로 합치지 않습니다. 예상 비용과 신뢰도는 서로 다른 질문에 답하기 때문에, 하나로 합치면 어디가 불확실한지가 가려집니다.">After you analyze a contract, FInk returns a plain-language decision brief…</p>
+      <p data-en="After you analyze a contract, FInk summarizes it as a plain-language decision brief — a recommended action and the clause that most affects your cash flow — supported by four separate results. They are reported side by side and never merged into a single total-loss number: a cost range and a confidence level answer different questions, and combining them would hide what is uncertain."
+         data-ko="계약서를 분석하면 FInk은 결과를 한눈에 보이는 요약으로 정리합니다. 가장 먼저 할 일과 현금흐름에 제일 큰 영향을 주는 조항을 짚어 주고, 그 근거로 아래 네 가지 결과를 함께 보여 줍니다. 네 결과는 나란히 보여 줄 뿐 하나의 ‘총손실’ 숫자로 합치지 않습니다. 예상 비용과 신뢰도는 서로 다른 질문에 답하기 때문에, 하나로 합치면 어디가 불확실한지가 가려집니다.">After you analyze a contract, FInk summarizes it into one at-a-glance review…</p>
       <div class="grid4">
         <article>
           <h3><span class="out-n">1</span><span data-en="Review priority" data-ko="검토 우선순위">Review priority</span></h3>
@@ -131,37 +124,6 @@ uv run fink-web --host 127.0.0.1 --port 8000
 
       <figure class="example">
         <figcaption data-en="Synthetic example clause" data-ko="합성 예시 조항">Synthetic example clause</figcaption>
-        <div class="summary">
-          <p class="summary-eyebrow">SUMMARY</p>
-          <p class="reco">
-            <strong data-en="Recommendation:" data-ko="권장:">Recommendation:</strong>
-            <span data-en="Review signature after checking a few items."
-              data-ko="몇 가지 항목을 확인한 뒤 서명을 검토하세요.">Review signature after checking a few items.</span>
-          </p>
-          <div class="summary-grid">
-            <div>
-              <p class="summary-label" data-en="Review effort" data-ko="검토 권장 수준">Review effort</p>
-              <div class="lights">
-                <span class="light" data-en="Light check" data-ko="가볍게 확인">Light check</span>
-                <span class="light on caution" data-en="Careful check" data-ko="꼼꼼히 확인">Careful check</span>
-                <span class="light" data-en="Professional recommended" data-ko="전문가 권장">Professional recommended</span>
-              </div>
-            </div>
-            <div>
-              <p class="summary-label" data-en="Risk Index" data-ko="위험 지수">Risk Index</p>
-              <div class="score">37<small> / 100</small></div>
-              <p class="score-meta" data-en="Official evidence 1 · Practice basis 1"
-                data-ko="공식 근거 1 · 실무 기준 1">Official evidence 1 · Practice basis 1</p>
-            </div>
-          </div>
-          <div class="concern">
-            <span class="tag" data-en="Article 3 Settlement" data-ko="제3조 정산">Article 3 Settlement</span>
-            <h3 data-en="Settlement detail safeguards absent"
-              data-ko="정산명세 보호장치 부재">Settlement detail safeguards absent</h3>
-            <p data-en="Weak settlement statements and audit rights make deductions harder to verify."
-              data-ko="정산 명세와 감사 권한이 약하면 공제 내역을 검증하기 어렵습니다.">Weak settlement statements and audit rights make deductions harder to verify.</p>
-          </div>
-        </div>
         <p class="clause" lang="ko"><mark>정산</mark>은 매 분기 종료일로부터 <mark>90일 이내</mark>에 지급하며, 회사는 <mark>‘일반 경비’</mark>를 공제할 수 있다.</p>
         <p class="clause-gloss">“<mark>Settlement</mark> is paid <mark>within 90 days</mark> of each quarter's end, and the company may deduct ‘<mark>general expenses</mark>.’”</p>
         <div class="table-wrap">
