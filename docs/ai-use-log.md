@@ -1,5 +1,37 @@
 # AI Use Log
 
+## 2026-06-23 — Locked visual redesign port
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: ported the locked `/tmp/mockup5.html` visual system into the local
+  chat app and public webpage: warm greige palette, charcoal brand topbar with
+  divider and gradient rule, self-hosted Noto Serif KR content font, serif
+  content/sans chrome split, neutral summary/finding/checklist cards, outline
+  clause tags, underline-only excerpt highlights, traffic-light review-effort
+  pills, and warm composer styling. The user-facing score is now
+  `위험 지수` / `Risk Index`; the per-checklist source note was removed, and the
+  framing remains Contractual Financial Review Priority rather than a
+  legal/fraud/validity/unfairness or guaranteed-loss claim. Added
+  `/fonts/<name>.woff2` routing to both FastAPI and the raw ASGI fallback and
+  added `font-src 'self'` to the CSP. No behavior,
+  `/api/*` flow, remote runtime API, model weight, private input, paper,
+  template, or `icml2026` file was changed.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests -q` passed;
+  `UV_CACHE_DIR=/tmp/uv-cache uv run pytest
+  tests/web/test_local_web_app.py tests/web/test_a11y_validation.py
+  tests/web/test_report_ui.py tests/web/test_analyze_pipeline.py
+  tests/test_knowledge_base.py -q` passed; `PYTHONPATH=src python3 -c "import
+  fink.web.app"` passed; the exact bare `python3 -c "import fink.web.app"`
+  command was attempted and failed because the system interpreter does not have
+  the checkout's `src/` layout package on `sys.path`; the exact bare `uv run
+  pytest tests -q` command was attempted and failed before tests started because
+  the default uv cache path is read-only in this sandbox; `bash
+  scripts/agent_loop/run_gates.sh` ended with `GATES_OK`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed. Bundled OFL font files stay self-hosted and no network runtime path
+  was added.
+
 ## 2026-06-23 — Combined file and text upload input
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

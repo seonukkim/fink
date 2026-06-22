@@ -6,10 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from fink.knowledge.checkpoints import (
-    CHECKLIST_SOURCE_NOTE,
-    curated_checklist_for_category,
-)
+from fink.knowledge.checkpoints import curated_checklist_for_category
 from fink.schemas import ExportFormat, RiskCategory, UILocale
 from fink.web.source_highlights import (
     build_source_highlight_payload,
@@ -228,12 +225,15 @@ _COPY: dict[str, dict[str, str]] = {
         "en": "Open in source",
     },
     "diagnostic.rule_focus_index": {
-        "ko": "규칙 기반 검토 집중도 지수",
-        "en": "Rule-based review focus index",
+        "ko": "규칙 기반 위험 지수",
+        "en": "Rule-based Risk Index",
     },
     "diagnostic.rule_focus_note": {
-        "ko": "숫자가 높을수록 먼저·꼼꼼히 살펴볼 항목이 많다는 뜻입니다.",
-        "en": "A higher number means more items should be reviewed earlier and more carefully.",
+        "ko": "숫자가 높을수록 먼저·꼼꼼히 살펴볼 계약상 금융 항목이 많다는 뜻입니다.",
+        "en": (
+            "A higher number means more contractual finance items should be reviewed "
+            "earlier and more carefully."
+        ),
     },
     "finding.priority_basis.missing_protection": {
         "ko": "보호 조항이 빠졌거나 약해 보여 먼저 볼 항목으로 정렬했습니다.",
@@ -936,7 +936,6 @@ def _empty_practice_checklist() -> dict[str, Any]:
     return {
         "topic": {"ko": "", "en": ""},
         "checkpoints": [],
-        "source_note": dict(CHECKLIST_SOURCE_NOTE),
         "source_kind": "distilled_general_practice",
         "score_contribution": 0,
         "authority_tiers": [],

@@ -983,8 +983,8 @@ def _render_category_card(
       <header>
         <p class="eyebrow">{category.value}</p>
         <h4>{_escape(CATEGORY_LABELS[category])}</h4>
-        <span class="badge" aria-label="{category.value} category review focus">
-          review focus {score:.1f}
+        <span class="badge" aria-label="{category.value} category Risk Index">
+          Risk Index {score:.1f}
         </span>
       </header>
       {_render_flagged_clauses(clauses, highlighted_evidence)}

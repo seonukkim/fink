@@ -215,8 +215,9 @@ class ReportUITests(unittest.TestCase):
             render_result_body.index("renderReviewBriefAction"),
             render_result_body.index("renderSuggestedFollowUps"),
         )
-        self.assertIn("규칙 기반 검토 집중도 지수", markup)
-        self.assertIn("숫자가 높을수록 먼저·꼼꼼히 살펴볼 항목이 많다는 뜻입니다.", markup)
+        self.assertIn("규칙 기반 위험 지수", markup)
+        self.assertIn("Rule-based Risk Index", markup)
+        self.assertIn("숫자가 높을수록 먼저·꼼꼼히 살펴볼 계약상 금융 항목이 많다는 뜻입니다.", markup)
         self.assertIn("통화 확인 필요", markup)
 
         self.assertEqual(view_model.view_model, "CreatorReviewViewModel")

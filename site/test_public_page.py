@@ -24,6 +24,10 @@ def main() -> None:
         "uv run fink-web",
         "<mark>90일 이내</mark>",
         "do not signal safe or risky",
+        "SUMMARY",
+        "Risk Index",
+        "위험 지수",
+        "brand-divider",
     ):
         if snippet not in normalized:
             raise AssertionError(f"canonical page text missing: {snippet}")
@@ -36,6 +40,8 @@ def main() -> None:
         path.read_text(encoding="utf-8")
         for path in (INDEX, SITE_ROOT / "styles.css", SITE_ROOT / "app.js")
     )
+    if "NotoSerifKR-500.woff2" not in page_text:
+        raise AssertionError("bundled Noto Serif KR font-face missing")
     forbidden_patterns = (
         r"sk-[A-Za-z0-9_-]{20,}",
         r"hf_[A-Za-z0-9]{20,}",

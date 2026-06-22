@@ -64,8 +64,7 @@ def test_curated_checklist_for_category_is_bilingual_non_scoring_and_deduped() -
     assert first is not None
     assert first["topic"] == {"ko": "정산·감사", "en": "Settlement and audit"}
     assert len(first["checkpoints"]) == 3
-    assert first["source_note"]["ko"] == "일반 실무 원칙 distill · 법률 자문 아님"
-    assert first["source_note"]["en"] == "Distilled general practice · not legal advice"
+    assert "source_note" not in first
     assert first["score_contribution"] == 0
     assert first["authority_tiers"] == []
     assert first["grounding_evidence_ids"] == []

@@ -14,12 +14,6 @@ except Exception as exc:  # pragma: no cover - dependency is declared in pyproje
 DATASET_PATH = (
     Path(__file__).resolve().parents[3] / "data" / "knowledge" / "creator_contract_checkpoints.yaml"
 )
-CHECKLIST_SOURCE_NOTE = {
-    "ko": "일반 실무 원칙 distill · 법률 자문 아님",
-    "en": "Distilled general practice · not legal advice",
-}
-
-
 class KnowledgeBaseError(RuntimeError):
     """Raised when the public checkpoint knowledge base is missing or malformed."""
 
@@ -98,7 +92,6 @@ def curated_checklist_for_category(
             "en": str(topic.get("topic_en") or "").strip(),
         },
         "checkpoints": selected,
-        "source_note": dict(CHECKLIST_SOURCE_NOTE),
         "source_kind": "distilled_general_practice",
         "score_contribution": 0,
         "authority_tiers": [],

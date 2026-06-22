@@ -84,7 +84,7 @@ class WebA11yValidationTests(unittest.TestCase):
             "body > :not(.print-brief-root)",
             ".print-brief-document",
             ".print-wordmark span",
-            "border-bottom: 2px solid #b91c5c",
+            "border-bottom: 2px solid #a31e4e",
         ):
             self.assertIn(expected, markup)
         self.assertNotIn("position: sticky", markup)

@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-23T00:51:12+09:00`
+- Generated: `2026-06-23T02:58:00+09:00`
 - Current branch: `main`
-- Base commit: `64df6427f73834c0d783c684409a43e2c6c8b889`
+- Base commit: `152d524352c5ea8f2e57d3a11440f25da521d86a`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -40,6 +40,12 @@
   local file analysis by recovering upload text through the existing txt/PDF/OCR
   path, joining paste first and file text second, and added a minimal composer
   attachment preview with local object-URL image thumbnails and no auto-send.
+  Ported the locked warm-greige visual redesign into the live chat app and
+  public page; added self-hosted Noto Serif KR font-face routing through both
+  FastAPI and the raw ASGI fallback, added `font-src 'self'` to CSP, renamed the
+  user-facing score to `위험 지수` / `Risk Index`, removed the per-checklist
+  source note, and kept the result framing as Contractual Financial Review
+  Priority rather than a legal/verdict claim.
 
 ## Human Gates
 
@@ -83,13 +89,15 @@ touch loop/STOP
 
 ## Latest Verification
 
-- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web/test_upload_analyze_endpoint.py -q`
-  passed.
 - `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests -q` passed.
-- `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import fink.web.upload,
-  fink.web.app"` passed.
-- `PYTHONPATH=src python3 -c "import fink.web.upload, fink.web.app"` passed.
-- The exact bare `python3 -c "import fink.web.upload, fink.web.app"` command was
-  attempted and failed because the system interpreter does not have this `src/`
-  layout package installed on `sys.path`.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest
+  tests/web/test_local_web_app.py tests/web/test_a11y_validation.py
+  tests/web/test_report_ui.py tests/web/test_analyze_pipeline.py
+  tests/test_knowledge_base.py -q` passed.
+- `python3 -c "import fink.web.app"` was attempted and failed because the bare
+  system interpreter does not have this `src/` layout package on `sys.path`;
+  `PYTHONPATH=src python3 -c "import fink.web.app"` passed.
+- The exact bare `uv run pytest tests -q` command was attempted and failed
+  before tests started because the default uv cache path is read-only in this
+  sandbox; `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests -q` passed.
 - `bash scripts/agent_loop/run_gates.sh` ended with `GATES_OK`.
