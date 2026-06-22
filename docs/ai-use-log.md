@@ -60,6 +60,22 @@
   weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
   committed.
 
+## 2026-06-22 — Chat UI integrated-judgment summary card
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: `src/fink/web/app.py` `_APP_JS` / `_css` and a pinned web smoke
+  assertion. The chat analysis result now prepends a bilingual "한눈에 정리" /
+  "At a glance" card with the recommended action, review-effort cue, finding
+  count, top finding label, one-line rationale, and professional-confirmation
+  caution. The card is decision support only and does not introduce a verdict.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web -q` passed;
+  `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import fink.web.app"` passed;
+  `app_js()` contains the new Korean label; the rendered shell remains free of
+  inline request code and external URL strings.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed. No paper-template file was touched.
+
 ## 2026-06-22 — P0 web robustness (structured errors, secondary_rights, locale)
 
 - Tooling: Claude Code (Opus 4.8), implementing directly under the loop's

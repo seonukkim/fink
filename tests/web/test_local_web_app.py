@@ -198,6 +198,10 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn(b"fetch(", body)
         self.assertIn(b'fetch("/api/analyze"', body)
         self.assertIn(b'fetch("/api/chat"', body)
+        self.assertIn("한눈에 정리".encode("utf-8"), body)
+        self.assertIn(b'data-integrated-judgment-card', body)
+        self.assertIn("검토 권장 수준".encode("utf-8"), body)
+        self.assertIn("최종 판단이 아니라 확인을 돕는 정리예요.".encode("utf-8"), body)
 
         # The shared GET harness sends an empty body; the analyze handler maps an
         # empty/invalid body to a 400 with the local_only flag, confirming the

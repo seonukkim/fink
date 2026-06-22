@@ -1897,6 +1897,106 @@ footer {
   outline-offset: 2px;
   box-shadow: 0 0 0 5px var(--focus-offset);
 }
+.integrated-judgment-card {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: #f9fcfd;
+  box-shadow: var(--shadow);
+}
+.glance-heading {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+.glance-heading h3 {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: .95rem;
+}
+.glance-icon {
+  display: inline-flex;
+  width: 1.4rem;
+  height: 1.4rem;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: .18rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent-strong);
+}
+.glance-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+.glance-action {
+  margin: 0;
+  max-width: var(--reading-measure);
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.glance-cues {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.glance-chip {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  padding: .25rem .55rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent-strong);
+  font-size: .85rem;
+  font-weight: 800;
+}
+.glance-count {
+  border-color: var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+.glance-concern {
+  display: grid;
+  gap: .35rem;
+  padding: .75rem .85rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #fff;
+}
+.glance-concern-label,
+.glance-caution {
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.glance-concern-label {
+  font-weight: 800;
+}
+.glance-concern-title {
+  margin: 0;
+  font-size: 1rem;
+}
+.glance-concern-why {
+  margin: 0;
+  max-width: var(--reading-measure);
+  color: var(--muted);
+}
 .check-first, .recommended-action {
   display: grid;
   gap: var(--space-1);
@@ -2153,6 +2253,7 @@ footer {
   .topbar,
   footer,
   .card,
+  .integrated-judgment-card,
   .tool-details,
   .source-highlights,
   .finding-card,
@@ -2181,6 +2282,7 @@ footer {
     color: LinkText;
   }
   .badge,
+  .glance-chip,
   .source-badge,
   .unverified-badge,
   .model-suggestion-origin {
@@ -2209,6 +2311,7 @@ footer {
   .topbar,
   footer,
   .card,
+  .integrated-judgment-card,
   .tool-details,
   .source-highlights,
   .finding-card,
@@ -2239,6 +2342,7 @@ footer {
     text-decoration: underline;
   }
   .badge,
+  .glance-chip,
   .source-badge,
   .unverified-badge,
   .model-suggestion-origin {
@@ -3307,6 +3411,142 @@ _APP_JS = r"""(function () {
     container.appendChild(section);
   }
 
+  function atAGlanceIcon() {
+    var icon = el("span", "glance-icon", null);
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML =
+      '<svg viewBox="0 0 24 24" focusable="false">' +
+      '<rect x="5" y="5.5" width="14" height="13" rx="2"></rect>' +
+      '<path d="M8.5 10h7"></path>' +
+      '<path d="M8.5 14h5"></path>' +
+      "</svg>";
+    return icon;
+  }
+
+  function recommendationPathway(payload) {
+    var recommendation = (payload && payload.recommendation) || {};
+    if (recommendation.pathway_label) {
+      return text(recommendation.pathway_label);
+    }
+    if (recommendation.audit_pathway_label) {
+      return localized(recommendation.audit_pathway_label);
+    }
+    var audit = (payload && payload.audit_detail) || {};
+    if (audit.time && audit.time.pathway_label) {
+      return text(audit.time.pathway_label);
+    }
+    return "";
+  }
+
+  function reviewEffortLevel(payload, findingCount) {
+    var pathway = recommendationPathway(payload).toLowerCase();
+    if (pathway.indexOf("clarification") !== -1) {
+      return { ko: "가볍게 확인", en: "Light check" };
+    }
+    if (pathway.indexOf("negotiation") !== -1) {
+      return { ko: "꼼꼼히 확인", en: "Careful check" };
+    }
+    if (pathway.indexOf("professional") !== -1 || pathway.indexOf("dispute") !== -1) {
+      return { ko: "전문가 확인 권장", en: "Professional check recommended" };
+    }
+    if (findingCount <= 1) {
+      return { ko: "가볍게 확인", en: "Light check" };
+    }
+    if (findingCount <= 3) {
+      return { ko: "꼼꼼히 확인", en: "Careful check" };
+    }
+    return { ko: "전문가 확인 권장", en: "Professional check recommended" };
+  }
+
+  function reviewEffortChipPair(payload, findingCount) {
+    var level = reviewEffortLevel(payload, findingCount);
+    return {
+      ko: "검토 권장 수준: " + level.ko,
+      en: "Review effort: " + level.en
+    };
+  }
+
+  function itemCountPair(findingCount) {
+    return {
+      ko: "확인할 항목 " + findingCount + "개",
+      en: findingCount + " items to check"
+    };
+  }
+
+  function recommendationActionPair(payload) {
+    var recommendation = (payload && payload.recommendation) || {};
+    if (recommendation.action) {
+      return recommendation.action;
+    }
+    return {
+      ko: "권장 행동: 확인할 항목을 먼저 살펴보세요.",
+      en: "Recommended action: review the items to check first."
+    };
+  }
+
+  function renderIntegratedJudgmentCard(container, payload) {
+    var findings = (payload && payload.findings) || [];
+    var findingCount = findings.length;
+    var card = el("article", "integrated-judgment-card", null);
+    card.setAttribute("data-integrated-judgment-card", "true");
+
+    var heading = el("div", "glance-heading", null);
+    heading.appendChild(atAGlanceIcon());
+    heading.appendChild(
+      bilingual("h3", null, {
+        ko: "한눈에 정리",
+        en: "At a glance"
+      })
+    );
+    card.appendChild(heading);
+    card.appendChild(bilingual("p", "glance-action", recommendationActionPair(payload)));
+
+    var cues = el("p", "glance-cues", null);
+    cues.appendChild(
+      bilingual("span", "glance-chip", reviewEffortChipPair(payload, findingCount))
+    );
+    cues.appendChild(bilingual("span", "glance-chip glance-count", itemCountPair(findingCount)));
+    card.appendChild(cues);
+
+    var concern = el("section", "glance-concern", null);
+    concern.setAttribute("data-glance-concern", "true");
+    if (findings.length > 0) {
+      var finding = findings[0];
+      concern.setAttribute("data-top-finding-id", finding.finding_id || "");
+      concern.appendChild(
+        bilingual("p", "glance-concern-label", {
+          ko: "가장 먼저 확인할 항목",
+          en: "First item to check"
+        })
+      );
+      concern.appendChild(bilingual("h4", "glance-concern-title", finding.title));
+      concern.appendChild(
+        bilingual("p", "glance-concern-why", finding.why_it_matters)
+      );
+    } else {
+      concern.appendChild(
+        bilingual("p", "glance-concern-label", {
+          ko: "표시할 개별 확인 항목이 없습니다.",
+          en: "No individual item is listed."
+        })
+      );
+      concern.appendChild(
+        bilingual("p", "glance-concern-why", {
+          ko: "지급, 기간, 해지 조건은 직접 확인하세요.",
+          en: "Still confirm payment, term, and termination terms."
+        })
+      );
+    }
+    card.appendChild(concern);
+    card.appendChild(
+      bilingual("p", "glance-caution", {
+        ko: "최종 판단이 아니라 확인을 돕는 정리예요. 중요한 결정은 전문가 확인을 권해요.",
+        en: "This is a review aid, not a final judgment; confirm important decisions with a professional."
+      })
+    );
+    container.appendChild(card);
+  }
+
   function renderCheckFirst(container, payload) {
     var section = el("section", "check-first", null);
     section.setAttribute("data-check-first", "true");
@@ -3604,6 +3844,7 @@ _APP_JS = r"""(function () {
     heading.appendChild(bilingual("span", null, { ko: "검토 결과", en: "Review result" }));
     container.appendChild(heading);
 
+    renderIntegratedJudgmentCard(container, payload);
     renderSuggestedFollowUps(container, payload);
     container.appendChild(renderReaderShortcutNav());
 

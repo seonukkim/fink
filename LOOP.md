@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T05:00:28+00:00`
+- Generated: `2026-06-22T18:50:59+09:00`
 - Current branch: `main`
-- Base commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
+- Base commit: `34881d941d2e17311e432dd03178dc239e70f0db`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -15,7 +15,8 @@
 - Clean tree gate: enforced at task start by `loop_once.sh`.
 - Machine gates: `bash scripts/agent_loop/run_gates.sh`.
 - Paper-sync status: scaffold ledgers present; no measured results claimed.
-- Fixes: none pending in bootstrap scaffold.
+- Fixes: integrated-judgment summary card added to the local web chat result;
+  `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web -q` passed.
 
 ## Human Gates
 
