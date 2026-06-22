@@ -40,9 +40,10 @@ SYSTEM_PROMPT_KO = (
     "1) 분석 결과에 없는 금액·비율·법 조항을 새로 지어내지 마세요. "
     "2) 이 계약이 안전한지, 위법인지, 유효한지 같은 최종 판정은 내리지 마세요. 대신 어떤 조항이 "
     "창작자에게 불리하게 작용할 수 있는지와 무엇을 확인·협상하면 좋은지를 알려 주세요. "
-    "3) 중요한 결정 전에는 전문가와 상담하세요. "
-    "4) 짧고 쉬운 말로, 창작자가 다음에 무엇을 하면 되는지 도와주는 톤으로 말하세요. "
-    "5) 자연스러운 한국어를 한글로만 쓰고, 중국어 한자나 한자어 표기를 출력하지 마세요."
+    "3) 질문에 곧바로, 자연스럽게 대화하듯 답하세요. '창작자님' 같은 호칭, "
+    "'답변은 다음과 같습니다' 같은 머리말, '~에 대해 물어보세요' 같은 안내 없이 핵심부터 "
+    "2~3문장으로 설명하세요. "
+    "4) 한글로만 쓰고, 중국어 한자나 한자어 표기는 출력하지 마세요."
 )
 SYSTEM_PROMPT_EN = (
     "You are a financial-review assistant for creator contracts. Answer "
@@ -50,10 +51,12 @@ SYSTEM_PROMPT_EN = (
     "1) Do not invent amounts, rates, or legal provisions not in the analysis. "
     "2) Do not issue a final ruling on whether the contract is safe, lawful, or "
     "valid; instead point out which clauses may be unfavorable to the creator and "
-    "what to check or negotiate. 3) Recommend a professional for important "
-    "decisions. 4) Keep it short, plain, and oriented to the creator's next step. "
-    "5) If you answer in Korean or include Korean terms, write natural Korean in "
-    "Hangul only; do not output Chinese characters or Hanja."
+    "what to check or negotiate. 3) Answer the question directly and "
+    "conversationally; do not open with a greeting, an honorific, a preamble like "
+    "'the answer is as follows', or a phrase like 'please ask about X' — lead with "
+    "the substance in 2-3 sentences. 4) If you answer in Korean or include Korean "
+    "terms, write natural Korean in Hangul only; do not output Chinese characters "
+    "or Hanja."
 )
 
 # Mirror of the gate's forbidden assertions, used to neutralize any model output
@@ -154,7 +157,10 @@ def generate_chat_reply(context: GroundedContext, question: str | None = None) -
         text = _llm_reply(context, question)
         if text:
             return ChatReply(
-                _sanitize(text, reference_checkpoints=context.reference_checkpoints),
+                _sanitize(
+                    _collapse_repetition(_strip_llm_preamble(text)),
+                    reference_checkpoints=context.reference_checkpoints,
+                ),
                 used_model=True,
                 citations=citations,
             )
@@ -207,9 +213,12 @@ def _llm_reply(context: GroundedContext, question: str | None) -> str | None:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            max_tokens=512,
-            temperature=0.2,
+            max_tokens=320,
+            temperature=0.3,
             top_p=0.9,
+            top_k=40,
+            # Small models loop on a phrase without a repetition penalty.
+            repeat_penalty=1.3,
         )
         content = out["choices"][0]["message"]["content"]
     except Exception:
@@ -229,7 +238,7 @@ def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
             ground = "근거 연결됨" if finding.grounded else "확인 필요"
             lines.append(f"{finding.rank}. {finding.label} ({ground}): {finding.why}")
             if finding.questions:
-                lines.append(f"   물어볼 말: {finding.questions[0]}")
+                lines.append(f"   협상 시 확인 포인트: {finding.questions[0]}")
             if finding.snippet:
                 lines.append(f"   조항: {finding.snippet}")
     if context.reference_checkpoints:
@@ -244,9 +253,16 @@ def _build_user_prompt(context: GroundedContext, question: str | None) -> str:
             lines.append(f"참고 {index}: {checkpoint}")
     if question:
         lines.append(f"[창작자 질문] {question}")
-        lines.append("질문에 위 내용만 근거로 답하세요.")
+        lines.append(
+            "위 자료만 근거로 질문에 곧바로, 자연스럽게 대화하듯 답하세요. "
+            "질문과 가장 관련된 내용을 중심으로 2~4문장으로 답하고, 관련 없는 항목을 "
+            "번호로 나열하지 마세요. 머리말·호칭·안내 문구 없이 핵심부터 설명하세요."
+        )
     else:
-        lines.append("위 내용을 바탕으로 무엇을 먼저 확인하면 좋을지 정리해 주세요.")
+        lines.append(
+            "위 자료를 바탕으로 무엇을 먼저 확인하면 좋을지 자연스럽게 설명하세요. "
+            "머리말·호칭 없이 핵심부터 말하세요."
+        )
     return "\n".join(lines)
 
 
@@ -323,6 +339,60 @@ def _context_citations(context: GroundedContext) -> tuple[str, ...]:
     return tuple(seen)
 
 
+# Small local models often prepend boilerplate ("창작자님,…", "답변은 다음과
+# 같습니다:", "…에 대해 물어보세요.") instead of answering directly. These
+# start-anchored patterns peel those openers so the reply reads like a natural
+# answer. Bounded so a stripped reply never empties out.
+_LLM_PREAMBLE_PATTERNS = (
+    re.compile(r"^\s*창작자님[\s,，.]*"),
+    re.compile(
+        r"^\s*(?:창작자님?의?\s*)?질문에\s*대(?:한|해)\s*답(?:변|하)[^\n]*?"
+        r"다음과\s*같습니다\s*[:：.]*\s*"
+    ),
+    re.compile(r"^\s*답변은\s*다음과\s*같습니다\s*[:：.]*\s*"),
+    re.compile(r"^\s*(?:아래|다음)(?:와|과)?\s*같(?:이|습니다)\s*[:：.]*\s*"),
+    re.compile(r"^\s*답변\s*[:：]\s*"),
+    re.compile(r"^\s*[^.!?\n]{0,40}?에\s*대해\s*(?:물어보세요|문의하세요|여쭤보세요)[.!]?\s*"),
+    re.compile(
+        r"^\s*(?:Here(?:'s| is)|The answer(?: to your question)? is)[^:.\n]*[:.]\s*",
+        re.I,
+    ),
+)
+
+
+def _strip_llm_preamble(text: str) -> str:
+    """Remove leading conversational boilerplate a small model may prepend."""
+
+    cleaned = (text or "").lstrip()
+    for _ in range(4):
+        peeled = cleaned
+        for pattern in _LLM_PREAMBLE_PATTERNS:
+            peeled = pattern.sub("", peeled, count=1).lstrip()
+        if peeled == cleaned:
+            break
+        cleaned = peeled
+    return cleaned.strip() or (text or "").strip()
+
+
+def _collapse_repetition(text: str) -> str:
+    """Drop duplicate sentences a small model emits when it degenerates into a
+    loop. Sentences are compared on whitespace-stripped content so an identical
+    line is only kept once."""
+
+    parts = re.split(r"(?<=[.!?])\s+|\n+", text or "")
+    seen: set[str] = set()
+    kept: list[str] = []
+    for part in parts:
+        sentence = part.strip()
+        key = re.sub(r"\s+", "", sentence)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        kept.append(sentence)
+    collapsed = " ".join(kept).strip()
+    return collapsed or (text or "").strip()
+
+
 def _sanitize(text: str, *, reference_checkpoints: tuple[str, ...] = ()) -> str:
     """Neutralize any verdict assertion that slipped through (defense in depth)."""
 
@@ -334,7 +404,15 @@ def _sanitize(text: str, *, reference_checkpoints: tuple[str, ...] = ()) -> str:
         checkpoint = checkpoint.strip()
         if checkpoint:
             cleaned = cleaned.replace(checkpoint, "")
+    # Remove leaked internal "참고 N:" checkpoint labels (and the sentence they
+    # introduce) that a small model may echo from the prompt scaffolding.
+    cleaned = re.sub(r"참고\s*\d+\s*[:：]\s*[^.!?\n]*[.!?]?", "", cleaned)
+    # Strip markdown emphasis; the chat bubble renders plain text.
+    cleaned = re.sub(r"\*{1,2}([^*\n]+)\*{1,2}", r"\1", cleaned)
+    # Drop a trailing courtesy sign-off ("감사합니다!").
+    cleaned = re.sub(r"\s*감사합니다[.!]?\s*$", "", cleaned)
     cleaned = re.sub(r"(?m)^\s*[-*•]\s*$\n?", "", cleaned)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     cleaned = _CJK_HAN_RE.sub("", cleaned)
     return cleaned.strip()

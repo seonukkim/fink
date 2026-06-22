@@ -6,7 +6,9 @@ from fink.model.explanation_llm import (
     ChatReply,
     FindingBrief,
     GroundedContext,
+    _collapse_repetition,
     _sanitize,
+    _strip_llm_preamble,
     chat_model_available,
     generate_chat_reply,
 )
@@ -95,3 +97,48 @@ def test_sanitize_removes_raw_reference_checkpoint_lines():
     assert "확인 팁:" not in cleaned
     assert checkpoint not in cleaned
     assert "정산 조건을 자연어로 확인하세요." in cleaned
+
+
+def test_strip_llm_preamble_removes_creator_address_and_ask_directive():
+    text = (
+        "창작자님, 정산 투명성과 감사권에 대해 물어보세요. "
+        "정산 명세서는 항목별로 받을 수 있어야 합니다."
+    )
+    out = _strip_llm_preamble(text)
+    assert not out.startswith("창작자님")
+    assert "에 대해 물어보세요" not in out.split(".")[0]
+    assert "정산 명세서는 항목별로 받을 수 있어야 합니다." in out
+
+
+def test_strip_llm_preamble_removes_answer_preamble():
+    text = "창작자의 질문에 대한 답변은 다음과 같습니다: 매출 기준은 매출 항목을 기준으로 합니다."
+    out = _strip_llm_preamble(text)
+    assert out.startswith("매출 기준은")
+    assert "답변은 다음과 같습니다" not in out
+
+
+def test_strip_llm_preamble_keeps_clean_answer():
+    text = "정산 명세와 감사 권한이 약하면 공제 내역을 검증하기 어렵습니다."
+    assert _strip_llm_preamble(text) == text
+
+
+def test_collapse_repetition_drops_looped_sentences():
+    looped = (
+        "이 조항은 금액을 정의합니다. 추가 금액은 시점에 따라 계산됩니다. "
+        "추가 금액은 시점에 따라 계산됩니다. 추가 금액은 시점에 따라 계산됩니다."
+    )
+    out = _collapse_repetition(looped)
+    assert out.count("추가 금액은 시점에 따라 계산됩니다.") == 1
+    assert "이 조항은 금액을 정의합니다." in out
+
+
+def test_sanitize_strips_leaked_internal_labels_and_markdown():
+    text = (
+        "정산 투명성은 중요합니다. **정산 명세서**를 확인하세요. "
+        "참고 1: 정산서가 언제 제공되는지 확인해야 합니다. 감사합니다!"
+    )
+    cleaned = _sanitize(text)
+    assert "참고 1:" not in cleaned
+    assert "**" not in cleaned
+    assert "정산 명세서를 확인하세요." in cleaned
+    assert not cleaned.endswith("감사합니다!")

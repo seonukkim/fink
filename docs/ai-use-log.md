@@ -51,6 +51,19 @@
   deterministic fallback only appears when the LLM is disabled. Updated the two
   fallback tests to assert the disclaimer is absent. `pytest tests/web
   tests/model -q` green, `run_gates.sh` `GATES_OK`.
+- Claude follow-up 3 (owner: on-device chat answers read unnaturally — boilerplate
+  openers, preambles, and a repetition loop): rewrote the KO/EN system prompts to
+  demand a direct, natural answer with no honorific/greeting/"답변은 다음과
+  같습니다"/"~에 대해 물어보세요" opener; relabeled the user-prompt scaffolding and
+  asked the model to focus on the asked topic; added a `repeat_penalty`/`top_k`
+  and shorter `max_tokens` to the llama call to stop degeneration loops; and added
+  output post-processors `_strip_llm_preamble` (peel boilerplate openers),
+  `_collapse_repetition` (drop looped duplicate sentences), and extra `_sanitize`
+  rules (remove leaked internal "참고 N:" checkpoint labels, markdown emphasis,
+  and a trailing "감사합니다" sign-off). Verified against the live local model
+  (`qwen2.5-1.5b-instruct`): the looping question now returns one coherent answer
+  and openers/preambles are gone. Added unit tests for all three post-processors;
+  `pytest tests/model tests/web -q` green, `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 
