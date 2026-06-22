@@ -16,6 +16,8 @@ indexes/
 data/private/
 data/raw/
 data/unsanitized/
+!src/fink/models/
+!src/fink/models/**
 # Public model registry configs are allowed. These negations come AFTER the
 # broad `models/` ignore so that new configs/models/** files stay tracked; a
 # trailing `models/` would otherwise re-ignore the configs/models directory.

@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T18:50:59+09:00`
+- Generated: `2026-06-22T19:16:17+09:00`
 - Current branch: `main`
-- Base commit: `34881d941d2e17311e432dd03178dc239e70f0db`
+- Base commit: `0819322f9d1036db93148f86e49a5a1f7217161f`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -15,8 +15,9 @@
 - Clean tree gate: enforced at task start by `loop_once.sh`.
 - Machine gates: `bash scripts/agent_loop/run_gates.sh`.
 - Paper-sync status: scaffold ledgers present; no measured results claimed.
-- Fixes: integrated-judgment summary card added to the local web chat result;
-  `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web -q` passed.
+- Fixes: added the `fink-models` local model listing/downloader CLI, kept model
+  weights outside Git, and verified `bash scripts/agent_loop/run_gates.sh`
+  ended with `GATES_OK`.
 
 ## Human Gates
 

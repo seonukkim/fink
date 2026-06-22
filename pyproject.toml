@@ -13,6 +13,7 @@ dependencies = ["pyyaml>=6"]
 
 [project.optional-dependencies]
 web = ["fastapi>=0.115", "uvicorn>=0.30", "python-multipart>=0.0.9"]
+chat = ["huggingface_hub>=0.23", "llama-cpp-python>=0.2.79"]
 # Optional local OCR runtime for image / scanned-PDF uploads. PaddleOCR-VL runs
 # fully offline at analyze time once the model files are cached; the deterministic
 # Tesseract path keeps working without this extra installed.
@@ -20,6 +21,7 @@ ocr = ["paddleocr[doc-parser]>=3.4.0", "paddlepaddle>=3.0"]
 
 [project.scripts]
 fink-web = "fink.web.app:run"
+fink-models = "fink.models.download:main"
 
 # Developer/validation tooling. The loop itself degrades gracefully without
 # these: run_gates.sh falls back to `python3 -m unittest` / AST parsing when

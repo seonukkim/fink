@@ -73,6 +73,13 @@ uv run fink-web --host 127.0.0.1 --port 8000
 # (loopback only; desktop + mobile browser; Korean / English)
 ```
 
+### Download the models
+
+```bash
+FINK_MODEL_DOWNLOAD_ALLOWED=true uv run fink-models download   # embedding, reranker, on-device chat LLM
+uv sync --extra ocr                                            # image/scanned-PDF OCR (PaddleOCR-VL)
+```
+
 The default bind is loopback. To expose the demo to a trusted device on the same
 private LAN, bind a specific private interface and acknowledge the warning:
 

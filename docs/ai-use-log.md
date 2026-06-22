@@ -122,3 +122,22 @@
 - Privacy: no `.env`, Hugging Face token value, private books, contracts, model
   weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
   committed.
+
+## 2026-06-22 — Local model download CLI
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: Added `fink-models` list/download CLI support for the selected public
+  embedding, reranker, and on-device GGUF chat model; documented the download
+  commands; and added model CLI regressions. OCR remains guided through the
+  existing `uv sync --extra ocr` path. No model weight, remote runtime API,
+  telemetry, or paper-template change was added.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run --frozen --no-build-isolation
+  fink-models list` passed; `UV_CACHE_DIR=/tmp/uv-cache
+  FINK_MODEL_DOWNLOAD_ALLOWED= uv run --frozen --no-build-isolation fink-models
+  download --dry-run` printed the enable instruction; `UV_CACHE_DIR=/tmp/uv-cache
+  uv run --frozen --no-build-isolation python -m pytest tests/model -q` passed;
+  `bash scripts/agent_loop/run_gates.sh` ended with `GATES_OK`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed. Download targets remain outside the repository, and root
+  `models/` paths stay ignored.
