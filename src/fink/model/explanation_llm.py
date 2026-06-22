@@ -266,19 +266,7 @@ def _deterministic_reply(context: GroundedContext, question: str | None) -> str:
     if question and context.findings:
         match = _best_match(question, context.findings)
         if match is not None:
-            parts = [
-                (f"“{match.label}” 항목과 관련이 있어 보여요. {match.why}")
-                if is_ko
-                else (f"This relates to “{match.label}”. {match.why}")
-            ]
-            if match.questions:
-                parts.append(
-                    f"상대방에게 “{match.questions[0]}”라고 확인해 보세요."
-                    if is_ko
-                    else f"You could ask the other side: “{match.questions[0]}”"
-                )
-            parts.append(note)
-            return " ".join(parts)
+            return f"{match.why} {note}".strip()
         thin = (
             "지금 분석 결과 안에서는 그 질문에 바로 연결되는 항목을 찾지 못했어요. "
             if is_ko
@@ -293,22 +281,9 @@ def _deterministic_reply(context: GroundedContext, question: str | None) -> str:
     if context.recommendation_cashflow:
         parts.append(context.recommendation_cashflow)
     top = context.findings[:3]
-    if top:
-        parts.append(
-            f"서명 전에 먼저 확인하면 좋은 항목 {len(top)}가지를 정리했어요."
-            if is_ko
-            else f"Here are {len(top)} items worth checking before you sign."
-        )
-        for finding in top:
-            line = f"{finding.rank}. {finding.label} — {finding.why}"
-            if finding.questions:
-                line += (
-                    f" 상대방에게 “{finding.questions[0]}”라고 물어보세요."
-                    if is_ko
-                    else f" Ask: “{finding.questions[0]}”"
-                )
-            parts.append(line)
-    elif context.summary:
+    for finding in top:
+        parts.append(f"{finding.rank}. {finding.label} — {finding.why}")
+    if not top and context.summary:
         parts.append(context.summary)
     parts.append(note)
     return " ".join(parts)

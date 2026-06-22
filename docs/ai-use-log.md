@@ -1,5 +1,46 @@
 # AI Use Log
 
+## 2026-06-23 — Local result rendering consistency fixes
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: fixed six local web app result-rendering issues in the existing
+  gravitas system: dimension result chips now stack in one column at every
+  width, the persistent not-legal-advice banner uses a white card treatment with
+  a pink left rule, audit source highlights use the same pink underline style as
+  finding excerpts, opaque generic clause labels are suppressed when no real
+  heading can be recovered, the internal follow-up support topic is no longer
+  shown in the evidence checklist, and the displayed review-effort traffic light
+  is derived deterministically from the displayed `위험 지수` score thresholds.
+  No score computation, authority A0-A2 invariant, remote runtime API, model
+  weight, private input, paper, template, or `icml2026` file was changed.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest
+  tests/web/test_local_web_app.py tests/web/test_a11y_validation.py
+  tests/web/test_source_highlights.py tests/web/test_report_ui.py
+  tests/web/test_verification_pathway.py -q` passed; the exact bare `uv run
+  pytest tests -q` command was attempted and failed before tests started because
+  the default uv cache path is read-only in this sandbox; `UV_CACHE_DIR=/tmp/uv-cache
+  uv run pytest tests -q` passed; the exact bare `python3 -c "import
+  fink.web.app, fink.web.view_model"` command was attempted and failed because
+  the system interpreter does not have the checkout's `src/` layout package on
+  `sys.path`; `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import
+  fink.web.app, fink.web.view_model"` passed; `bash scripts/agent_loop/run_gates.sh`
+  ended with `GATES_OK`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+- Claude follow-up (same area, audited visually with Playwright): removed the
+  font-relative `max-width: var(--reading-measure)` from `.finding-checklist`
+  and `.result-source-quote` so the checklist and excerpt blocks align to the
+  same card width (serif/sans `ch` units had produced different pixel widths);
+  trimmed the deterministic chat reply so a matched-question answer is just the
+  finding rationale plus the tuned professional note (dropped the repeated
+  "…항목과 관련이 있어 보여요" prefix and "상대방에게 …라고 확인해 보세요"
+  suffix), and the overall read drops the per-finding question scaffolding;
+  replaced the banned "정리했어요" wording in the post-analysis greeting with
+  "추렸어요". Verified `uv run pytest tests/web tests/model -q` green,
+  `run_gates.sh` `GATES_OK`, and a live :8011 render (checklist/excerpt both
+  `w650`, score 9/100 → "가볍게 확인" active, "제3조(정산)" not "조항 N").
+
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

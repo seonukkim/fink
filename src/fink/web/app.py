@@ -1446,8 +1446,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .banner {
   margin: 0;
 }
-.banner-advice {
-  border-top: 0;
+.chat-privacy.banner-advice {
+  background: #fff;
+  border-left: 3px solid var(--pink);
+  color: var(--ink);
 }
 .banner-warning {
   color: var(--warn-ink);
@@ -1781,17 +1783,22 @@ mark {
   max-width: var(--reading-measure);
   white-space: pre-wrap;
 }
-.source-highlight {
-  border-radius: 3px;
-  padding: .04rem .12rem;
-  background: var(--source-mark);
-  color: inherit;
+mark.source-highlight {
+  border-radius: 0;
+  padding: 0;
+  border-bottom: 1.5px solid var(--pink);
+  background: transparent;
+  color: var(--pink-ink);
+  font-weight: 700;
 }
 .source-kind {
   background: var(--accent-tint);
 }
 [data-source-highlights-enabled="false"] .source-highlight {
+  border-bottom: 0;
   background: transparent;
+  color: inherit;
+  font-weight: inherit;
 }
 .source-grid {
   display: grid;
@@ -2198,7 +2205,6 @@ footer {
   font-family: var(--serif);
   font-size: .88rem;
   line-height: 1.75;
-  max-width: var(--reading-measure);
 }
 .result-source-quote .source-highlight {
   padding: 0;
@@ -2387,7 +2393,6 @@ footer {
 .finding-checklist {
   display: grid;
   gap: .55rem;
-  max-width: var(--reading-measure);
   margin: .25rem 0 0;
   padding: 14px 17px;
   border: 0;
@@ -2432,7 +2437,7 @@ footer {
 }
 .result-chip-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: .75rem;
   margin: 0;
 }
@@ -3832,8 +3837,8 @@ _APP_JS = r"""(function () {
 
   function clauseHeadingFromText(value) {
     // Recover a concrete "제N조(…)" / "Article N (…)" marker from anywhere in an
-    // excerpt, so a finding without a structured clause_heading still names its
-    // clause instead of falling back to the opaque "조항 N".
+    // excerpt, so a finding without a structured clause_heading still names a
+    // real clause instead of using a generic label.
     var raw = text(value).replace(/\s+/g, " ").trim();
     if (!raw) {
       return "";
@@ -3953,15 +3958,7 @@ _APP_JS = r"""(function () {
         en: headingEn || headingKo
       };
     }
-    var order = clauseOrderValue(finding || {});
-    var fallbackKo = order != null ? "조항 " + order : "조항 " + (index + 1);
-    var fallbackEn = order != null ? "Clause " + order : "Clause " + (index + 1);
-    var firstKo = firstClauseWords(sourceText);
-    var firstEn = firstClauseWords(deterministicClauseTranslation(sourceText, "en") || sourceText);
-    return {
-      ko: firstKo ? fallbackKo + " - " + firstKo : fallbackKo,
-      en: firstEn ? fallbackEn + " - " + firstEn : fallbackEn
-    };
+    return null;
   }
 
   function findingRecords(findings) {
@@ -4047,7 +4044,10 @@ _APP_JS = r"""(function () {
     head.appendChild(badge);
     head.appendChild(bilingual("p", "finding-line-title", finding.title));
     section.appendChild(head);
-    section.appendChild(bilingual("p", "finding-line-clause", clauseReferencePair(finding, record.originalIndex)));
+    var clausePair = clauseReferencePair(finding, record.originalIndex);
+    if (clausePair) {
+      section.appendChild(bilingual("p", "finding-line-clause", clausePair));
+    }
     section.appendChild(bilingual("p", "finding-line-why", finding.why_it_matters));
     var question = el("p", "finding-line-question", null);
     question.appendChild(
@@ -4515,20 +4515,11 @@ _APP_JS = r"""(function () {
   }
 
   function reviewEffortKey(payload, findingCount) {
-    var pathway = recommendationPathway(payload).toLowerCase();
-    if (pathway.indexOf("clarification") !== -1) {
+    var score = reviewFocusScore(payload);
+    if (score <= 33) {
       return "light";
     }
-    if (pathway.indexOf("negotiation") !== -1) {
-      return "careful";
-    }
-    if (pathway.indexOf("professional") !== -1 || pathway.indexOf("dispute") !== -1) {
-      return "professional";
-    }
-    if (findingCount <= 1) {
-      return "light";
-    }
-    if (findingCount <= 3) {
+    if (score <= 66) {
       return "careful";
     }
     return "professional";
@@ -5004,7 +4995,10 @@ _APP_JS = r"""(function () {
     concern.setAttribute("data-glance-concern", "true");
     if (findings.length > 0) {
       var finding = findings[0];
-      concern.appendChild(bilingual("p", "glance-concern-clause", clauseReferencePair(finding, 0)));
+      var clausePair = clauseReferencePair(finding, 0);
+      if (clausePair) {
+        concern.appendChild(bilingual("p", "glance-concern-clause", clausePair));
+      }
       concern.appendChild(bilingual("h4", "glance-concern-title", finding.title));
       concern.appendChild(
         bilingual("p", "glance-concern-why", finding.why_it_matters)
@@ -5084,17 +5078,6 @@ _APP_JS = r"""(function () {
       (finding.citations || []).forEach(function (citation) {
         if (citation.evidence_id) {
           add(finding.title);
-        }
-      });
-    });
-    var qa = (payload && payload.grounded_qa) || {};
-    (qa.items || []).forEach(function (item) {
-      (item.citations || []).forEach(function (citation) {
-        if (citation.evidence_id) {
-          add({
-            ko: "후속 질문 근거",
-            en: "Follow-up answer support"
-          });
         }
       });
     });
@@ -5234,7 +5217,7 @@ _APP_JS = r"""(function () {
     var count = ((payload && payload.findings) || []).length;
     if (count > 0) {
       return {
-        ko: "계약서를 살펴봤어요. 서명 전에 확인하면 좋은 항목 " + count + "개를 정리했어요.",
+        ko: "계약서를 살펴봤어요. 서명 전에 확인하면 좋은 항목 " + count + "개를 추렸어요.",
         en: "I reviewed the contract and lined up " + count + " item(s) to check before signing."
       };
     }

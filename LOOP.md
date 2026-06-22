@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-23T03:41:00+09:00`
+- Generated: `2026-06-23T04:05:11+09:00`
 - Current branch: `main`
-- Base commit: `e5cec1a8a28d49f0514bebc9d1045cdf3ba74a20`
+- Base commit: `7a2aceac549a4e28d9422f31696f9e4f6554184f`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -49,7 +49,11 @@
   into persistent header lines, removed the collapsible Notice disclosure panel
   and amount-estimate disclosure, normalized the chat result sequence to one
   aligned card rhythm, and added multi-file thumbnail attachments plus repeated
-  multipart `contract_file` analysis.
+  multipart `contract_file` analysis. Applied six local result-rendering fixes:
+  single-column dimension chips, a white/pink persistent advice banner,
+  underline-only audit source highlights, no opaque generic clause fallback, no
+  internal follow-up support topic in the evidence checklist, and score-derived
+  review-effort traffic-light levels.
 
 ## Human Gates
 
