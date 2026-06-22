@@ -22,6 +22,14 @@ references (`CLM-S7-AUTHORITY-GATE`). Signals without A0-A2 grounding can still
 support explanation and user questions, but they do not contribute scoring
 evidence.
 
+FInk reports this boundary as a transparent two-tier support indicator
+(`CLM-S7-AUTHORITY-GATE`, `CLM-S7-FRAME-REVIEW`): the review-attention score
+remains A0-A2-only, while a separately labeled practice-informed support count
+records B/C practice references or distilled checkpoint coverage. The
+practice-informed count strengthens explanation and question selection, but it
+does not replace the evidence-gated score and is never a legal, fraud,
+validity, unfairness, safety, or guaranteed-loss verdict.
+
 Korean source text remains canonical. English aliases are retrieval and UX aids
 with non-equivalence caveats, not independent evidence or legal-equivalence
 claims.

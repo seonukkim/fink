@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T22:31:53+09:00`
+- Generated: `2026-06-22T23:01:20+09:00`
 - Current branch: `main`
-- Base commit: `468316089393fd98bc44d5abbf781e7ffe2ff7f2`
+- Base commit: `3653b3d4d4de50f22370a0ec65e1ba4ae6c11405`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -25,7 +25,10 @@
   revision with bilingual source-clause aids, stacked chips, semantic
   traffic-light effort colors, formal privacy/disclosure copy, clearer OCR
   install guidance, and Hanja stripping in local chat replies, and kept the work
-  local-only with no paper-template changes.
+  local-only with no paper-template changes. Added a transparent two-tier
+  review-attention support indicator: the displayed score remains A0-A2-only,
+  with separate official-evidence and practice-basis counts surfaced in the
+  payload and UI.
 
 ## Human Gates
 

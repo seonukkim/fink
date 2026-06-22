@@ -106,6 +106,19 @@ class AnalyzePipelineTests(unittest.TestCase):
             self.assertIn(key, dimensions)
         self.assertGreaterEqual(dimensions["review_priority"]["score"], 0)
         self.assertLessEqual(dimensions["review_priority"]["score"], 100)
+        self.assertEqual(
+            dimensions["review_priority"]["official_support"],
+            result.scoring.verified_support_count,
+        )
+        self.assertEqual(
+            dimensions["review_priority"]["practice_support"],
+            result.scoring.practice_support_count,
+        )
+        self.assertGreaterEqual(dimensions["review_priority"]["official_support"], 0)
+        self.assertGreaterEqual(dimensions["review_priority"]["practice_support"], 1)
+        self.assertTrue(
+            any(finding.risk_category in {"F1", "F2"} for finding in result.ranked_findings)
+        )
         self.assertIn("currency_status", dimensions["monetary"])
         self.assertIn("contract_timing", dimensions["time"])
         self.assertNotIn("runtime", json.dumps(dimensions["time"], ensure_ascii=False).lower())
@@ -141,6 +154,14 @@ class AnalyzePipelineTests(unittest.TestCase):
             "exposure_aware",
         )
         self.assertEqual(payload["audit_detail"]["scoring"]["authority_gate"], "enforce")
+        self.assertEqual(
+            payload["audit_detail"]["scoring"]["verified_support_count"],
+            result.scoring.verified_support_count,
+        )
+        self.assertEqual(
+            payload["audit_detail"]["scoring"]["practice_support_count"],
+            result.scoring.practice_support_count,
+        )
         for finding in payload["audit_detail"]["technical_findings"]:
             self.assertIn("priority_basis", finding)
             self.assertIn("quantification_status", finding)

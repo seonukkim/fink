@@ -2038,6 +2038,12 @@ footer {
   font-size: .9rem;
   font-weight: 700;
 }
+.focus-support-line {
+  margin: -.2rem 0 0;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.35;
+}
 .focus-score-bar {
   display: block;
   width: 100%;
@@ -4124,8 +4130,20 @@ _APP_JS = r"""(function () {
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 
+  function supportCount(value) {
+    var number = finiteNumberOrNull(value);
+    if (number == null) {
+      return 0;
+    }
+    return Math.max(0, Math.round(number));
+  }
+
   function reviewFocusSignal(payload) {
+    var dimensions = (payload && payload.dimensions) || {};
+    var reviewPriority = dimensions.review_priority || {};
     var score = reviewFocusScore(payload);
+    var officialSupport = supportCount(reviewPriority.official_support);
+    var practiceSupport = supportCount(reviewPriority.practice_support);
     var section = el("section", "review-focus-signal", null);
     section.setAttribute("data-review-focus-signal", "true");
     section.setAttribute("aria-label", "검토 집중도 지수 / Review focus index");
@@ -4140,6 +4158,12 @@ _APP_JS = r"""(function () {
     scoreLine.appendChild(el("output", "focus-score-number", String(score)));
     scoreLine.appendChild(el("span", "focus-score-max", "/ 100"));
     section.appendChild(scoreLine);
+    section.appendChild(
+      bilingual("p", "focus-support-line", {
+        ko: "공식 근거 " + officialSupport + " · 실무 기준 " + practiceSupport,
+        en: "Official evidence " + officialSupport + " · Practice basis " + practiceSupport
+      })
+    );
 
     var bar = el("span", "focus-score-bar", null);
     bar.setAttribute("aria-hidden", "true");

@@ -90,6 +90,12 @@ class AggregationTests(unittest.TestCase):
 
         self.assertEqual(bc_result.review_priority_score, 0)
         self.assertEqual(bc_result.category_scores[SCHEMAS.RiskCategory.F2], 0.0)
+        self.assertEqual(bc_result.verified_support_count, 0)
+        self.assertEqual(bc_result.practice_support_count, 1)
+        self.assertEqual(grounded_result.verified_support_count, 1)
+        self.assertEqual(grounded_result.practice_support_count, 0)
+        self.assertEqual(mixed_result.verified_support_count, 1)
+        self.assertEqual(mixed_result.practice_support_count, 1)
         self.assertEqual(mixed_result.review_priority_score, grounded_result.review_priority_score)
         self.assertEqual(
             mixed_result.category_scores[SCHEMAS.RiskCategory.F2],
@@ -97,6 +103,21 @@ class AggregationTests(unittest.TestCase):
         )
         self.assertEqual(mixed_result.contributions[0].contribution, 0.0)
         self.assertTrue(mixed_result.contributions[0].practice_reference)
+        self.assertEqual(mixed_result.as_dict()["verified_support_count"], 1)
+        self.assertEqual(mixed_result.as_dict()["practice_support_count"], 1)
+
+        checkpoint_result = SCORING.aggregate_document_signals(
+            (grounded,),
+            config=config,
+            evidence_authority_tiers={"EV-A1-F2": "A1"},
+            practice_checkpoint_categories=("F2",),
+        )
+        self.assertEqual(
+            checkpoint_result.review_priority_score,
+            grounded_result.review_priority_score,
+        )
+        self.assertEqual(checkpoint_result.verified_support_count, 1)
+        self.assertEqual(checkpoint_result.practice_support_count, 1)
 
     def test_score_eligible_signal_requires_real_authority_tier_mapping(self) -> None:
         config = SCORING.load_scoring_config()

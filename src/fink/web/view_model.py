@@ -734,6 +734,12 @@ def _dimensions_from_result(result: Any, statuses: dict[str, dict[str, Any]]) ->
         "review_priority": {
             "label": creator_review_pair("dimension.review_priority"),
             "score": result.review_priority_score,
+            "official_support": int(
+                getattr(result.scoring, "verified_support_count", 0)
+            ),
+            "practice_support": int(
+                getattr(result.scoring, "practice_support_count", 0)
+            ),
             "reading_status": statuses[READING_STATUS],
         },
         "monetary": {
@@ -778,6 +784,8 @@ def _dimensions_from_report(report: Any, statuses: dict[str, dict[str, Any]]) ->
         "review_priority": {
             "label": creator_review_pair("dimension.review_priority"),
             "score": assessment.review_priority_score,
+            "official_support": int(getattr(assessment, "verified_support_count", 0)),
+            "practice_support": int(getattr(assessment, "practice_support_count", 0)),
             "reading_status": statuses[READING_STATUS],
         },
         "monetary": {
@@ -976,6 +984,12 @@ def _audit_detail_from_result(result: Any) -> dict[str, Any]:
         "model_path": _LOCAL_MODEL_PATH,
         "scoring": {
             "review_priority_score": result.review_priority_score,
+            "verified_support_count": int(
+                getattr(result.scoring, "verified_support_count", 0)
+            ),
+            "practice_support_count": int(
+                getattr(result.scoring, "practice_support_count", 0)
+            ),
             "category_scores": dict(result.category_scores),
             "ranking_policy": result.ranking_policy,
             "authority_gate": result.authority_gate,

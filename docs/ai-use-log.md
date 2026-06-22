@@ -1,5 +1,22 @@
 # AI Use Log
 
+## 2026-06-22 — Transparent review-attention support tiers
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: added separate official-evidence and practice-basis support counts for
+  the review-attention display. The verified `review_priority_score` remains
+  A0-A2-only; B/C practice references and distilled checkpoint coverage are
+  surfaced only as a separately labeled practice-informed count. Updated
+  scoring, local analysis, payload serialization, UI labels, tests, `LOOP.md`,
+  and paper method notes. No authority-invariant change, remote runtime API,
+  model weight, private input, or paper-template change was added.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q` passed;
+  `UV_CACHE_DIR=/tmp/uv-cache bash scripts/agent_loop/run_gates.sh` ended with
+  `GATES_OK`; `app_js()` contains the `공식 근거` / `실무 기준` support labels.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
 ## 2026-06-22 — Second premium chat demo revision
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

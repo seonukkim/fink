@@ -226,10 +226,14 @@ class DocumentScoringResult:
     confidence: ConfidenceBreakdown
     scoring_config_version: str
     contributions: tuple[SignalContribution, ...]
+    verified_support_count: int = 0
+    practice_support_count: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "review_priority_score": self.review_priority_score,
+            "verified_support_count": self.verified_support_count,
+            "practice_support_count": self.practice_support_count,
             "category_scores": {
                 category.value: score for category, score in self.category_scores.items()
             },
@@ -389,6 +393,7 @@ def aggregate_document_signals(
     missing_input_flags: Sequence[str] = (),
     opacity_flags: Sequence[str] = (),
     ocr_confidence: float | None = None,
+    practice_checkpoint_categories: Sequence[RiskCategory | str] = (),
 ) -> DocumentScoringResult:
     """Aggregate clause signals into F1-F9 scores and a 0-100 review priority.
 
@@ -408,6 +413,9 @@ def aggregate_document_signals(
     )
     category_scores = _category_scores_from_contributions(contributions, scoring_config)
     review_priority_score = _weighted_priority(category_scores, scoring_config)
+    practice_categories = _normalize_practice_checkpoint_categories(
+        practice_checkpoint_categories
+    )
     return DocumentScoringResult(
         review_priority_score=review_priority_score,
         category_scores=category_scores,
@@ -421,6 +429,8 @@ def aggregate_document_signals(
         ),
         scoring_config_version=scoring_config.scoring_config_version,
         contributions=contributions,
+        verified_support_count=_verified_support_count(contributions),
+        practice_support_count=_practice_support_count(contributions, practice_categories),
     )
 
 
@@ -970,6 +980,51 @@ def _weighted_priority(
     )
     weight_total = sum(config.w_by_category[category] for category in SORTED_FINANCIAL_CATEGORIES)
     return int(_clamp(round(weighted_sum / weight_total), 0, 100))
+
+
+def _verified_support_count(contributions: Sequence[SignalContribution]) -> int:
+    return sum(
+        1
+        for contribution in contributions
+        if (
+            contribution.fired
+            and contribution.score_eligible
+            and contribution.risk_category in FINANCIAL_RISK_CATEGORIES
+        )
+    )
+
+
+def _practice_support_count(
+    contributions: Sequence[SignalContribution],
+    practice_checkpoint_categories: set[RiskCategory],
+) -> int:
+    return sum(
+        1
+        for contribution in contributions
+        if (
+            contribution.fired
+            and contribution.risk_category in FINANCIAL_RISK_CATEGORIES
+            and (
+                contribution.practice_reference
+                or contribution.risk_category in practice_checkpoint_categories
+            )
+        )
+    )
+
+
+def _normalize_practice_checkpoint_categories(
+    categories: Sequence[RiskCategory | str],
+) -> set[RiskCategory]:
+    normalized: set[RiskCategory] = set()
+    for category in categories:
+        if isinstance(category, RiskCategory):
+            normalized.add(category)
+            continue
+        try:
+            normalized.add(RiskCategory(str(category).strip().upper()))
+        except ValueError:
+            continue
+    return normalized
 
 
 def _within_abs(observed: Decimal | None, expected: Decimal, tolerance: Decimal) -> bool:

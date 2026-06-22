@@ -225,10 +225,12 @@ def run_local_analysis(
             grounding_by_clause,
         )
         evidence_authority_tiers = _evidence_authority_tiers(grounding_records)
+        practice_checkpoint_categories = _practice_checkpoint_categories_for(signals)
         scoring = aggregate_document_signals(
             signals,
             ocr_confidence=ocr_confidence,
             evidence_authority_tiers=evidence_authority_tiers,
+            practice_checkpoint_categories=practice_checkpoint_categories,
         )
         editable_inputs = _resolve_editable_assumptions(scenario_inputs)
         exposures = _resolve_exposures(editable_inputs)
@@ -507,6 +509,32 @@ def _evidence_authority_tiers(
             and record.score_eligible
         )
     }
+
+
+def _practice_checkpoint_categories_for(
+    signals: "tuple[RiskSignal, ...] | list[RiskSignal]",
+) -> tuple[RiskCategory, ...]:
+    categories: list[RiskCategory] = []
+    for signal in signals:
+        category = signal.risk_category
+        if category not in categories:
+            categories.append(category)
+    if not categories:
+        return ()
+
+    try:
+        from fink.knowledge.checkpoints import checkpoints_for_categories
+
+        topics = checkpoints_for_categories(category.value for category in categories)
+    except Exception:
+        return ()
+
+    matched = {
+        str(topic.get("category", "")).strip().upper()
+        for topic in topics
+        if isinstance(topic, dict)
+    }
+    return tuple(category for category in categories if category.value in matched)
 
 
 def _rank_findings(
