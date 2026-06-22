@@ -3475,6 +3475,25 @@ _APP_JS = r"""(function () {
     return en ? en[1].trim() : raw;
   }
 
+  function clauseHeadingFromText(value) {
+    // Recover a concrete "제N조(…)" / "Article N (…)" marker from anywhere in an
+    // excerpt, so a finding without a structured clause_heading still names its
+    // clause instead of falling back to the opaque "조항 N".
+    var raw = text(value).replace(/\s+/g, " ").trim();
+    if (!raw) {
+      return "";
+    }
+    var ko = raw.match(/제\s*\d+\s*조(?:\s*[({（][^)}）]+[)}）])?/);
+    if (ko) {
+      return cleanClauseHeading(ko[0]);
+    }
+    var en = raw.match(/(?:Article|Section|Clause)\s+\d+[A-Za-z0-9_.-]*(?:\s*[({][^)}]+[)}])?/i);
+    if (en) {
+      return cleanClauseHeading(en[0]);
+    }
+    return "";
+  }
+
   function clauseTopicEn(topic) {
     var value = text(topic).toLowerCase();
     if (!value) {
@@ -3561,6 +3580,12 @@ _APP_JS = r"""(function () {
     var headingEn = cleanClauseHeading(
       source.clause_heading_en || source.clauseHeadingEn || finding && finding.clause_heading_en
     );
+    if (!headingKo && !headingEn && sourceText) {
+      var recovered = clauseHeadingFromText(sourceText);
+      if (recovered) {
+        headingKo = recovered;
+      }
+    }
     if (headingKo && !headingEn) {
       headingEn = translateClauseHeading(headingKo, "en");
     }
@@ -3683,7 +3708,7 @@ _APP_JS = r"""(function () {
     if (checklist) {
       section.appendChild(checklist);
     }
-    if (Number(record.priorityRank) === 1 && finding.source && finding.source.exact_excerpt) {
+    if (finding.source && finding.source.exact_excerpt) {
       var quote = el("blockquote", null, null);
       quote.setAttribute("data-exact-excerpt", "true");
       quote.className = "result-source-quote";
