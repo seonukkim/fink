@@ -1659,8 +1659,9 @@ tasks:
   - model_license_floor
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-22T02:46:38+00:00'
 - id: FINK-A11Y-01
   phase: UX
   priority: P2
@@ -1821,10 +1822,10 @@ tasks:
   paper_sections: []
   human_gate: null
   status: BLOCKED
-  blocked_reason: 'Real-inference health checks require installed model weights, but
+  blocked_reason: Real-inference health checks require installed model weights, but
     MODEL-01 deferred the download so no models are present (offline run). Deferred
     (not failed) so the model-independent tasks proceed first; set back to READY after
-    install_local.sh --profile standard downloads the approved standard profile.'
+    install_local.sh --profile standard downloads the approved standard profile.
   source: directive-2026-06-22
 - id: FINK-EXP-01
   phase: P5

@@ -66,6 +66,14 @@ from fink.web.ocr_preview import (
     build_ocr_preview,
     preview_text,
 )
+from fink.web.qa import (
+    GROUNDED_QA_SCHEMA_VERSION,
+    GroundedQAValidationError,
+    build_grounded_qa_payload,
+    empty_grounded_qa_payload,
+    export_grounded_qa_markdown,
+    validate_grounded_qa_payload,
+)
 from fink.web.report_ui import (
     FOUR_DIMENSION_IDS,
     HighlightedEvidence,
@@ -117,6 +125,7 @@ __all__ = [
     "app_js",
     "build_creator_review_view_model",
     "build_creator_review_view_model_from_report",
+    "build_grounded_qa_payload",
     "build_project_page_synthetic_view_model",
     "build_source_highlight_payload",
     "creator_review_copy_payload",
@@ -124,6 +133,8 @@ __all__ = [
     "creator_review_required_copy_keys",
     "export_creator_review_json",
     "export_creator_review_markdown",
+    "export_grounded_qa_markdown",
+    "empty_grounded_qa_payload",
     "empty_source_highlights",
     "run_local_analysis",
     "ASSUMPTION_FIELD_SPECS",
@@ -133,6 +144,8 @@ __all__ = [
     "EditableAssumptions",
     "FIM_MODULE_ORDER",
     "FOUR_DIMENSION_IDS",
+    "GROUNDED_QA_SCHEMA_VERSION",
+    "GroundedQAValidationError",
     "HighlightedEvidence",
     "HIGHLIGHT_STATUS_MISSING",
     "HIGHLIGHT_STATUS_VALIDATED",
@@ -189,5 +202,6 @@ __all__ = [
     "run",
     "scenario_value_origin_labels",
     "summarize_ingest_result",
+    "validate_grounded_qa_payload",
     "validate_source_highlight_candidates",
 ]

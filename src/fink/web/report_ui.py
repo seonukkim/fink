@@ -203,6 +203,7 @@ def _render_synchronized_reader(
         {_render_creator_scenario_inputs(view_model)}
         {_render_creator_findings(view_model)}
         {_render_creator_audit_detail(view_model)}
+        {_render_creator_grounded_qa(view_model)}
         {render_export_controls_html(contains_raw_image=contains_raw_image)}
       </section>
     </div>"""
@@ -700,6 +701,101 @@ def _render_creator_audit_detail(view_model: CreatorReviewViewModel) -> str:
       </section>
       <pre>{_escape(audit_json)}</pre>
     </details>"""
+
+
+def _render_creator_grounded_qa(view_model: CreatorReviewViewModel) -> str:
+    qa = view_model.grounded_qa or {}
+    items = qa.get("items") or []
+    if not items:
+        return ""
+    actions = qa.get("copy_actions") or {}
+    copy_all = (qa.get("copy_all_text") or {}).get("ko", "")
+    export_markdown = qa.get("export_markdown") or ""
+    item_markup = "".join(_render_grounded_qa_item(item, actions) for item in items)
+    return f"""<section class="grounded-qa"
+      data-grounded-qa="true"
+      data-grounded-qa-placement="{_escape(qa.get('placement', 'after_findings_non_floating'))}"
+      data-session-local-check-state="true"
+      aria-labelledby="grounded-qa-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Grounded Q&amp;A</p>
+        <h3 id="grounded-qa-heading">근거 기반 Q&amp;A</h3>
+      </div>
+      {_render_pair_paragraph(qa.get('analysis_method_detail'))}
+      <div class="action-row" role="group" aria-label="Q&A copy and export actions">
+        <button type="button" class="secondary" data-copy-qa="all"
+          data-copy-value="{_escape(copy_all)}"
+          aria-label="전체 Q&A 복사 / Copy all Q&A">
+          {_render_pair_inline(actions.get('copy_all'))}
+        </button>
+        <button type="button" class="secondary" data-export-qa="markdown"
+          data-export-filename="{_escape(qa.get('export_filename', 'fink-grounded-qa.md'))}"
+          data-export-value="{_escape(export_markdown)}"
+          aria-label="Q&A 내보내기 / Export Q&A">
+          {_render_pair_inline(actions.get('export'))}
+        </button>
+      </div>
+      <p class="hint" role="status" aria-live="polite" data-qa-status-region="true">
+        Q&amp;A 확인 표시는 이 브라우저 세션에만 남고 검토 순서나 점수는 바꾸지 않습니다.
+      </p>
+      <div class="grounded-qa-list">
+        {item_markup}
+      </div>
+    </section>"""
+
+
+def _render_grounded_qa_item(item: dict[str, Any], actions: dict[str, Any]) -> str:
+    citations = _render_grounded_qa_citations(item.get("citations") or [])
+    links = item.get("links") or {}
+    copy_text = (item.get("copy_text") or {}).get("ko", "")
+    qa_id = str(item.get("qa_id") or "")
+    finding_id = str(item.get("finding_id") or "")
+    return f"""<article id="{_escape(qa_id)}" class="grounded-qa-item"
+      data-grounded-qa-item="true"
+      data-finding-id="{_escape(finding_id)}"
+      data-highlight-href="{_escape(links.get('highlight_href', '#source-reader'))}">
+      <label class="qa-check">
+        <input type="checkbox" data-qa-check-state="true"
+          data-finding-id="{_escape(finding_id)}"
+          data-mutates-engine-output="false"
+          aria-label="Q&A 확인 표시 / Mark Q&A checked">
+        <span>확인 표시</span>
+      </label>
+      <section class="qa-body">
+        <h4>{_render_pair_inline(item.get('primary_question'))}</h4>
+        {_render_pair_paragraph(item.get('answer'))}
+        {citations}
+        <p class="source-status">
+          <a href="{_escape(links.get('finding_href', '#review-reader'))}"
+            data-source-nav="qa-to-finding"
+            data-source-focus-target="{_escape(str(links.get('finding_href', '#review-reader')).lstrip('#'))}">
+            검토 항목으로 이동
+          </a>
+          <a href="{_escape(links.get('highlight_href', '#source-reader'))}"
+            data-source-nav="qa-to-highlight"
+            data-source-focus-target="{_escape(str(links.get('highlight_href', '#source-reader')).lstrip('#'))}">
+            하이라이트로 이동
+          </a>
+        </p>
+        <button type="button" class="secondary" data-copy-qa="one"
+          data-copy-value="{_escape(copy_text)}"
+          aria-label="Q&A 복사 / Copy Q&A">
+          {_render_pair_inline(actions.get('copy_one'))}
+        </button>
+      </section>
+    </article>"""
+
+
+def _render_grounded_qa_citations(citations: list[dict[str, str]]) -> str:
+    if not citations:
+        return '<p class="hint" data-qa-citations="none">로컬 공식 근거 미연결</p>'
+    rows = "".join(
+        f"""<li data-qa-citation="true" data-evidence-id="{_escape(item.get('evidence_id', ''))}">
+          <code>{_escape(item.get('evidence_id', ''))}</code>
+        </li>"""
+        for item in citations
+    )
+    return f'<ul class="qa-citations" data-qa-citations="allowed-evidence">{rows}</ul>'
 
 
 def _render_pair_paragraph(pair: dict[str, str] | None) -> str:

@@ -1546,6 +1546,51 @@ textarea {
   outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
 }
+.grounded-qa {
+  display: grid;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+.grounded-qa-list {
+  display: grid;
+  gap: var(--space-1);
+}
+.grounded-qa-item {
+  display: grid;
+  gap: .75rem;
+  padding: .85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+.qa-check {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 700;
+}
+.qa-check input {
+  width: 1.2rem;
+  min-height: 1.2rem;
+}
+.qa-body {
+  display: grid;
+  gap: .5rem;
+}
+.qa-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-left: 0;
+  list-style: none;
+}
+.qa-citations code {
+  padding: .18rem .4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
 [data-active-anchor="true"] {
   outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
@@ -2188,6 +2233,7 @@ _APP_JS = r"""(function () {
   var analyzeInFlight = false;
   var lastResultPayload = null;
   var lastSubmittedAssumptions = {};
+  var qaCheckState = {};
 
   function normalizeLocale(locale) {
     var normalized = String(locale || "").trim().toLowerCase();
@@ -2347,6 +2393,19 @@ _APP_JS = r"""(function () {
     return button;
   }
 
+  function renderCopyQaButton(item, qa) {
+    var actions = (qa && qa.copy_actions) || {};
+    var button = el("button", "secondary", null);
+    button.type = "button";
+    button.setAttribute("data-copy-qa", "one");
+    button.setAttribute("data-copy-value", text(item.copy_text && item.copy_text.ko));
+    button.setAttribute("aria-label", "Q&A 복사 / Copy Q&A");
+    button.appendChild(
+      bilingual("span", null, actions.copy_one || { ko: "Q&A 복사", en: "Copy Q&A" })
+    );
+    return button;
+  }
+
   function renderFindingSection(labelPair, contentClass) {
     var section = el("section", "finding-section", null);
     section.setAttribute("data-finding-section", contentClass);
@@ -2477,6 +2536,126 @@ _APP_JS = r"""(function () {
       list.appendChild(listItem);
     });
     container.appendChild(list);
+  }
+
+  function renderGroundedQa(container, payload) {
+    var qa = payload.grounded_qa || {};
+    var items = qa.items || [];
+    if (items.length === 0) {
+      return;
+    }
+    var actions = qa.copy_actions || {};
+    var section = el("section", "grounded-qa", null);
+    section.setAttribute("data-grounded-qa", "true");
+    section.setAttribute("data-grounded-qa-placement", qa.placement || "after_findings_non_floating");
+    section.setAttribute("data-session-local-check-state", "true");
+
+    var heading = el("div", "section-heading", null);
+    heading.appendChild(el("p", "eyebrow", "Grounded Q&A"));
+    heading.appendChild(bilingual("h3", null, { ko: "근거 기반 Q&A", en: "Grounded Q&A" }));
+    section.appendChild(heading);
+    if (qa.analysis_method_detail) {
+      section.appendChild(bilingual("p", "hint", qa.analysis_method_detail));
+    }
+
+    var actionsRow = el("div", "action-row", null);
+    actionsRow.setAttribute("role", "group");
+    actionsRow.setAttribute("aria-label", "Q&A copy and export actions");
+    var copyAll = el("button", "secondary", null);
+    copyAll.type = "button";
+    copyAll.setAttribute("data-copy-qa", "all");
+    copyAll.setAttribute("data-copy-value", text(qa.copy_all_text && qa.copy_all_text.ko));
+    copyAll.setAttribute("aria-label", "전체 Q&A 복사 / Copy all Q&A");
+    copyAll.appendChild(
+      bilingual("span", null, actions.copy_all || { ko: "전체 Q&A 복사", en: "Copy all Q&A" })
+    );
+    actionsRow.appendChild(copyAll);
+
+    var exportButton = el("button", "secondary", null);
+    exportButton.type = "button";
+    exportButton.setAttribute("data-export-qa", "markdown");
+    exportButton.setAttribute("data-export-filename", qa.export_filename || "fink-grounded-qa.md");
+    exportButton.setAttribute("data-export-value", text(qa.export_markdown));
+    exportButton.setAttribute("aria-label", "Q&A 내보내기 / Export Q&A");
+    exportButton.appendChild(
+      bilingual("span", null, actions.export || { ko: "Q&A 내보내기", en: "Export Q&A" })
+    );
+    actionsRow.appendChild(exportButton);
+    section.appendChild(actionsRow);
+
+    var status = el("p", "hint", "Q&A 확인 표시는 이 브라우저 세션에만 남습니다.");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("data-qa-status-region", "true");
+    section.appendChild(status);
+
+    var list = el("div", "grounded-qa-list", null);
+    items.forEach(function (item) {
+      var card = el("article", "grounded-qa-item", null);
+      card.id = item.qa_id;
+      card.setAttribute("data-grounded-qa-item", "true");
+      card.setAttribute("data-finding-id", item.finding_id);
+      card.setAttribute(
+        "data-highlight-href",
+        item.links && item.links.highlight_href ? item.links.highlight_href : "#source-reader"
+      );
+
+      var checkLabel = el("label", "qa-check", null);
+      var check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = qaCheckState[item.finding_id] === true;
+      check.setAttribute("data-qa-check-state", "true");
+      check.setAttribute("data-finding-id", item.finding_id);
+      check.setAttribute("data-mutates-engine-output", "false");
+      check.setAttribute("aria-label", "Q&A 확인 표시 / Mark Q&A checked");
+      checkLabel.appendChild(check);
+      checkLabel.appendChild(el("span", null, "확인 표시"));
+      card.appendChild(checkLabel);
+
+      var body = el("section", "qa-body", null);
+      body.appendChild(bilingual("h4", null, item.primary_question));
+      body.appendChild(bilingual("p", null, item.answer));
+      if (item.citations && item.citations.length > 0) {
+        var citationList = el("ul", "qa-citations", null);
+        citationList.setAttribute("data-qa-citations", "allowed-evidence");
+        item.citations.forEach(function (citation) {
+          var citationItem = el("li", null, null);
+          citationItem.setAttribute("data-qa-citation", "true");
+          citationItem.setAttribute("data-evidence-id", citation.evidence_id || "");
+          citationItem.appendChild(el("code", null, citation.evidence_id || ""));
+          citationList.appendChild(citationItem);
+        });
+        body.appendChild(citationList);
+      } else {
+        body.appendChild(el("p", "hint", "로컬 공식 근거 미연결"));
+      }
+
+      var links = item.links || {};
+      var linkRow = el("p", "source-status", null);
+      var findingLink = el("a", null, "검토 항목으로 이동");
+      findingLink.href = links.finding_href || "#review-reader";
+      findingLink.setAttribute("data-source-nav", "qa-to-finding");
+      findingLink.setAttribute(
+        "data-source-focus-target",
+        text(findingLink.getAttribute("href")).replace(/^#/, "")
+      );
+      linkRow.appendChild(findingLink);
+      linkRow.appendChild(document.createTextNode(" "));
+      var highlightLink = el("a", null, "하이라이트로 이동");
+      highlightLink.href = links.highlight_href || "#source-reader";
+      highlightLink.setAttribute("data-source-nav", "qa-to-highlight");
+      highlightLink.setAttribute(
+        "data-source-focus-target",
+        text(highlightLink.getAttribute("href")).replace(/^#/, "")
+      );
+      linkRow.appendChild(highlightLink);
+      body.appendChild(linkRow);
+      body.appendChild(renderCopyQaButton(item, qa));
+      card.appendChild(body);
+      list.appendChild(card);
+    });
+    section.appendChild(list);
+    container.appendChild(section);
   }
 
   function renderSourceSegments(container, segments) {
@@ -2864,6 +3043,7 @@ _APP_JS = r"""(function () {
     reportPane.appendChild(findingsHeading);
     renderFindings(reportPane, payload);
     renderAdvancedDiagnostics(reportPane, payload);
+    renderGroundedQa(reportPane, payload);
 
     workspace.appendChild(sourcePane);
     workspace.appendChild(reportPane);
@@ -3131,11 +3311,27 @@ _APP_JS = r"""(function () {
     if (!value) {
       return;
     }
+    copyText(value, {
+      ko: "물어볼 말을 복사했습니다.",
+      en: "Question copied."
+    });
+  }
+
+  function copyQa(button) {
+    var value = button.getAttribute("data-copy-value") || "";
+    if (!value) {
+      return;
+    }
+    var isAll = button.getAttribute("data-copy-qa") === "all";
+    copyText(value, {
+      ko: isAll ? "전체 Q&A를 복사했습니다." : "Q&A를 복사했습니다.",
+      en: isAll ? "All Q&A copied." : "Q&A copied."
+    });
+  }
+
+  function copyText(value, messagePair) {
     function done() {
-      statusMessage({
-        ko: "물어볼 말을 복사했습니다.",
-        en: "Question copied."
-      });
+      qaStatusMessage(messagePair);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(value).then(done).catch(function () {
@@ -3146,6 +3342,49 @@ _APP_JS = r"""(function () {
     }
     fallbackCopy(value);
     done();
+  }
+
+  function qaStatusMessage(pair) {
+    var regions = document.querySelectorAll("[data-qa-status-region]");
+    regions.forEach(function (region) {
+      clearNode(region);
+      region.appendChild(bilingual("span", null, pair));
+    });
+    statusMessage(pair);
+  }
+
+  function exportQa(button) {
+    var value = button.getAttribute("data-export-value") || "";
+    if (!value) {
+      return;
+    }
+    var filename = button.getAttribute("data-export-filename") || "fink-grounded-qa.md";
+    var blob = new Blob([value], { type: "text/markdown;charset=utf-8" });
+    var link = document.createElement("a");
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    document.body.appendChild(link);
+    link.click();
+    window.setTimeout(function () {
+      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
+    }, 0);
+    qaStatusMessage({
+      ko: "Q&A 파일을 만들었습니다.",
+      en: "Q&A export created."
+    });
+  }
+
+  function updateQaCheckState(input) {
+    var findingId = input.getAttribute("data-finding-id") || "";
+    if (!findingId) {
+      return;
+    }
+    qaCheckState[findingId] = input.checked === true;
+    qaStatusMessage({
+      ko: "확인 표시는 이 세션에만 저장되며 검토 순서를 바꾸지 않습니다.",
+      en: "The check mark is saved only for this session and does not change review order."
+    });
   }
 
   function fallbackCopy(value) {
@@ -3199,6 +3438,16 @@ _APP_JS = r"""(function () {
         event.preventDefault();
         copyQuestion(copyButton);
       }
+      var copyQaButton = target.closest("[data-copy-qa]");
+      if (copyQaButton) {
+        event.preventDefault();
+        copyQa(copyQaButton);
+      }
+      var exportQaButton = target.closest("[data-export-qa]");
+      if (exportQaButton) {
+        event.preventDefault();
+        exportQa(exportQaButton);
+      }
       var highlightToggle = target.closest("[data-source-highlight-toggle]");
       if (highlightToggle) {
         var sourceSection = highlightToggle.closest("[data-source-highlights]");
@@ -3208,6 +3457,16 @@ _APP_JS = r"""(function () {
             highlightToggle.checked ? "true" : "false"
           );
         }
+      }
+    });
+    document.addEventListener("change", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+      var qaCheck = target.closest("[data-qa-check-state]");
+      if (qaCheck) {
+        updateQaCheckState(qaCheck);
       }
     });
     setLocale(readStoredLocale() || activeLocale());

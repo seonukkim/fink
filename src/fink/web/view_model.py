@@ -11,6 +11,7 @@ from fink.web.source_highlights import (
     build_source_highlight_payload,
     empty_source_highlights,
 )
+from fink.web.qa import build_grounded_qa_payload, empty_grounded_qa_payload
 
 VIEW_MODEL_NAME = "CreatorReviewViewModel"
 VIEW_MODEL_SCHEMA_VERSION = 1
@@ -297,6 +298,7 @@ class CreatorReviewViewModel:
     audit_detail: dict[str, Any]
     scenario_inputs: dict[str, Any] | None = None
     source_highlights: dict[str, Any] | None = None
+    grounded_qa: dict[str, Any] | None = None
     local_only: bool = True
     schema_version: int = VIEW_MODEL_SCHEMA_VERSION
     view_model: str = VIEW_MODEL_NAME
@@ -314,6 +316,7 @@ class CreatorReviewViewModel:
             "dimensions": self.dimensions,
             "findings": list(self.findings),
             "source_highlights": self.source_highlights or empty_source_highlights(),
+            "grounded_qa": self.grounded_qa or empty_grounded_qa_payload(),
             "scenario_inputs": self.scenario_inputs or _scenario_inputs_from_audit({}),
             "audit_detail": self.audit_detail,
         }
@@ -347,6 +350,7 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         clauses=tuple(getattr(result, "clauses", ())),
         findings=findings,
     )
+    grounded_qa = build_grounded_qa_payload(findings)
     dimensions = _dimensions_from_result(result, statuses)
     audit_detail = _audit_detail_from_result(result)
     scenario_inputs = _scenario_inputs_from_audit(
@@ -372,6 +376,7 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         audit_detail=audit_detail,
         scenario_inputs=scenario_inputs,
         source_highlights=source_highlights,
+        grounded_qa=grounded_qa,
     )
 
 
@@ -437,6 +442,7 @@ def build_creator_review_view_model_from_report(
         ],
         "monetary_exposures": [_exposure_to_audit(exposure) for exposure in assessment.monetary_exposures],
     }
+    grounded_qa = build_grounded_qa_payload(findings)
     return CreatorReviewViewModel(
         ui_locale=locale,
         summary={
@@ -450,6 +456,7 @@ def build_creator_review_view_model_from_report(
         audit_detail=audit_detail,
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
         source_highlights=empty_source_highlights(),
+        grounded_qa=grounded_qa,
     )
 
 
@@ -549,6 +556,7 @@ def build_project_page_synthetic_view_model(
         audit_detail=audit_detail,
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
         source_highlights=empty_source_highlights(),
+        grounded_qa=build_grounded_qa_payload((finding,)),
     )
 
 
