@@ -2526,6 +2526,150 @@ footer {
   margin: 0;
   max-width: var(--reading-measure);
 }
+.pending-bubble {
+  position: relative;
+  overflow: hidden;
+  min-width: min(100%, 5.75rem);
+}
+.pending-bubble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, .55) 48%, transparent 74%);
+  transform: translateX(-120%);
+  animation: fink-pending-shimmer 2.4s ease-in-out infinite;
+}
+.pending-status {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: .55rem;
+  min-width: 0;
+}
+.pending-typing {
+  display: flex;
+  align-items: center;
+  min-height: 1.5rem;
+}
+.pending-typing .pending-status-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: .28rem;
+  min-height: 1.5rem;
+}
+.typing-dots span {
+  width: .42rem;
+  height: .42rem;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: .48;
+  animation: fink-typing-dot 1.2s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: .16s;
+}
+.typing-dots span:nth-child(3) {
+  animation-delay: .32s;
+}
+.pending-analysis {
+  width: min(100%, 22rem);
+}
+.pending-stage-stack {
+  position: relative;
+  min-height: 1.7rem;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 750;
+  line-height: 1.5;
+}
+.pending-stage-line {
+  position: absolute;
+  inset: 0 auto auto 0;
+  max-width: 100%;
+  opacity: 0;
+  transform: translateY(.35rem);
+  overflow-wrap: anywhere;
+  animation: fink-stage-cycle 4.8s ease-in-out infinite;
+}
+.pending-stage-line:nth-child(2) {
+  animation-delay: 1.2s;
+}
+.pending-stage-line:nth-child(3) {
+  animation-delay: 2.4s;
+}
+.pending-stage-line:nth-child(4) {
+  animation-delay: 3.6s;
+}
+.pending-progress {
+  position: relative;
+  width: 100%;
+  height: .28rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line-soft);
+}
+.pending-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 48%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+  transform: translateX(-120%);
+  animation: fink-progress-sweep 1.4s ease-in-out infinite;
+}
+@keyframes fink-typing-dot {
+  0%, 80%, 100% {
+    opacity: .45;
+    transform: translateY(0) scale(.78);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-.24rem) scale(1);
+  }
+}
+@keyframes fink-stage-cycle {
+  0% {
+    opacity: 0;
+    transform: translateY(.35rem);
+  }
+  8%, 22% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  30%, 100% {
+    opacity: 0;
+    transform: translateY(-.35rem);
+  }
+}
+@keyframes fink-progress-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(230%);
+  }
+}
+@keyframes fink-pending-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  55%, 100% {
+    transform: translateX(120%);
+  }
+}
 .bubble-result {
   max-width: 100%;
   width: 100%;
@@ -2620,6 +2764,39 @@ footer {
     font-size: 1.1rem;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .pending-bubble::after,
+  .pending-progress {
+    display: none;
+  }
+  .typing-dots {
+    display: none;
+  }
+  .pending-typing .pending-status-text {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+  .pending-stage-stack {
+    min-height: auto;
+    overflow: visible;
+  }
+  .pending-stage-line {
+    position: static;
+    display: none;
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  .pending-stage-line:first-child {
+    display: block;
+  }
+}
 """
 
 
@@ -2633,6 +2810,13 @@ _APP_JS = r"""(function () {
   var lastResultPayload = null;
   var lastSubmittedAssumptions = {};
   var qaCheckState = {};
+  var ANALYSIS_STAGE_LABELS = [
+    { ko: "계약서 읽는 중", en: "Reading the contract" },
+    { ko: "조항 나누는 중", en: "Splitting clauses" },
+    { ko: "근거 찾는 중", en: "Finding evidence" },
+    { ko: "정리하는 중", en: "Summarizing" }
+  ];
+  var TYPING_STATUS_LABEL = { ko: "답변 준비 중", en: "Preparing reply" };
 
   function normalizeLocale(locale) {
     var normalized = String(locale || "").trim().toLowerCase();
@@ -3874,6 +4058,7 @@ _APP_JS = r"""(function () {
         targetItem.className = "msg bot result-msg";
         targetItem.setAttribute("data-message-role", "bot");
         targetItem.setAttribute("data-result-message", "true");
+        targetItem.removeAttribute("data-pending-message");
         targetItem.hidden = false;
         targetItem.appendChild(resultBubble);
         if (bubble.parentNode) {
@@ -3926,8 +4111,71 @@ _APP_JS = r"""(function () {
     return item;
   }
 
-  function appendPendingBotMessage(pair) {
-    return appendBotMessage(pair || { ko: "생각 중...", en: "..." });
+  function appendPendingBotShell(bubbleClassName) {
+    var thread = threadElement();
+    if (!thread) {
+      return null;
+    }
+    var item = el("li", "msg bot", null);
+    item.setAttribute("data-message-role", "bot");
+    item.setAttribute("data-pending-message", "true");
+    var bubble = el("div", "bubble " + bubbleClassName, null);
+    item.appendChild(bubble);
+    thread.appendChild(item);
+    scrollThreadToLatest(item);
+    return { item: item, bubble: bubble };
+  }
+
+  function clearPendingState(item, bubble) {
+    if (item) {
+      item.removeAttribute("data-pending-message");
+    }
+    if (bubble) {
+      bubble.className = "bubble";
+    }
+  }
+
+  function appendTypingBotMessage() {
+    var pending = appendPendingBotShell("pending-bubble");
+    if (!pending) {
+      return null;
+    }
+    var status = el("div", "pending-status pending-typing", null);
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("aria-atomic", "true");
+    status.appendChild(bilingual("span", "pending-status-text", TYPING_STATUS_LABEL));
+
+    var dots = el("span", "typing-dots", null);
+    dots.setAttribute("aria-hidden", "true");
+    for (var index = 0; index < 3; index += 1) {
+      dots.appendChild(el("span", null, null));
+    }
+    status.appendChild(dots);
+    pending.bubble.appendChild(status);
+    return pending.item;
+  }
+
+  function appendAnalysisPendingBotMessage() {
+    var pending = appendPendingBotShell("pending-bubble pending-analysis");
+    if (!pending) {
+      return null;
+    }
+    var status = el("div", "pending-status", null);
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("aria-atomic", "true");
+    status.appendChild(bilingual("span", "sr-only", ANALYSIS_STAGE_LABELS[0]));
+
+    var stages = el("div", "pending-stage-stack", null);
+    stages.setAttribute("aria-hidden", "true");
+    ANALYSIS_STAGE_LABELS.forEach(function (stage) {
+      stages.appendChild(bilingual("span", "pending-stage-line", stage));
+    });
+    status.appendChild(stages);
+    status.appendChild(el("span", "pending-progress", null));
+    pending.bubble.appendChild(status);
+    return pending.item;
   }
 
   function renderChatCitations(container, citations) {
@@ -3965,6 +4213,7 @@ _APP_JS = r"""(function () {
     if (!bubble) {
       return item;
     }
+    clearPendingState(item, bubble);
     clearNode(bubble);
     bubble.appendChild(el("p", "bubble-text", text(content)));
     renderChatCitations(bubble, citations || []);
@@ -3980,6 +4229,7 @@ _APP_JS = r"""(function () {
     if (!bubble) {
       return item;
     }
+    clearPendingState(item, bubble);
     clearNode(bubble);
     bubble.appendChild(bilingual("p", "bubble-text", pair));
     scrollThreadToLatest(item);
@@ -4153,19 +4403,6 @@ _APP_JS = r"""(function () {
     );
   }
 
-  function uploadPendingMessage(file) {
-    if (!isImageOrPdfUpload(file)) {
-      return {
-        ko: "파일을 읽고 분석하는 중이에요…",
-        en: "Reading and analyzing the file…"
-      };
-    }
-    return {
-      ko: "이미지를 읽고 분석하는 중이에요…",
-      en: "Reading and analyzing the image…"
-    };
-  }
-
   function ocrReadFailureMessage() {
     return {
       ko: "사진에서 글자를 읽지 못했어요. 더 선명한 사진을 올리거나 계약 문구를 붙여넣어 주세요.",
@@ -4288,12 +4525,12 @@ _APP_JS = r"""(function () {
       // composer so it behaves like a chat input.
       if (file) {
         appendUserMessage(file.name || "첨부 파일", true);
-        pendingResult = appendPendingBotMessage(uploadPendingMessage(file));
       } else {
         appendUserMessage(pasteText, false);
         box.value = "";
         autoGrowComposer();
       }
+      pendingResult = appendAnalysisPendingBotMessage();
       statusMessage({ ko: "로컬에서 분석 중입니다.", en: "Analyzing locally." });
     }
     setAnalyzeBusy(true);
@@ -4397,7 +4634,7 @@ _APP_JS = r"""(function () {
         autoGrowComposer();
       }
     }
-    var pending = appendPendingBotMessage();
+    var pending = appendTypingBotMessage();
     setChatBusy(true);
     fetch("/api/chat", {
       method: "POST",
