@@ -176,6 +176,38 @@ class AnalyzePipelineTests(unittest.TestCase):
         self.assertTrue(result.nl_summary_en.strip())
         self.assertNotEqual(result.nl_summary_ko, result.nl_summary_en)
 
+    def test_finding_payload_includes_curated_non_scoring_checklists(self) -> None:
+        result = ANALYZE.run_local_analysis(
+            pasted_text=SAMPLE_KO,
+            ui_locale=SCHEMAS.UILocale.KO,
+        )
+
+        payload = ANALYZE.analysis_result_to_payload(result, SCHEMAS.UILocale.KO)
+        checklists = [
+            finding["checklist"]
+            for finding in payload["findings"]
+            if finding["checklist"]["checkpoints"]
+        ]
+
+        self.assertGreaterEqual(len(checklists), 1)
+        seen_ko: set[str] = set()
+        for checklist in checklists:
+            self.assertTrue(checklist["topic"]["ko"].strip())
+            self.assertTrue(checklist["topic"]["en"].strip())
+            self.assertLessEqual(len(checklist["checkpoints"]), 3)
+            self.assertEqual(checklist["source_note"]["ko"], "일반 실무 원칙 distill · 법률 자문 아님")
+            self.assertEqual(checklist["source_note"]["en"], "Distilled general practice · not legal advice")
+            self.assertEqual(checklist["source_kind"], "distilled_general_practice")
+            self.assertEqual(checklist["score_contribution"], 0)
+            self.assertEqual(checklist["authority_tiers"], [])
+            self.assertEqual(checklist["grounding_evidence_ids"], [])
+            self.assertIs(checklist["non_scoring"], True)
+            for item in checklist["checkpoints"]:
+                self.assertTrue(item["ko"].strip())
+                self.assertTrue(item["en"].strip())
+                self.assertNotIn(item["ko"], seen_ko)
+                seen_ko.add(item["ko"])
+
     def test_eligible_official_source_yields_nonzero_grounded_contribution(self) -> None:
         result = ANALYZE.run_local_analysis(
             pasted_text=GROUNDED_F5_KO,

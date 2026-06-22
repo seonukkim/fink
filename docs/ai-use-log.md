@@ -1,5 +1,32 @@
 # AI Use Log
 
+## 2026-06-23 — Inline RAG-grounded finding checklists
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: added inline creator-facing practice checklists under each finding in
+  the local conclusion. The checklist content comes from
+  `data/knowledge/creator_contract_checkpoints.yaml`, is capped at the first
+  three unused priority checkpoints for each finding's topic, and is globally
+  deduped across the result. Added distilled English summary/checkpoint/question
+  fields for all F1-F9 topics, a non-scoring bilingual checklist payload and UI
+  renderer, a subtle pink-emphasized `요약` summary card, and chat prompt/fallback
+  changes so raw checklist items remain reference-only in chat. No
+  authority-gate, scoring, remote runtime API, model weight, private input,
+  paper, template, or `icml2026` file was changed.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests -q` passed;
+  `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import fink.web.analyze,
+  fink.web.view_model, fink.web.app, fink.knowledge.checkpoints,
+  fink.model.explanation_llm"` passed; `PYTHONPATH=src python3 -c "import
+  fink.web.analyze, fink.web.view_model, fink.web.app,
+  fink.knowledge.checkpoints, fink.model.explanation_llm"` passed; `bash
+  scripts/agent_loop/run_gates.sh` ended with `GATES_OK`. The exact bare
+  `python3 -c "import fink..."` command was attempted and failed because the
+  system interpreter does not have the checkout's `src/` layout package on
+  `sys.path`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
 ## 2026-06-22 — Transparent review-attention support tiers
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

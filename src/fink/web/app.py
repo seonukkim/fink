@@ -1852,10 +1852,11 @@ footer {
   gap: var(--space-2);
   min-height: 0;
   margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  padding: .85rem 1rem;
+  border: 1px solid var(--pink-line);
+  border-left: 4px solid var(--pink-deep);
+  border-radius: var(--radius);
+  background: var(--pink-pale);
   box-shadow: none;
 }
 .glance-heading {
@@ -2276,6 +2277,53 @@ footer {
 }
 .finding-line-question strong {
   color: var(--ink);
+}
+.finding-checklist {
+  display: grid;
+  gap: .35rem;
+  max-width: var(--reading-measure);
+  margin: .15rem 0 0;
+  padding: .65rem .75rem;
+  border: 1px solid var(--pink-line);
+  border-left: 3px solid var(--pink);
+  border-radius: var(--radius);
+  background: var(--pink-pale);
+}
+.finding-checklist-head {
+  display: flex;
+  gap: .4rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.finding-checklist-label {
+  color: var(--pink-deep);
+  font-size: .76rem;
+  font-weight: 850;
+}
+.finding-checklist-topic {
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 750;
+}
+.finding-checklist-items {
+  display: grid;
+  gap: .25rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.finding-checklist-items li {
+  margin: 0;
+  padding-left: .1rem;
+}
+.finding-checklist-items span {
+  font-size: .9rem;
+  line-height: 1.45;
+}
+.finding-checklist-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.35;
 }
 .result-chip-row {
   display: grid;
@@ -3578,6 +3626,37 @@ _APP_JS = r"""(function () {
     return sorted;
   }
 
+  function renderFindingChecklist(checklist) {
+    var items = (checklist && checklist.checkpoints) || [];
+    if (!items.length) {
+      return null;
+    }
+    var wrap = el("aside", "finding-checklist", null);
+    wrap.setAttribute("data-finding-checklist", "true");
+
+    var head = el("div", "finding-checklist-head", null);
+    head.appendChild(
+      bilingual("span", "finding-checklist-label", {
+        ko: "실무 체크",
+        en: "Practice check"
+      })
+    );
+    if (checklist.topic && (checklist.topic.ko || checklist.topic.en)) {
+      head.appendChild(bilingual("span", "finding-checklist-topic", checklist.topic));
+    }
+    wrap.appendChild(head);
+
+    var list = el("ul", "finding-checklist-items", null);
+    items.forEach(function (item) {
+      var row = el("li", null, null);
+      row.appendChild(bilingual("span", null, item));
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    wrap.appendChild(bilingual("p", "finding-checklist-note", checklist.source_note));
+    return wrap;
+  }
+
   function renderFindingLine(record) {
     var finding = record.finding;
     var section = el("section", "finding-line", null);
@@ -3600,6 +3679,10 @@ _APP_JS = r"""(function () {
     );
     question.appendChild(bilingual("span", null, finding.question_to_ask));
     section.appendChild(question);
+    var checklist = renderFindingChecklist(finding.checklist);
+    if (checklist) {
+      section.appendChild(checklist);
+    }
     if (Number(record.priorityRank) === 1 && finding.source && finding.source.exact_excerpt) {
       var quote = el("blockquote", null, null);
       quote.setAttribute("data-exact-excerpt", "true");
@@ -4527,7 +4610,7 @@ _APP_JS = r"""(function () {
     heading.appendChild(atAGlanceIcon());
     heading.appendChild(
       bilingual("h3", null, {
-        ko: "정리",
+        ko: "요약",
         en: "Summary"
       })
     );

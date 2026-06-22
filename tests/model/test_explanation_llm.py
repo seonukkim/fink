@@ -37,6 +37,10 @@ def _context() -> GroundedContext:
                 evidence_ids=("EV-A1-ASSIGNFULL-02",),
             ),
         ),
+        reference_checkpoints=(
+            "정산서가 언제, 어떤 형식으로, 어떤 매출·공제 항목을 나누어 제공되는지 확인할 것.",
+            "수수료, 결제비용, 환불, 세금, 마케팅비, 제작비가 각각 공제되는지 확인할 것.",
+        ),
         professional_note="중요한 부분은 전문가 확인을 권해요.",
     )
 
@@ -50,6 +54,8 @@ def test_fallback_overall_reply(monkeypatch):
     assert reply.decision_support is True
     assert "정산명세 보호장치 부재" in reply.text
     assert "전문가" in reply.text  # professional-confirm cue is present
+    assert "확인 팁:" not in reply.text
+    assert "정산서가 언제, 어떤 형식으로" not in reply.text
     assert "EV-A2-2021-SETTLEMENT" in reply.citations
 
 
@@ -59,6 +65,8 @@ def test_fallback_question_match(monkeypatch):
     assert reply.used_model is False
     assert "공제" in reply.text
     assert "전문가" in reply.text
+    assert "확인 팁:" not in reply.text
+    assert "수수료, 결제비용, 환불" not in reply.text
 
 
 def test_no_verdict_assertions_leak(monkeypatch):
@@ -73,3 +81,15 @@ def test_sanitize_removes_stray_hanja_idempotently():
     cleaned = _sanitize("會計年度 정산 條項은 확인하세요.")
     assert cleaned == "정산 은 확인하세요."
     assert _sanitize(cleaned) == cleaned
+
+
+def test_sanitize_removes_raw_reference_checkpoint_lines():
+    checkpoint = "정산서가 언제, 어떤 형식으로, 어떤 매출·공제 항목을 나누어 제공되는지 확인할 것."
+    cleaned = _sanitize(
+        f"확인 팁: {checkpoint}\n- {checkpoint}\n정산 조건을 자연어로 확인하세요.",
+        reference_checkpoints=(checkpoint,),
+    )
+
+    assert "확인 팁:" not in cleaned
+    assert checkpoint not in cleaned
+    assert "정산 조건을 자연어로 확인하세요." in cleaned

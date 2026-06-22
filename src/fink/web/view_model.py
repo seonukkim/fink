@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from fink.knowledge.checkpoints import (
+    CHECKLIST_SOURCE_NOTE,
+    curated_checklist_for_category,
+)
 from fink.schemas import ExportFormat, RiskCategory, UILocale
 from fink.web.source_highlights import (
     build_source_highlight_payload,
@@ -400,7 +404,15 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         has_findings=bool(result.ranked_findings),
         monetary_present=bool(result.monetary_present),
     )
-    findings = tuple(_finding_from_ranked(item, result, statuses) for item in result.ranked_findings)
+    used_checkpoints: set[str] = set()
+    findings = tuple(
+        _with_practice_checklist(
+            _finding_from_ranked(item, result, statuses),
+            item.risk_category,
+            used_checkpoints,
+        )
+        for item in result.ranked_findings
+    )
     findings, source_highlights = build_source_highlight_payload(
         source_pages=tuple(getattr(result, "source_pages", ())),
         clauses=tuple(getattr(result, "clauses", ())),
@@ -460,15 +472,20 @@ def build_creator_review_view_model_from_report(
     ]
     statuses = _statuses(has_findings=bool(signals), monetary_present=monetary_present)
     recommendation = _report_recommendation(assessment.time_exposure.pathway_label.value)
+    used_checkpoints: set[str] = set()
     findings = tuple(
-        _finding_from_signal(
-            signal,
-            rank=index,
-            report=report,
-            statuses=statuses,
-            evidence_records=evidence_records,
-            practice_references=practice_references,
-            highlighted_evidence=highlighted_evidence,
+        _with_practice_checklist(
+            _finding_from_signal(
+                signal,
+                rank=index,
+                report=report,
+                statuses=statuses,
+                evidence_records=evidence_records,
+                practice_references=practice_references,
+                highlighted_evidence=highlighted_evidence,
+            ),
+            signal.risk_category,
+            used_checkpoints,
         )
         for index, signal in enumerate(signals, start=1)
     )
@@ -557,6 +574,7 @@ def build_project_page_synthetic_view_model(
         "citations": [],
         "model_path": creator_review_pair("finding.model_path.local_rules"),
     }
+    finding = _with_practice_checklist(finding, "F2", set())
     audit_detail = {
         "synthetic_example": True,
         "grounding": "UNVERIFIED",
@@ -899,6 +917,31 @@ def _finding_from_signal(
         "evidence": _evidence_payload_from_signal(signal),
         "citations": _citations_for_signal(signal, report, evidence_records),
         "model_path": creator_review_pair("finding.model_path.local_rules"),
+    }
+
+
+def _with_practice_checklist(
+    finding: dict[str, Any],
+    category: Any,
+    used_checkpoint_keys: set[str],
+) -> dict[str, Any]:
+    checklist = curated_checklist_for_category(
+        category,
+        used_checkpoint_keys=used_checkpoint_keys,
+    )
+    return {**finding, "checklist": checklist or _empty_practice_checklist()}
+
+
+def _empty_practice_checklist() -> dict[str, Any]:
+    return {
+        "topic": {"ko": "", "en": ""},
+        "checkpoints": [],
+        "source_note": dict(CHECKLIST_SOURCE_NOTE),
+        "source_kind": "distilled_general_practice",
+        "score_contribution": 0,
+        "authority_tiers": [],
+        "grounding_evidence_ids": [],
+        "non_scoring": True,
     }
 
 

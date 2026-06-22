@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T23:20:35+09:00`
+- Generated: `2026-06-23T00:11:48+09:00`
 - Current branch: `main`
-- Base commit: `2824cf958497f0cb13241655bae0ee23e2e20636`
+- Base commit: `180eb273ffaa0ed97a5a73fc1c127415bf02326d`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -31,7 +31,12 @@
   local-only with no paper-template changes. Added a transparent two-tier
   review-attention support indicator: the displayed score remains A0-A2-only,
   with separate official-evidence and practice-basis counts surfaced in the
-  payload and UI.
+  payload and UI. Added inline, curated, RAG-grounded practice checklists under
+  creator-facing findings; the checklist payload is bilingual, non-scoring, and
+  globally deduped across the result. Added English distilled checkpoint fields
+  to the public knowledge YAML, renamed the integrated summary card to `요약`,
+  gave it a subtle pink emphasis, and changed chat so raw checklist prompts stay
+  reference-only rather than being printed.
 
 ## Human Gates
 
@@ -53,7 +58,7 @@
 ## Tasks
 
 - Next eligible task: `none`
-- Done count: `76`
+- Done count: `77`
 - Blocked count: `0`
 - Next task selection order: highest priority, shortest scope, lexical task ID.
 
@@ -75,14 +80,14 @@ touch loop/STOP
 
 ## Latest Verification
 
-- `UV_CACHE_DIR=/tmp/uv-cache uv run --no-project --with pytest pytest tests -q`
-  passed.
-- `PYTHONPATH=src python3 -c "import fink.ocr.paddle_vl; import
-  fink.web.upload"` passed.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests -q` passed.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run python3 -c "import fink.web.analyze,
+  fink.web.view_model, fink.web.app, fink.knowledge.checkpoints,
+  fink.model.explanation_llm"` passed.
+- `PYTHONPATH=src python3 -c "import fink.web.analyze, fink.web.view_model,
+  fink.web.app, fink.knowledge.checkpoints, fink.model.explanation_llm"` passed.
+- The exact bare `python3 -c "import fink.web.analyze, fink.web.view_model,
+  fink.web.app, fink.knowledge.checkpoints, fink.model.explanation_llm"` command
+  was attempted and failed because the system interpreter does not have this
+  `src/` layout package installed on `sys.path`.
 - `bash scripts/agent_loop/run_gates.sh` ended with `GATES_OK`.
-- The exact `uv run pytest tests -q` command was attempted, but this sandbox's
-  default uv cache path is read-only. Retrying with `UV_CACHE_DIR=/tmp/uv-cache`
-  reached the editable build and then failed because the offline sandbox could
-  not fetch `setuptools>=68`. The bare `python3 -c "import fink.ocr.paddle_vl;
-  import fink.web.upload"` command was also attempted and failed because the
-  package is not installed on system `sys.path`.

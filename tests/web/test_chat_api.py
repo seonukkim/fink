@@ -50,6 +50,8 @@ def test_grounded_context_includes_reference_checkpoints_for_findings(monkeypatc
     assert reply.decision_support is True
     assert reply.text.strip()
     assert reply.citations
+    assert "확인 팁:" not in reply.text
+    assert not any(item in reply.text for item in context.reference_checkpoints)
 
 
 def test_chat_reply_returns_decision_support_with_question(monkeypatch) -> None:
