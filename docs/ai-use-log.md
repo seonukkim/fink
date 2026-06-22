@@ -109,6 +109,16 @@
   brief's own "작성일" line is document content, not browser chrome, and is kept.
   `pytest tests/web/test_report_ui.py tests/web/test_local_web_app.py
   tests/web/test_a11y_validation.py -q` green, `run_gates.sh` `GATES_OK`.
+- Claude follow-up 8 (backlog: richer, more organized results): (1) the summary
+  card now lists every finding by title as a pink-numbered "확인할 항목" overview
+  beneath the top-priority concern; (2) findings that cite the same clause excerpt
+  are merged into one card — the clause tag and source excerpt are shown once and
+  the individual findings are separated by `---` dividers (`renderFindingGroup` /
+  `groupRecordsByClause`; grouped `.finding-line` drops its own card chrome).
+  Verified on a contract whose first two findings share 제3조: one grouped card
+  (1 divider) + one standalone card for 제5조, all three findings preserved.
+  Updated the three test pins for the new `renderFindingLine(record, grouped)`
+  signature. `pytest tests/web -q` green, `run_gates.sh` `GATES_OK`.
 
 ## 2026-06-23 — Persistent warning, aligned results, multi-attachment upload
 

@@ -302,7 +302,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("function prepareResultOpeningMessage(targetItem, container)", script)
         self.assertIn("function appendResultContentBubble(className, content, index)", script)
         self.assertIn("function renderDimensionChips(appendBubble, payload)", script)
-        self.assertIn("function renderFindingLine(record)", script)
+        self.assertIn("function renderFindingLine(record, grouped)", script)
         self.assertIn("function renderAdvancedDiagnostics(container, payload)", script)
         self.assertIn("function renderSuggestedFollowUps(container, payload)", script)
         self.assertIn("function renderPrintableBrief(payload)", script)

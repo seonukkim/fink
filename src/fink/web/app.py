@@ -2382,6 +2382,31 @@ footer {
   border-radius: 13px;
   background: var(--card);
 }
+.finding-group {
+  display: grid;
+  gap: 0;
+  padding: 24px 26px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--card);
+}
+.finding-group-clause {
+  margin-bottom: 14px;
+}
+.finding-line--grouped {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.finding-group-divider {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.finding-group .result-source-quote {
+  margin-top: 16px;
+}
 .finding-line-head {
   display: flex;
   gap: 12px;
@@ -4071,9 +4096,9 @@ _APP_JS = r"""(function () {
     return wrap;
   }
 
-  function renderFindingLine(record) {
+  function renderFindingLine(record, grouped) {
     var finding = record.finding;
-    var section = el("section", "finding-line", null);
+    var section = el("section", grouped ? "finding-line finding-line--grouped" : "finding-line", null);
     section.setAttribute("data-finding-line", "true");
     section.setAttribute("data-finding-rank", String(record.priorityRank));
     var head = el("div", "finding-line-head", null);
@@ -4082,9 +4107,13 @@ _APP_JS = r"""(function () {
     head.appendChild(badge);
     head.appendChild(bilingual("p", "finding-line-title", finding.title));
     section.appendChild(head);
-    var clausePair = clauseReferencePair(finding, record.originalIndex);
-    if (clausePair) {
-      section.appendChild(bilingual("p", "finding-line-clause", clausePair));
+    // In a group the clause tag and the source excerpt are shown once for the
+    // whole group, so each member only renders its own body here.
+    if (!grouped) {
+      var clausePair = clauseReferencePair(finding, record.originalIndex);
+      if (clausePair) {
+        section.appendChild(bilingual("p", "finding-line-clause", clausePair));
+      }
     }
     section.appendChild(bilingual("p", "finding-line-why", finding.why_it_matters));
     var question = el("p", "finding-line-question", null);
@@ -4100,14 +4129,63 @@ _APP_JS = r"""(function () {
     if (checklist) {
       section.appendChild(checklist);
     }
-    if (finding.source && finding.source.exact_excerpt) {
-      var quote = el("blockquote", null, null);
-      quote.setAttribute("data-exact-excerpt", "true");
-      quote.className = "result-source-quote";
-      renderLocalizedSourceSegments(quote, finding.source);
-      section.appendChild(quote);
+    if (!grouped && finding.source && finding.source.exact_excerpt) {
+      section.appendChild(renderSourceExcerpt(finding.source));
     }
     return section;
+  }
+
+  function renderSourceExcerpt(source) {
+    var quote = el("blockquote", null, null);
+    quote.setAttribute("data-exact-excerpt", "true");
+    quote.className = "result-source-quote";
+    renderLocalizedSourceSegments(quote, source);
+    return quote;
+  }
+
+  function clauseGroupKey(finding) {
+    var source = finding && finding.source;
+    var excerpt = source && (source.exact_excerpt || "");
+    return text(excerpt).replace(/\s+/g, " ").trim();
+  }
+
+  function groupRecordsByClause(records) {
+    // Findings that cite the same clause excerpt are shown in one card,
+    // separated by dividers; order follows the first member's priority.
+    var groups = [];
+    var indexByKey = {};
+    records.forEach(function (record) {
+      var key = clauseGroupKey(record.finding);
+      if (key && Object.prototype.hasOwnProperty.call(indexByKey, key)) {
+        groups[indexByKey[key]].push(record);
+      } else {
+        if (key) {
+          indexByKey[key] = groups.length;
+        }
+        groups.push([record]);
+      }
+    });
+    return groups;
+  }
+
+  function renderFindingGroup(group) {
+    var wrap = el("section", "finding-group", null);
+    wrap.setAttribute("data-finding-group", "true");
+    var clausePair = clauseReferencePair(group[0].finding, group[0].originalIndex);
+    if (clausePair) {
+      wrap.appendChild(bilingual("p", "finding-line-clause finding-group-clause", clausePair));
+    }
+    group.forEach(function (record, index) {
+      if (index > 0) {
+        wrap.appendChild(el("hr", "finding-group-divider", null));
+      }
+      wrap.appendChild(renderFindingLine(record, true));
+    });
+    var firstSource = group[0].finding.source;
+    if (firstSource && firstSource.exact_excerpt) {
+      wrap.appendChild(renderSourceExcerpt(firstSource));
+    }
+    return wrap;
   }
 
   function renderFindings(appendBubble, payload) {
@@ -4116,8 +4194,13 @@ _APP_JS = r"""(function () {
       return;
     }
     var records = findingRecords(findings);
-    sortedFindingRecords(records, "priority").forEach(function (record) {
-      appendBubble("finding-bubble", renderFindingLine(record));
+    var sorted = sortedFindingRecords(records, "priority");
+    groupRecordsByClause(sorted).forEach(function (group) {
+      if (group.length === 1) {
+        appendBubble("finding-bubble", renderFindingLine(group[0], false));
+        return;
+      }
+      appendBubble("finding-bubble", renderFindingGroup(group));
     });
   }
 

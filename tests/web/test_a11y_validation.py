@@ -148,7 +148,7 @@ class WebA11yValidationTests(unittest.TestCase):
             'button.setAttribute("aria-busy"',
             "function prepareResultOpeningMessage(targetItem, container)",
             "function appendResultContentBubble(className, content, index)",
-            "function renderFindingLine(record)",
+            "function renderFindingLine(record, grouped)",
             "function renderDimensionChips(appendBubble, payload)",
             'item.setAttribute("data-result-sequence-item", "true")',
             'row.setAttribute("data-result-dimension-chips", "true")',
