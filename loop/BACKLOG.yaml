@@ -1823,8 +1823,9 @@ tasks:
   - run_gates
   paper_sections: []
   human_gate: null
-  status: READY
+  status: DONE
   source: directive-2026-06-22
+  completed_at: '2026-06-22T05:00:28+00:00'
 - id: FINK-EXP-01
   phase: P5
   priority: P2

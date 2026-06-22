@@ -1200,6 +1200,7 @@ def _health_payload(settings: WebBindSettings) -> dict[str, Any]:
         "local_only": True,
         "outbound_network_clients": 0,
         "bind": settings.public_dict(),
+        "model_status": _model_status_payload(),
     }
 
 
@@ -1210,6 +1211,39 @@ def _privacy_payload(settings: WebBindSettings) -> dict[str, Any]:
         "disclosures": DISCLOSURE_ITEMS,
         "lan": settings.public_dict(),
     }
+
+
+def _model_status_payload() -> dict[str, Any]:
+    try:
+        from fink.model.runtime import runtime_execution_path
+
+        return runtime_execution_path(profile_id="standard")["model_status"]
+    except Exception:
+        return {
+            "schema_version": 1,
+            "profile_id": "standard",
+            "summary_status": "deterministic_fallback_active",
+            "available_statuses": [
+                "not_installed",
+                "installed",
+                "loading",
+                "active",
+                "failed_health_check",
+                "deterministic_fallback_active",
+            ],
+            "component_count": 0,
+            "installed_count": 0,
+            "missing_count": 0,
+            "failed_health_check_count": 0,
+            "components": [],
+            "adapters": {
+                "ocr": "deterministic_fallback_active",
+                "embedding": "deterministic_fallback_active",
+                "reranker": "deterministic_fallback_active",
+                "optional_extractor": "deterministic_fallback_active",
+                "optional_explanation_qa": "deterministic_fallback_active",
+            },
+        }
 
 
 def _css() -> str:

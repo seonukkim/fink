@@ -187,6 +187,7 @@ class LocalAnalysisResult:
     verification_signals: tuple[VerificationSignal, ...]
     ranking_policy: str
     authority_gate: str
+    execution_path: dict[str, Any]
 
 
 def run_local_analysis(
@@ -267,6 +268,7 @@ def run_local_analysis(
     nl_summary_en = _build_nl_summary(
         ranked_findings, recommended_action, monetary_present, UILocale.EN
     )
+    execution_path = _runtime_execution_path()
 
     return LocalAnalysisResult(
         ui_locale=ui_locale,
@@ -299,6 +301,7 @@ def run_local_analysis(
         verification_signals=verification_signals,
         ranking_policy=ranking_policy,
         authority_gate=authority_gate,
+        execution_path=execution_path,
     )
 
 
@@ -673,6 +676,54 @@ def _scenario_input_values(scenario_inputs: Any | None) -> dict[str, str]:
         else:
             values[field.name] = str(value)
     return values
+
+
+def _runtime_execution_path() -> dict[str, Any]:
+    try:
+        from fink.model.runtime import runtime_execution_path
+
+        return runtime_execution_path(profile_id="standard")
+    except Exception:
+        return {
+            "schema_version": 1,
+            "execution_path_id": "deterministic_fallback_after_model_status_error_v1",
+            "profile_id": "standard",
+            "local_only": True,
+            "remote_runtime_api_allowed": False,
+            "runtime_download_allowed": False,
+            "deterministic_fallback_available": True,
+            "deterministic_fallback_active": True,
+            "model_status": {
+                "schema_version": 1,
+                "profile_id": "standard",
+                "summary_status": "deterministic_fallback_active",
+                "failed_health_check_count": 0,
+                "installed_count": 0,
+                "missing_count": 0,
+                "components": [],
+                "adapters": {
+                    "ocr": "deterministic_fallback_active",
+                    "embedding": "deterministic_fallback_active",
+                    "reranker": "deterministic_fallback_active",
+                    "optional_extractor": "deterministic_fallback_active",
+                    "optional_explanation_qa": "deterministic_fallback_active",
+                },
+            },
+            "steps": [
+                {
+                    "adapter": adapter,
+                    "model_status": "deterministic_fallback_active",
+                    "execution_path": "deterministic_fallback",
+                }
+                for adapter in (
+                    "ocr",
+                    "embedding",
+                    "reranker",
+                    "optional_extractor",
+                    "optional_explanation_qa",
+                )
+            ],
+        }
 
 
 def _ingest_validation_error(message: str) -> Exception:

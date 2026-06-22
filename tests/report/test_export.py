@@ -190,6 +190,7 @@ class ReportExportTests(unittest.TestCase):
                 self.assertIn("monetary-exposure-range", body)
                 self.assertIn("time-exposure", body)
                 self.assertIn("evidence-ocr-confidence", body)
+                self.assertIn("execution_path_id", body)
                 self.assertIn("A1-2025-STANDARD-FORM", body)
                 self.assertIn("UNVERIFIED", body)
                 self.assertIn("synthetic assumption: creator-entered low/base/high sales", body)
@@ -205,6 +206,14 @@ class ReportExportTests(unittest.TestCase):
             self.assertEqual(payload["export_metadata"]["outbound_network_clients"], 0)
             self.assertFalse(payload["export_metadata"]["contains_raw_image"])
             self.assertEqual(payload["export_metadata"]["raw_image_policy"], "excluded_by_default")
+            self.assertEqual(
+                payload["export_metadata"]["execution_path_id"],
+                "deterministic_fallback_v1",
+            )
+            self.assertEqual(
+                payload["execution_path"]["model_status"]["summary_status"],
+                "deterministic_fallback_active",
+            )
             self.assertFalse(payload["report"]["contains_raw_image"])
 
     def test_export_no_raw_image_test_excludes_raw_image_bytes_by_default(self) -> None:

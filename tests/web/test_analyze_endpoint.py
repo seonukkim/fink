@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import importlib
 import json
+import os
 import socket
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
@@ -92,9 +94,11 @@ class AnalyzeEndpointTests(unittest.TestCase):
 
     def test_analyze_post_returns_local_only_json(self) -> None:
         body = json.dumps({"paste_text": SAMPLE_KO, "locale": "ko"}).encode("utf-8")
-        status, headers, payload = asyncio.run(
-            _asgi_request(self.app, "POST", "/api/analyze", body)
-        )
+        with tempfile.TemporaryDirectory(prefix="fink-web-health-") as tmp:
+            with patch.dict(os.environ, {"FINK_HOME": tmp}):
+                status, headers, payload = asyncio.run(
+                    _asgi_request(self.app, "POST", "/api/analyze", body)
+                )
         self.assertEqual(status, 200)
         self.assertEqual(headers["content-type"], "application/json")
         self.assertEqual(headers["cache-control"], "no-store")
@@ -117,6 +121,46 @@ class AnalyzeEndpointTests(unittest.TestCase):
         self.assertTrue(data["summary"]["en"].strip())
         self.assertNotIn("브리프", data["summary"]["ko"])
         self.assertNotIn("Decision Brief", data["summary"]["en"])
+        self.assertEqual(
+            data["model_status"]["summary_status"],
+            "deterministic_fallback_active",
+        )
+        self.assertIn("execution_path", data["audit_detail"])
+        self.assertTrue(data["audit_detail"]["execution_path"]["deterministic_fallback_active"])
+        self.assertEqual(
+            {
+                step["execution_path"]
+                for step in data["audit_detail"]["execution_path"]["steps"]
+            },
+            {"deterministic_fallback"},
+        )
+        self.assertNotIn(tmp, json.dumps(data))
+
+    def test_healthz_exposes_model_statuses_without_private_paths(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fink-web-health-") as tmp:
+            with patch.dict(os.environ, {"FINK_HOME": tmp}):
+                status, _, payload = asyncio.run(_asgi_request(self.app, "GET", "/healthz"))
+
+        self.assertEqual(status, 200)
+        data = json.loads(payload)
+        model_status = data["model_status"]
+        self.assertEqual(model_status["summary_status"], "deterministic_fallback_active")
+        self.assertGreaterEqual(model_status["missing_count"], 1)
+        self.assertEqual(model_status["failed_health_check_count"], 0)
+        self.assertEqual(model_status["components"][0]["status"], "not_installed")
+        self.assertEqual(model_status["adapters"]["embedding"], "not_installed")
+        self.assertEqual(
+            set(model_status["available_statuses"]),
+            {
+                "not_installed",
+                "installed",
+                "loading",
+                "active",
+                "failed_health_check",
+                "deterministic_fallback_active",
+            },
+        )
+        self.assertNotIn(tmp, payload.decode("utf-8"))
 
     def test_analyze_post_missing_locale_defaults_to_ko(self) -> None:
         body = json.dumps({"paste_text": SAMPLE_KO}).encode("utf-8")

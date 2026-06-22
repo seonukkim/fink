@@ -352,6 +352,7 @@ class CreatorReviewViewModel:
     scenario_inputs: dict[str, Any] | None = None
     source_highlights: dict[str, Any] | None = None
     grounded_qa: dict[str, Any] | None = None
+    model_status: dict[str, Any] | None = None
     local_only: bool = True
     schema_version: int = VIEW_MODEL_SCHEMA_VERSION
     view_model: str = VIEW_MODEL_NAME
@@ -372,6 +373,7 @@ class CreatorReviewViewModel:
             "source_highlights": self.source_highlights or empty_source_highlights(),
             "grounded_qa": self.grounded_qa or empty_grounded_qa_payload(),
             "scenario_inputs": self.scenario_inputs or _scenario_inputs_from_audit({}),
+            "model_status": self.model_status or _fallback_model_status(),
             "audit_detail": self.audit_detail,
         }
 
@@ -433,6 +435,7 @@ def build_creator_review_view_model(result: Any, locale: UILocale | str) -> Crea
         scenario_inputs=scenario_inputs,
         source_highlights=source_highlights,
         grounded_qa=grounded_qa,
+        model_status=_model_status_from_result(result),
     )
 
 
@@ -497,6 +500,7 @@ def build_creator_review_view_model_from_report(
             for index, signal in enumerate(signals, start=1)
         ],
         "monetary_exposures": [_exposure_to_audit(exposure) for exposure in assessment.monetary_exposures],
+        "execution_path": getattr(report, "execution_path", _fallback_execution_path()),
     }
     grounded_qa = build_grounded_qa_payload(findings)
     return CreatorReviewViewModel(
@@ -514,6 +518,7 @@ def build_creator_review_view_model_from_report(
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
         source_highlights=empty_source_highlights(),
         grounded_qa=grounded_qa,
+        model_status=audit_detail["execution_path"]["model_status"],
     )
 
 
@@ -564,6 +569,7 @@ def build_project_page_synthetic_view_model(
                 "fim_module": "FIM-1",
             }
         ],
+        "execution_path": _fallback_execution_path(),
     }
     return CreatorReviewViewModel(
         ui_locale=locale,
@@ -615,6 +621,7 @@ def build_project_page_synthetic_view_model(
         scenario_inputs=_scenario_inputs_from_audit(audit_detail),
         source_highlights=empty_source_highlights(),
         grounded_qa=build_grounded_qa_payload((finding,)),
+        model_status=audit_detail["execution_path"]["model_status"],
     )
 
 
@@ -1005,11 +1012,75 @@ def _audit_detail_from_result(result: Any) -> dict[str, Any]:
             ],
         },
         "monetary_exposures": [_exposure_to_audit(exposure) for exposure in result.exposures],
+        "execution_path": getattr(result, "execution_path", _fallback_execution_path()),
     }
 
 
 def _verification_from_result(result: Any) -> dict[str, Any]:
     return verification_payload(tuple(getattr(result, "verification_signals", ())))
+
+
+def _model_status_from_result(result: Any) -> dict[str, Any]:
+    execution_path = getattr(result, "execution_path", None)
+    if isinstance(execution_path, dict) and isinstance(execution_path.get("model_status"), dict):
+        return dict(execution_path["model_status"])
+    return _fallback_model_status()
+
+
+def _fallback_model_status() -> dict[str, Any]:
+    return _fallback_execution_path()["model_status"]
+
+
+def _fallback_execution_path() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "execution_path_id": "deterministic_fallback_v1",
+        "profile_id": "standard",
+        "local_only": True,
+        "remote_runtime_api_allowed": False,
+        "runtime_download_allowed": False,
+        "deterministic_fallback_available": True,
+        "deterministic_fallback_active": True,
+        "model_status": {
+            "schema_version": 1,
+            "profile_id": "standard",
+            "summary_status": "deterministic_fallback_active",
+            "available_statuses": [
+                "not_installed",
+                "installed",
+                "loading",
+                "active",
+                "failed_health_check",
+                "deterministic_fallback_active",
+            ],
+            "component_count": 0,
+            "installed_count": 0,
+            "missing_count": 0,
+            "failed_health_check_count": 0,
+            "components": [],
+            "adapters": {
+                "ocr": "deterministic_fallback_active",
+                "embedding": "deterministic_fallback_active",
+                "reranker": "deterministic_fallback_active",
+                "optional_extractor": "deterministic_fallback_active",
+                "optional_explanation_qa": "deterministic_fallback_active",
+            },
+        },
+        "steps": [
+            {
+                "adapter": adapter,
+                "model_status": "deterministic_fallback_active",
+                "execution_path": "deterministic_fallback",
+            }
+            for adapter in (
+                "ocr",
+                "embedding",
+                "reranker",
+                "optional_extractor",
+                "optional_explanation_qa",
+            )
+        ],
+    }
 
 
 def _scenario_inputs_from_audit(

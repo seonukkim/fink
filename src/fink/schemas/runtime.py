@@ -277,6 +277,55 @@ def schema_field_metadata(schema_cls: type[SchemaModel]) -> dict[str, dict[str, 
     return {item.name: dict(item.metadata) for item in fields(schema_cls)}
 
 
+def default_execution_path() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "execution_path_id": "deterministic_fallback_v1",
+        "local_only": True,
+        "remote_runtime_api_allowed": False,
+        "runtime_download_allowed": False,
+        "deterministic_fallback_active": True,
+        "model_status": {
+            "summary_status": "deterministic_fallback_active",
+            "available_statuses": [
+                "not_installed",
+                "installed",
+                "loading",
+                "active",
+                "failed_health_check",
+                "deterministic_fallback_active",
+            ],
+        },
+        "steps": [
+            {
+                "adapter": "ocr",
+                "model_status": "deterministic_fallback_active",
+                "execution_path": "deterministic_fallback",
+            },
+            {
+                "adapter": "embedding",
+                "model_status": "deterministic_fallback_active",
+                "execution_path": "deterministic_fallback",
+            },
+            {
+                "adapter": "reranker",
+                "model_status": "deterministic_fallback_active",
+                "execution_path": "deterministic_fallback",
+            },
+            {
+                "adapter": "optional_extractor",
+                "model_status": "deterministic_fallback_active",
+                "execution_path": "deterministic_fallback",
+            },
+            {
+                "adapter": "optional_explanation_qa",
+                "model_status": "deterministic_fallback_active",
+                "execution_path": "deterministic_fallback",
+            },
+        ],
+    }
+
+
 @dataclass
 class AnalysisRequest(SchemaModel):
     request_id: str = schema_field(
@@ -1407,6 +1456,12 @@ class AnalysisReport(SchemaModel):
         provenance=Provenance.DERIVED,
         bilingual=BilingualTag.NOT_APPLICABLE,
     )
+    execution_path: dict[str, Any] = schema_field(
+        privacy=PrivacyClass.P1_INTERNAL,
+        provenance=Provenance.DERIVED,
+        bilingual=BilingualTag.NOT_APPLICABLE,
+        default_factory=default_execution_path,
+    )
     contains_raw_image: bool = schema_field(
         privacy=PrivacyClass.P3_USER_EPHEMERAL,
         provenance=Provenance.CONFIG,
@@ -1438,6 +1493,7 @@ class AnalysisReport(SchemaModel):
         _require("review priority" in normalized, "disclaimers must frame review priority")
         _require("not legal advice" in normalized, "disclaimers must include not legal advice")
         _validate_bool(self.generated_text_flag, "generated_text_flag")
+        _validate_execution_path(self.execution_path)
         _validate_bool(self.contains_raw_image, "contains_raw_image")
         if self.exported_at is not None:
             _coerce_datetime_attr(self, "exported_at")
@@ -1744,6 +1800,35 @@ def _validate_nonempty_text_tuple(value: object, name: str) -> tuple[str, ...]:
     values = _validate_text_tuple(value, name)
     _require(len(values) >= 1, f"{name} must not be empty")
     return values
+
+
+def _validate_execution_path(value: object) -> None:
+    _require(isinstance(value, dict), "execution_path must be a mapping")
+    _require(value.get("local_only") is True, "execution_path.local_only must be true")
+    _require(
+        value.get("remote_runtime_api_allowed") is False,
+        "execution_path must not allow remote runtime API",
+    )
+    _require(
+        value.get("runtime_download_allowed") is False,
+        "execution_path must not allow runtime download",
+    )
+    _require_nonblank(value.get("execution_path_id"), "execution_path.execution_path_id")
+    steps = value.get("steps")
+    _require(isinstance(steps, list) and bool(steps), "execution_path.steps must be nonempty")
+    for index, step in enumerate(steps):
+        _require(isinstance(step, dict), f"execution_path.steps[{index}] must be a mapping")
+        _require_nonblank(step.get("adapter"), f"execution_path.steps[{index}].adapter")
+        _require_nonblank(
+            step.get("execution_path"),
+            f"execution_path.steps[{index}].execution_path",
+        )
+    model_status = value.get("model_status")
+    _require(isinstance(model_status, dict), "execution_path.model_status must be a mapping")
+    _require_nonblank(
+        model_status.get("summary_status"),
+        "execution_path.model_status.summary_status",
+    )
 
 
 def _coerce_enum_tuple(value: object, enum_cls: type[Enum], name: str) -> tuple[Any, ...]:

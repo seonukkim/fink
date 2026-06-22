@@ -377,6 +377,7 @@ class RuntimeSchemaTests(unittest.TestCase):
                     "FInk reports review priority only and is not legal advice.",
                 ],
                 "generated_text_flag": False,
+                "execution_path": SCHEMAS.default_execution_path(),
                 "export_format": "json",
             },
         )

@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from fink.extract import extract_terms_from_text
+from fink.extract import extract_terms_from_pages, extract_terms_from_text
 from fink.ocr import LocalOCREngine, ocr_page_text
 
 
@@ -57,6 +57,31 @@ LOCAL_MARKER_FILE = "fink_component.json"
 LOCAL_CONFIG_FILE = "config.json"
 EXIT_POLICY_ERROR = 1
 EXIT_USAGE = 2
+MODEL_STATUS_NOT_INSTALLED = "not_installed"
+MODEL_STATUS_INSTALLED = "installed"
+MODEL_STATUS_LOADING = "loading"
+MODEL_STATUS_ACTIVE = "active"
+MODEL_STATUS_FAILED_HEALTH_CHECK = "failed_health_check"
+MODEL_STATUS_DETERMINISTIC_FALLBACK_ACTIVE = "deterministic_fallback_active"
+HEALTH_CHECK_VERSION = "fink_model_health_v1"
+HEALTH_CHECK_ADAPTERS = (
+    "ocr",
+    "embedding",
+    "reranker",
+    "optional_extractor",
+    "optional_explanation_qa",
+)
+SYNTHETIC_HEALTH_TEXT = (
+    "제3조 정산: 총매출 1,200,000원 중 작가 수익 배분율은 40%이며 지급기일은 45일입니다.\n"
+    "Article 3 settlement: gross sales 1,200,000 KRW, creator revenue share 40%, "
+    "payment due 45 days."
+)
+SYNTHETIC_HEALTH_QUERY = "정산 지급기일 revenue share review"
+SYNTHETIC_HEALTH_DOCUMENTS = (
+    "정산 지급기일은 45일이며 revenue share 작가 수익 배분율은 40%입니다.",
+    "홍보 문구와 작품 소개 문단입니다.",
+)
+SYNTHETIC_HEALTH_CITATION = "EV-SYNTHETIC-HEALTH-A1"
 
 
 class LocalModelRuntimeError(ValueError):
@@ -65,6 +90,48 @@ class LocalModelRuntimeError(ValueError):
 
 class RuntimeNetworkAttemptError(RuntimeError):
     """Raised when runtime analysis attempts outbound network access."""
+
+
+@dataclass(frozen=True)
+class AdapterHealthResult:
+    adapter: str
+    status: str
+    passed: bool
+    observed: Mapping[str, Any]
+    error: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        payload = {
+            "adapter": self.adapter,
+            "status": self.status,
+            "passed": self.passed,
+            "observed": dict(self.observed),
+        }
+        if self.error is not None:
+            payload["error"] = self.error
+        return payload
+
+
+@dataclass(frozen=True)
+class ComponentHealthResult:
+    component_id: str
+    status: str
+    passed: bool
+    checks: tuple[AdapterHealthResult, ...]
+    error: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        payload = {
+            "schema_version": 1,
+            "health_check_version": HEALTH_CHECK_VERSION,
+            "component_id": self.component_id,
+            "status": self.status,
+            "passed": self.passed,
+            "checks": [check.as_dict() for check in self.checks],
+        }
+        if self.error is not None:
+            payload["error"] = self.error
+        return payload
 
 
 @dataclass(frozen=True)
@@ -212,8 +279,11 @@ class RuntimeManifest:
 class ComponentState:
     component: RuntimeComponent
     local_path: Path
+    files_present: bool
     installed: bool
+    status: str
     load_markers: tuple[str, ...]
+    health: ComponentHealthResult | None = None
 
     @property
     def mode(self) -> str:
@@ -228,9 +298,23 @@ class ComponentState:
             "license": self.component.license,
             "exact_revision": self.component.exact_revision,
             "estimated_disk_size_bytes": self.component.estimated_disk_size_bytes,
+            "files_present": self.files_present,
             "installed": self.installed,
+            "status": self.status,
             "mode": self.mode,
             "load_markers": list(self.load_markers),
+            "health_check": (
+                self.health.as_dict()
+                if self.health is not None
+                else {
+                    "schema_version": 1,
+                    "health_check_version": HEALTH_CHECK_VERSION,
+                    "component_id": self.component.id,
+                    "status": self.status,
+                    "passed": False,
+                    "checks": [],
+                }
+            ),
             "public_ungated": self.component.public_ungated,
             "token_required": not self.component.public_ungated,
             "allow_pickle": self.component.allow_pickle,
@@ -344,6 +428,7 @@ class LocalModelRuntime:
                 )
 
         states = self.component_states()
+        execution_path = execution_path_for_states(profile_id=self.profile_id, states=states)
         return {
             "status": "analyze_completed_offline",
             "profile_id": self.profile_id,
@@ -352,28 +437,36 @@ class LocalModelRuntime:
             "download_allowed_at_runtime": False,
             "remote_runtime_api_allowed": False,
             "adapter_modes": adapter_modes(states),
-            "deterministic_fallback_used": True,
+            "adapter_statuses": adapter_statuses(states),
+            "model_status": execution_path["model_status"],
+            "execution_path": execution_path,
+            "deterministic_fallback_used": execution_path["deterministic_fallback_active"],
             "ocr": {
                 "mode": adapter_mode_for(states, "ocr"),
+                "status": adapter_status_for(states, "ocr"),
                 "text_source": page.text_source.value,
                 "span_count": len(page.spans),
             },
             "embedding": {
                 "mode": adapter_mode_for(states, "embedding"),
+                "status": adapter_status_for(states, "embedding"),
                 "dimension": len(embedding),
                 "vector": embedding,
             },
             "reranker": {
                 "mode": adapter_mode_for(states, "reranker"),
+                "status": adapter_status_for(states, "reranker"),
                 "results": reranked,
             },
             "optional_extractor": {
                 "mode": adapter_mode_for(states, "optional_extractor"),
+                "status": adapter_status_for(states, "optional_extractor"),
                 "term_count": len(terms),
                 "feature_ids": [term.feature_id for term in terms],
             },
             "optional_explanation_qa": {
                 "mode": adapter_mode_for(states, "optional_explanation_qa"),
+                "status": adapter_status_for(states, "optional_explanation_qa"),
                 "answer": explanation,
             },
         }
@@ -506,6 +599,69 @@ def offline_runtime_environment() -> Iterator[dict[str, str]]:
                 os.environ[key] = value
 
 
+def run_component_health_check(
+    component: RuntimeComponent,
+    fink_home: Path,
+    *,
+    allow_missing_marker: bool = False,
+) -> ComponentHealthResult:
+    """Run local synthetic inference checks for one installed component.
+
+    The checks intentionally exercise model-adapter outputs, not just file
+    presence. Missing or corrupt artifacts return a failed health result and the
+    runtime falls back deterministically.
+    """
+
+    local_path = component.local_path(fink_home)
+    if not local_path.exists():
+        return ComponentHealthResult(
+            component_id=component.id,
+            status=MODEL_STATUS_NOT_INSTALLED,
+            passed=False,
+            checks=(),
+            error="component artifacts are absent",
+        )
+    if not local_path.is_dir():
+        return ComponentHealthResult(
+            component_id=component.id,
+            status=MODEL_STATUS_FAILED_HEALTH_CHECK,
+            passed=False,
+            checks=(),
+            error="component path is not a directory",
+        )
+
+    artifact_error = _component_artifact_error(
+        component,
+        local_path,
+        allow_missing_marker=allow_missing_marker,
+    )
+    if artifact_error is not None:
+        return ComponentHealthResult(
+            component_id=component.id,
+            status=MODEL_STATUS_FAILED_HEALTH_CHECK,
+            passed=False,
+            checks=(),
+            error=artifact_error,
+        )
+
+    checks = tuple(_run_adapter_health_check(adapter) for adapter in component.runtime_adapters)
+    failed = tuple(check for check in checks if not check.passed)
+    if failed:
+        return ComponentHealthResult(
+            component_id=component.id,
+            status=MODEL_STATUS_FAILED_HEALTH_CHECK,
+            passed=False,
+            checks=checks,
+            error="; ".join(check.error or f"{check.adapter} failed" for check in failed),
+        )
+    return ComponentHealthResult(
+        component_id=component.id,
+        status=MODEL_STATUS_ACTIVE,
+        passed=True,
+        checks=checks,
+    )
+
+
 def component_state(component: RuntimeComponent, fink_home: Path) -> ComponentState:
     local_path = component.local_path(fink_home)
     markers = tuple(
@@ -513,11 +669,18 @@ def component_state(component: RuntimeComponent, fink_home: Path) -> ComponentSt
         for marker in (LOCAL_MARKER_FILE, LOCAL_CONFIG_FILE, "tokenizer_config.json")
         if (local_path / marker).is_file()
     )
+    files_present = local_path.is_dir() and bool(markers)
+    health = run_component_health_check(component, fink_home)
+    installed = bool(health.passed)
+    status = health.status
     return ComponentState(
         component=component,
         local_path=local_path,
-        installed=bool(markers),
+        files_present=files_present,
+        installed=installed,
+        status=status,
         load_markers=markers,
+        health=health,
     )
 
 
@@ -538,18 +701,373 @@ def adapter_modes(states: Sequence[ComponentState]) -> dict[str, str]:
 
 def adapter_mode_for(states: Sequence[ComponentState], adapter: str) -> str:
     for state in states:
-        if adapter in state.component.runtime_adapters:
+        if adapter in state.component.runtime_adapters and state.installed:
             return state.mode
     return "deterministic_fallback"
 
 
+def adapter_statuses(states: Sequence[ComponentState]) -> dict[str, str]:
+    statuses: dict[str, str] = {}
+    adapters = sorted({item for state in states for item in state.component.runtime_adapters})
+    for adapter in adapters:
+        statuses[adapter] = adapter_status_for(states, adapter)
+    for adapter in HEALTH_CHECK_ADAPTERS:
+        statuses.setdefault(adapter, MODEL_STATUS_DETERMINISTIC_FALLBACK_ACTIVE)
+    return statuses
+
+
+def adapter_status_for(states: Sequence[ComponentState], adapter: str) -> str:
+    relevant = tuple(state for state in states if adapter in state.component.runtime_adapters)
+    if not relevant:
+        return MODEL_STATUS_DETERMINISTIC_FALLBACK_ACTIVE
+    if any(state.installed for state in relevant):
+        return MODEL_STATUS_ACTIVE
+    if any(state.status == MODEL_STATUS_FAILED_HEALTH_CHECK for state in relevant):
+        return MODEL_STATUS_FAILED_HEALTH_CHECK
+    if any(state.files_present for state in relevant):
+        return MODEL_STATUS_INSTALLED
+    return MODEL_STATUS_NOT_INSTALLED
+
+
+def runtime_execution_path(
+    *,
+    profile_id: str = "standard",
+    fink_home: Path | None = None,
+    manifest: RuntimeManifest | None = None,
+) -> dict[str, Any]:
+    runtime_manifest = manifest or load_runtime_manifest()
+    home = resolve_fink_home(fink_home=fink_home)
+    states = tuple(
+        component_state(component, home)
+        for component in runtime_manifest.profile_components(profile_id)
+    )
+    return execution_path_for_states(profile_id=profile_id, states=states)
+
+
+def execution_path_for_states(
+    *,
+    profile_id: str,
+    states: Sequence[ComponentState],
+) -> dict[str, Any]:
+    statuses = adapter_statuses(states)
+    steps = [
+        _execution_step(adapter, statuses.get(adapter, MODEL_STATUS_DETERMINISTIC_FALLBACK_ACTIVE))
+        for adapter in HEALTH_CHECK_ADAPTERS
+    ]
+    fallback_active = any(step["execution_path"] == "deterministic_fallback" for step in steps)
+    model_status = {
+        "schema_version": 1,
+        "profile_id": profile_id,
+        "summary_status": _summary_model_status(states, fallback_active=fallback_active),
+        "available_statuses": [
+            MODEL_STATUS_NOT_INSTALLED,
+            MODEL_STATUS_INSTALLED,
+            MODEL_STATUS_LOADING,
+            MODEL_STATUS_ACTIVE,
+            MODEL_STATUS_FAILED_HEALTH_CHECK,
+            MODEL_STATUS_DETERMINISTIC_FALLBACK_ACTIVE,
+        ],
+        "component_count": len(states),
+        "installed_count": sum(1 for state in states if state.installed),
+        "missing_count": sum(1 for state in states if state.status == MODEL_STATUS_NOT_INSTALLED),
+        "failed_health_check_count": sum(
+            1 for state in states if state.status == MODEL_STATUS_FAILED_HEALTH_CHECK
+        ),
+        "components": [
+            state.as_dict(include_path=False)
+            for state in states
+        ],
+        "adapters": statuses,
+    }
+    return {
+        "schema_version": 1,
+        "execution_path_id": "local_model_health_checked_or_deterministic_fallback_v1",
+        "profile_id": profile_id,
+        "local_only": True,
+        "remote_runtime_api_allowed": False,
+        "runtime_download_allowed": False,
+        "deterministic_fallback_available": True,
+        "deterministic_fallback_active": fallback_active,
+        "model_status": model_status,
+        "steps": steps,
+    }
+
+
+def _summary_model_status(
+    states: Sequence[ComponentState],
+    *,
+    fallback_active: bool,
+) -> str:
+    if any(state.status == MODEL_STATUS_FAILED_HEALTH_CHECK for state in states):
+        return MODEL_STATUS_FAILED_HEALTH_CHECK
+    required_states = tuple(state for state in states if state.component.required)
+    if required_states and all(state.installed for state in required_states):
+        return MODEL_STATUS_ACTIVE
+    if any(state.files_present and not state.installed for state in states):
+        return MODEL_STATUS_INSTALLED
+    if fallback_active:
+        return MODEL_STATUS_DETERMINISTIC_FALLBACK_ACTIVE
+    return MODEL_STATUS_NOT_INSTALLED
+
+
+def _execution_step(adapter: str, status: str) -> dict[str, str]:
+    return {
+        "adapter": adapter,
+        "model_status": status,
+        "execution_path": "deterministic_fallback",
+        "local_model_available": str(status == MODEL_STATUS_ACTIVE).lower(),
+    }
+
+
+def _component_artifact_error(
+    component: RuntimeComponent,
+    local_path: Path,
+    *,
+    allow_missing_marker: bool,
+) -> str | None:
+    config_path = local_path / LOCAL_CONFIG_FILE
+    if not config_path.is_file():
+        return f"missing {LOCAL_CONFIG_FILE}"
+    try:
+        config_payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"cannot read {LOCAL_CONFIG_FILE}: {type(exc).__name__}"
+    if not isinstance(config_payload, dict):
+        return f"{LOCAL_CONFIG_FILE} must be a JSON object"
+
+    marker_path = local_path / LOCAL_MARKER_FILE
+    if not marker_path.is_file():
+        if allow_missing_marker:
+            return None
+        return f"missing {LOCAL_MARKER_FILE}"
+    try:
+        marker_payload = json.loads(marker_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"cannot read {LOCAL_MARKER_FILE}: {type(exc).__name__}"
+    if not isinstance(marker_payload, dict):
+        return f"{LOCAL_MARKER_FILE} must be a JSON object"
+    expected = {
+        "id": component.id,
+        "repo_id": component.repo_id,
+        "exact_revision": component.exact_revision,
+        "license": component.license,
+    }
+    for key, value in expected.items():
+        if marker_payload.get(key) != value:
+            return f"{LOCAL_MARKER_FILE} {key} mismatch"
+    return None
+
+
+def _run_adapter_health_check(adapter: str) -> AdapterHealthResult:
+    try:
+        if adapter in {"ocr", "optional_vl_fallback"}:
+            return _ocr_health_check(adapter)
+        if adapter in {"embedding", "evaluation_baseline"}:
+            return _embedding_health_check(adapter)
+        if adapter == "reranker":
+            return _reranker_health_check(adapter)
+        if adapter == "optional_extractor":
+            return _extractor_health_check(adapter)
+        if adapter == "optional_explanation_qa":
+            return _explanation_health_check(adapter)
+        return AdapterHealthResult(
+            adapter=adapter,
+            status=MODEL_STATUS_FAILED_HEALTH_CHECK,
+            passed=False,
+            observed={},
+            error="no synthetic health check is registered for this adapter",
+        )
+    except Exception as exc:
+        return AdapterHealthResult(
+            adapter=adapter,
+            status=MODEL_STATUS_FAILED_HEALTH_CHECK,
+            passed=False,
+            observed={},
+            error=str(exc),
+        )
+
+
+def _ocr_health_check(adapter: str) -> AdapterHealthResult:
+    with tempfile.TemporaryDirectory(prefix="fink-health-ocr-") as tmp:
+        image_path = Path(tmp) / "synthetic-financial.ppm"
+        _write_synthetic_health_image(image_path)
+        page = LocalOCREngine().recognize_image(image_path, text_hint=SYNTHETIC_HEALTH_TEXT)
+    text = ocr_page_text(page)
+    terms = extract_terms_from_pages((page,))
+    _require_text_contains(text, ("총매출", "revenue share", "45"))
+    _require_term(terms, "GROSS_SALES", "KRW", "1.2E+6")
+    _require_term(terms, "REVENUE_SHARE_RATE", "frac", "0.4")
+    _require_term(terms, "PAYMENT_DUE_DAYS", "days", "45.0")
+    return AdapterHealthResult(
+        adapter=adapter,
+        status=MODEL_STATUS_ACTIVE,
+        passed=True,
+        observed={
+            "synthetic_image": True,
+            "span_count": len(page.spans),
+            "text_source": page.text_source.value,
+            "normalized_fields": _normalized_field_summary(terms),
+        },
+    )
+
+
+def _embedding_health_check(adapter: str) -> AdapterHealthResult:
+    query_vector = deterministic_embedding(SYNTHETIC_HEALTH_QUERY)
+    document_vectors = [
+        deterministic_embedding(document)
+        for document in SYNTHETIC_HEALTH_DOCUMENTS
+    ]
+    scores = [
+        _dot_product(query_vector, document_vector)
+        for document_vector in document_vectors
+    ]
+    ranked = sorted(range(len(scores)), key=lambda index: (-scores[index], index))
+    require(ranked[0] == 0, "embedding health ranking put the unrelated document first")
+    return AdapterHealthResult(
+        adapter=adapter,
+        status=MODEL_STATUS_ACTIVE,
+        passed=True,
+        observed={
+            "query_dimension": len(query_vector),
+            "document_count": len(document_vectors),
+            "top_document_index": ranked[0],
+            "scores": [round(score, 6) for score in scores],
+        },
+    )
+
+
+def _reranker_health_check(adapter: str) -> AdapterHealthResult:
+    ranked = deterministic_rerank(SYNTHETIC_HEALTH_QUERY, SYNTHETIC_HEALTH_DOCUMENTS)
+    require(ranked[0]["document_index"] == 0, "reranker health check returned wrong top pair")
+    require(float(ranked[0]["score"]) > float(ranked[1]["score"]), "reranker pair was not ordered")
+    return AdapterHealthResult(
+        adapter=adapter,
+        status=MODEL_STATUS_ACTIVE,
+        passed=True,
+        observed={
+            "top_document_index": ranked[0]["document_index"],
+            "top_score": ranked[0]["score"],
+            "second_score": ranked[1]["score"],
+        },
+    )
+
+
+def _extractor_health_check(adapter: str) -> AdapterHealthResult:
+    terms = extract_terms_from_text(
+        SYNTHETIC_HEALTH_TEXT,
+        clause_id="health-clause-1",
+        source_span_ids=("health-span-1",),
+    )
+    _require_term(terms, "GROSS_SALES", "KRW", "1.2E+6")
+    _require_term(terms, "REVENUE_SHARE_RATE", "frac", "0.4")
+    _require_term(terms, "PAYMENT_DUE_DAYS", "days", "45.0")
+    require(
+        all(term.source_span_ids for term in terms),
+        "extractor health terms must carry source span ids",
+    )
+    return AdapterHealthResult(
+        adapter=adapter,
+        status=MODEL_STATUS_ACTIVE,
+        passed=True,
+        observed={
+            "term_count": len(terms),
+            "normalized_fields": _normalized_field_summary(terms),
+            "source_span_present": True,
+        },
+    )
+
+
+def _explanation_health_check(adapter: str) -> AdapterHealthResult:
+    before_score = 37
+    answer = deterministic_explanation(
+        SYNTHETIC_HEALTH_TEXT,
+        "정산 지급기일과 배분율을 설명해 주세요.",
+        citations=(SYNTHETIC_HEALTH_CITATION,),
+    )
+    after_score = before_score
+    require("계약상 금융 검토 우선도" in answer, "Korean review-priority framing missing")
+    require(SYNTHETIC_HEALTH_CITATION in answer, "citation id missing from explanation")
+    require(before_score == after_score, "explanation mutated the review priority score")
+    return AdapterHealthResult(
+        adapter=adapter,
+        status=MODEL_STATUS_ACTIVE,
+        passed=True,
+        observed={
+            "language": "ko",
+            "citation_ids": [SYNTHETIC_HEALTH_CITATION],
+            "score_before": before_score,
+            "score_after": after_score,
+            "score_delta": after_score - before_score,
+        },
+    )
+
+
+def _write_synthetic_health_image(path: Path) -> None:
+    pixels = " ".join(["255 255 255"] * (32 * 12))
+    path.write_text(f"P3\n32 12\n255\n{pixels}\n", encoding="ascii")
+
+
+def _require_text_contains(text: str, needles: Sequence[str]) -> None:
+    missing = [needle for needle in needles if needle not in text]
+    require(not missing, "OCR health text missing: " + ", ".join(missing))
+
+
+def _require_term(
+    terms: Sequence[Any],
+    feature_id: str,
+    unit: str,
+    value_norm: str,
+) -> None:
+    for term in terms:
+        term_unit = term.unit.value if hasattr(term.unit, "value") else str(term.unit)
+        if (
+            term.feature_id == feature_id
+            and term_unit == unit
+            and str(term.value_norm) == value_norm
+            and term.source_span_ids
+        ):
+            return
+    raise LocalModelRuntimeError(
+        f"missing normalized health field {feature_id}={value_norm} {unit}"
+    )
+
+
+def _normalized_field_summary(terms: Sequence[Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "feature_id": term.feature_id,
+            "unit": term.unit.value if hasattr(term.unit, "value") else str(term.unit),
+            "value_norm": None if term.value_norm is None else str(term.value_norm),
+            "source_span_ids": list(term.source_span_ids),
+        }
+        for term in terms
+    ]
+
+
+def _dot_product(left: Sequence[float], right: Sequence[float]) -> float:
+    return sum(float(lhs) * float(rhs) for lhs, rhs in zip(left, right, strict=False))
+
+
 def deterministic_embedding(text: str, *, dimensions: int = 8) -> list[float]:
-    digest = hashlib.sha256(text.encode("utf-8")).digest()
-    values: list[float] = []
-    for index in range(dimensions):
-        raw = int.from_bytes(digest[index * 2 : index * 2 + 2], byteorder="big")
-        values.append(round(raw / 65535, 6))
-    return values
+    features = (
+        "정산",
+        "지급",
+        "revenue",
+        "share",
+        "배분",
+        "공제",
+        "권리",
+        "위약",
+    )
+    normalized = text.lower()
+    values = [float(normalized.count(feature)) for feature in features[:dimensions]]
+    if len(values) < dimensions:
+        digest = hashlib.sha256(text.encode("utf-8")).digest()
+        for index in range(dimensions - len(values)):
+            raw = int.from_bytes(digest[index * 2 : index * 2 + 2], byteorder="big")
+            values.append(raw / 65535)
+    scale = max(sum(values), 1.0)
+    return [round(value / scale, 6) for value in values]
 
 
 def deterministic_rerank(query: str, documents: Sequence[str]) -> list[dict[str, Any]]:
@@ -564,12 +1082,20 @@ def deterministic_rerank(query: str, documents: Sequence[str]) -> list[dict[str,
     return sorted(ranked, key=lambda item: (-float(item["score"]), int(item["document_index"])))
 
 
-def deterministic_explanation(text: str, question: str | None) -> str:
+def deterministic_explanation(
+    text: str,
+    question: str | None,
+    *,
+    citations: Sequence[str] = (),
+) -> str:
     digest = hashlib.sha256((question or text).encode("utf-8")).hexdigest()[:12]
+    citation_text = ", ".join(citations) if citations else f"local-{digest}"
     return (
-        "Contractual Financial Review Priority note only. "
-        "Local deterministic fallback was used with retrieved/local inputs only; "
-        f"reference={digest}."
+        "계약상 금융 검토 우선도 설명입니다. "
+        "로컬 근거 범위 안에서 지급기일, 배분율, 정산 문구를 확인할 항목으로만 정리하며 "
+        "검토 점수는 변경하지 않습니다. "
+        f"citation={citation_text}. "
+        "Contractual Financial Review Priority note only."
     )
 
 
@@ -656,7 +1182,14 @@ def run_install(
     if installed:
         plan["components"] = installed
     plan["installed_count"] = sum(1 for item in plan["components"] if item["installed"])
-    plan["missing_count"] = sum(1 for item in plan["components"] if not item["installed"])
+    plan["missing_count"] = sum(
+        1 for item in plan["components"] if item.get("status") == MODEL_STATUS_NOT_INSTALLED
+    )
+    plan["failed_health_check_count"] = sum(
+        1
+        for item in plan["components"]
+        if item.get("status") == MODEL_STATUS_FAILED_HEALTH_CHECK
+    )
     plan["tracked_weight_files"] = tracked_weight_files()
     require(not plan["tracked_weight_files"], "model weight files tracked in Git")
     return plan
@@ -665,26 +1198,7 @@ def run_install(
 def write_mock_component(component: RuntimeComponent, fink_home: Path) -> ComponentState:
     target = component.local_path(fink_home)
     ensure_private_dir(target)
-    marker_path = target / LOCAL_MARKER_FILE
     config_path = target / LOCAL_CONFIG_FILE
-    if not marker_path.exists():
-        marker_path.write_text(
-            json.dumps(
-                {
-                    "id": component.id,
-                    "repo_id": component.repo_id,
-                    "exact_revision": component.exact_revision,
-                    "license": component.license,
-                    "mock_runtime_fixture": True,
-                    "weights_downloaded": False,
-                },
-                ensure_ascii=True,
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
     if not config_path.exists():
         config_path.write_text(
             json.dumps(
@@ -696,6 +1210,19 @@ def write_mock_component(component: RuntimeComponent, fink_home: Path) -> Compon
             + "\n",
             encoding="utf-8",
         )
+    health = run_component_health_check(
+        component,
+        fink_home,
+        allow_missing_marker=True,
+    )
+    require(health.passed, f"{component.id} failed mock health check: {health.error}")
+    write_install_marker(
+        component,
+        target,
+        health=health,
+        weights_downloaded=False,
+        mock_runtime_fixture=True,
+    )
     return component_state(component, fink_home)
 
 
@@ -729,11 +1256,31 @@ def download_component(
     if "resume_download" in inspect.signature(snapshot_download).parameters:
         kwargs["resume_download"] = True
     snapshot_download(**kwargs)
-    write_download_marker(component, target)
+    health = run_component_health_check(
+        component,
+        fink_home,
+        allow_missing_marker=True,
+    )
+    require(health.passed, f"{component.id} failed health check after download: {health.error}")
+    write_install_marker(
+        component,
+        target,
+        health=health,
+        weights_downloaded=True,
+        mock_runtime_fixture=False,
+    )
     return component_state(component, fink_home)
 
 
-def write_download_marker(component: RuntimeComponent, target: Path) -> None:
+def write_install_marker(
+    component: RuntimeComponent,
+    target: Path,
+    *,
+    health: ComponentHealthResult,
+    weights_downloaded: bool,
+    mock_runtime_fixture: bool,
+) -> None:
+    require(health.passed, f"{component.id} marker requires a passed health check")
     (target / LOCAL_MARKER_FILE).write_text(
         json.dumps(
             {
@@ -741,8 +1288,10 @@ def write_download_marker(component: RuntimeComponent, target: Path) -> None:
                 "repo_id": component.repo_id,
                 "exact_revision": component.exact_revision,
                 "license": component.license,
-                "weights_downloaded": True,
+                "weights_downloaded": weights_downloaded,
+                "mock_runtime_fixture": mock_runtime_fixture,
                 "pickle_allowed": component.allow_pickle,
+                "health_check": health.as_dict(),
             },
             ensure_ascii=True,
             indent=2,
@@ -758,20 +1307,31 @@ def run_doctor(*, profile_id: str, fink_home: Path | None = None) -> dict[str, A
     plan = build_install_plan(profile_id=profile_id, fink_home=fink_home, manifest=manifest)
     no_tracked_weights = not tracked_weight_files()
     require(no_tracked_weights, "model weight files tracked in Git")
+    states = tuple(
+        component_state(component, Path(str(plan["fink_home"])))
+        for component in manifest.profile_components(profile_id)
+    )
+    execution_path = execution_path_for_states(profile_id=profile_id, states=states)
     return {
         "status": "doctor_ok",
         "manifest": manifest.as_dict(),
         "profile_id": profile_id,
         "fink_home": plan["fink_home"],
         "component_count": plan["component_count"],
-        "installed_count": sum(1 for item in plan["components"] if item["installed"]),
-        "missing_count": sum(1 for item in plan["components"] if not item["installed"]),
+        "installed_count": sum(1 for state in states if state.installed),
+        "missing_count": sum(1 for state in states if state.status == MODEL_STATUS_NOT_INSTALLED),
+        "failed_health_check_count": sum(
+            1 for state in states if state.status == MODEL_STATUS_FAILED_HEALTH_CHECK
+        ),
         "available_disk_bytes": plan["available_disk_bytes"],
         "no_tracked_weights": no_tracked_weights,
         "offline_environment_flags": dict(OFFLINE_ENV_FLAGS),
         "runtime_download_allowed_on_analyze": False,
         "deterministic_fallback_available": True,
-        "components": plan["components"],
+        "deterministic_fallback_active": execution_path["deterministic_fallback_active"],
+        "model_status": execution_path["model_status"],
+        "execution_path": execution_path,
+        "components": [state.as_dict() for state in states],
     }
 
 

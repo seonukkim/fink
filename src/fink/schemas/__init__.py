@@ -48,6 +48,7 @@ from fink.schemas.runtime import (
     UploadedDocument,
     ValidationStatus,
     VerificationStatus,
+    default_execution_path,
     schema_field,
     schema_field_metadata,
 )
@@ -100,6 +101,7 @@ __all__ = [
     "UploadedDocument",
     "ValidationStatus",
     "VerificationStatus",
+    "default_execution_path",
     "schema_field",
     "schema_field_metadata",
 ]

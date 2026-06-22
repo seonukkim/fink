@@ -185,6 +185,7 @@ def _export_payload(
     report_payload["contains_raw_image"] = False
     report_payload["export_format"] = fmt.value
     report_payload["exported_at"] = timestamp
+    execution_path = _scrub_raw_image_fields(getattr(report, "execution_path", {}))
     assessment = report.assessment
     return {
         "schema_version": 1,
@@ -195,8 +196,11 @@ def _export_payload(
             "outbound_network_clients": 0,
             "contains_raw_image": False,
             "raw_image_policy": "excluded_by_default",
+            "execution_path_id": execution_path.get("execution_path_id", "unknown"),
+            "model_status": execution_path.get("model_status", {}),
         },
         "disclaimers": _merged_disclaimers(report),
+        "execution_path": execution_path,
         "four_dimensions": {
             "review-priority-score": {
                 "label": "Contractual Financial Review Priority Score",
@@ -257,6 +261,7 @@ def _render_html_export(
     <p>format: html</p>
     <p>contains_raw_image=false</p>
     <p>raw_image_policy=excluded_by_default</p>
+    <p>execution_path_id={html.escape(str(metadata.get("execution_path_id", "unknown")))}</p>
   </section>
   <section aria-label="Report disclaimers">
     <h2>Disclaimers</h2>
@@ -282,6 +287,7 @@ def _render_markdown_export(payload: dict[str, Any]) -> str:
         "outbound_network_clients",
         "contains_raw_image",
         "raw_image_policy",
+        "execution_path_id",
     ):
         lines.append(f"- {key}: {_metadata_text(metadata[key])}")
     lines.extend(["", "## Disclaimers"])
