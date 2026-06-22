@@ -182,7 +182,7 @@ def _render_synchronized_reader(
 ) -> str:
     return f"""<nav class="reader-jump-links" aria-label="Reader shortcuts"
       data-mobile-reader-links="true">
-      <a href="#source-reader" data-reader-jump="source">원문 보기</a>
+      <a href="#source-reader" data-reader-jump="source">원문으로 이동</a>
       <a href="#review-reader" data-reader-jump="report">검토 항목으로 돌아가기</a>
     </nav>
     <div class="synchronized-reader" data-contract-reader="synchronized"
@@ -542,7 +542,7 @@ def _render_open_in_source_link(
         f'<p class="source-status" data-highlight-status="{_escape(status)}">'
         f'<a href="#{_escape(focus_anchor_id)}"{class_attr} data-source-nav="finding-to-source"'
         f' data-source-focus-target="{_escape(focus_anchor_id)}"'
-        f' aria-label="원문에서 보기 / View source excerpt">'
+        f' aria-label="원문 위치로 이동 / Open source excerpt">'
         f"{_render_pair_inline(link_label)}</a> "
         f"<span>{_escape(label.get('ko') or MISSING_EXACT_SPAN_KO)}</span></p>"
     )

@@ -220,7 +220,7 @@ _COPY: dict[str, dict[str, str]] = {
         "en": "Copy question",
     },
     "action.open_source": {
-        "ko": "원문에서 보기",
+        "ko": "원문으로 이동",
         "en": "Open in source",
     },
     "diagnostic.rule_focus_index": {

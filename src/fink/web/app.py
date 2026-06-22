@@ -2812,7 +2812,7 @@ _APP_JS = r"""(function () {
     link.href = "#" + targetId;
     link.setAttribute("data-source-nav", "finding-to-source");
     link.setAttribute("data-source-focus-target", targetId);
-    link.setAttribute("aria-label", "원문에서 보기 / View source excerpt");
+    link.setAttribute("aria-label", "원문 위치로 이동 / Open source excerpt");
     link.appendChild(bilingual("span", null, source.source_link_label || copyLabel(payload, "action.open_source")));
     status.appendChild(link);
     status.appendChild(document.createTextNode(" "));
@@ -3118,7 +3118,7 @@ _APP_JS = r"""(function () {
     label.setAttribute("for", "qa-followup-input");
     label.appendChild(
       bilingual("span", null, {
-        ko: "이 계약에 대해 더 물어보기",
+        ko: "이 계약에 대해 더 질문하기",
         en: "Ask more about this contract"
       })
     );
@@ -3497,11 +3497,11 @@ _APP_JS = r"""(function () {
     var sourceLink = el("a", null, null);
     sourceLink.href = "#source-reader";
     sourceLink.setAttribute("data-reader-jump", "source");
-    sourceLink.setAttribute("aria-label", "원문 보기 / View source");
+    sourceLink.setAttribute("aria-label", "원문으로 이동 / Go to source");
     sourceLink.appendChild(
       bilingual("span", null, {
-        ko: "원문 보기",
-        en: "View source"
+        ko: "원문으로 이동",
+        en: "Go to source"
       })
     );
     nav.appendChild(sourceLink);
@@ -3862,11 +3862,26 @@ _APP_JS = r"""(function () {
     }
   }
 
-  function revealResultMessage() {
+  function revealResultMessage(targetItem) {
     // The result bubble lives in the thread shell; reveal it and move it to the
     // end so the freshest analysis sits at the bottom like a chat reply.
     var bubble = document.querySelector("[data-result-message]");
     var thread = threadElement();
+    if (targetItem && bubble && targetItem !== bubble) {
+      var resultBubble = bubble.querySelector(".bubble-result");
+      if (resultBubble) {
+        clearNode(targetItem);
+        targetItem.className = "msg bot result-msg";
+        targetItem.setAttribute("data-message-role", "bot");
+        targetItem.setAttribute("data-result-message", "true");
+        targetItem.hidden = false;
+        targetItem.appendChild(resultBubble);
+        if (bubble.parentNode) {
+          bubble.parentNode.removeChild(bubble);
+        }
+        return targetItem;
+      }
+    }
     if (bubble && thread) {
       bubble.hidden = false;
       thread.appendChild(bubble);
@@ -3911,8 +3926,8 @@ _APP_JS = r"""(function () {
     return item;
   }
 
-  function appendPendingBotMessage() {
-    return appendBotMessage({ ko: "생각 중...", en: "..." });
+  function appendPendingBotMessage(pair) {
+    return appendBotMessage(pair || { ko: "생각 중...", en: "..." });
   }
 
   function renderChatCitations(container, citations) {
@@ -4036,12 +4051,12 @@ _APP_JS = r"""(function () {
     container.appendChild(section);
   }
 
-  function renderResult(payload) {
+  function renderResult(payload, targetItem) {
     var container = document.getElementById("result");
     if (!container) {
       return;
     }
-    var bubble = revealResultMessage();
+    var bubble = revealResultMessage(targetItem);
     clearNode(container);
     var heading = el("h2", "sr-only", null);
     heading.id = "result-heading";
@@ -4123,6 +4138,47 @@ _APP_JS = r"""(function () {
       return null;
     }
     return input.files[0];
+  }
+
+  function isImageOrPdfUpload(file) {
+    if (!file) {
+      return false;
+    }
+    var type = text(file.type).toLowerCase();
+    var name = text(file.name).toLowerCase();
+    return (
+      type.indexOf("image/") === 0 ||
+      type === "application/pdf" ||
+      /\.(pdf|png|jpe?g|webp|heic|heif)$/.test(name)
+    );
+  }
+
+  function uploadPendingMessage(file) {
+    if (!isImageOrPdfUpload(file)) {
+      return {
+        ko: "파일을 읽고 분석하는 중이에요…",
+        en: "Reading and analyzing the file…"
+      };
+    }
+    return {
+      ko: "이미지를 읽고 분석하는 중이에요…",
+      en: "Reading and analyzing the image…"
+    };
+  }
+
+  function ocrReadFailureMessage() {
+    return {
+      ko: "사진에서 글자를 읽지 못했어요. 더 선명한 사진을 올리거나 계약 문구를 붙여넣어 주세요.",
+      en: "I couldn't read text from that image. Try a clearer photo or paste the contract text."
+    };
+  }
+
+  function isOcrReadFailure(data, file) {
+    if (!isImageOrPdfUpload(file)) {
+      return false;
+    }
+    var code = text(data && data.error_code);
+    return code === "OCR_NOT_INSTALLED" || code === "FILE_EMPTY";
   }
 
   function setAnalyzeBusy(isBusy) {
@@ -4221,6 +4277,7 @@ _APP_JS = r"""(function () {
       });
       return;
     }
+    var pendingResult = null;
     if (options.scenarioRecompute) {
       scenarioStatusMessage({
         ko: "시나리오를 다시 계산 중입니다.",
@@ -4231,6 +4288,7 @@ _APP_JS = r"""(function () {
       // composer so it behaves like a chat input.
       if (file) {
         appendUserMessage(file.name || "첨부 파일", true);
+        pendingResult = appendPendingBotMessage(uploadPendingMessage(file));
       } else {
         appendUserMessage(pasteText, false);
         box.value = "";
@@ -4252,14 +4310,24 @@ _APP_JS = r"""(function () {
       })
       .then(function (result) {
         if (!result.ok) {
-          var errorKo =
-            result.data && result.data.error ? result.data.error : "분석에 실패했습니다.";
-          var errorEn =
-            result.data && result.data.error_en
-              ? result.data.error_en
-              : "Analysis failed.";
-          appendBotMessage({ ko: errorKo, en: errorEn });
-          statusMessage({ ko: "오류: " + errorKo, en: "Error: " + errorEn });
+          var errorPair = isOcrReadFailure(result.data, file)
+            ? ocrReadFailureMessage()
+            : {
+                ko: result.data && result.data.error ? result.data.error : "분석에 실패했습니다.",
+                en:
+                  result.data && result.data.error_en
+                    ? result.data.error_en
+                    : "Analysis failed."
+              };
+          if (pendingResult) {
+            replaceBotMessageWithPair(pendingResult, errorPair);
+          } else {
+            appendBotMessage(errorPair);
+          }
+          statusMessage({
+            ko: "오류: " + errorPair.ko,
+            en: "Error: " + errorPair.en
+          });
           return;
         }
         if (options.scenarioRecompute) {
@@ -4267,7 +4335,7 @@ _APP_JS = r"""(function () {
         } else {
           statusMessage({ ko: "분석을 완료했습니다.", en: "Analysis complete." });
         }
-        renderResult(result.data);
+        renderResult(result.data, pendingResult);
         if (options.scenarioRecompute) {
           scenarioStatusMessage(recomputeMessage(result.data, request.changedInput));
         }
@@ -4278,10 +4346,15 @@ _APP_JS = r"""(function () {
         lastSubmittedAssumptions = request.assumptions;
       })
       .catch(function () {
-        appendBotMessage({
+        var requestError = {
           ko: "로컬 분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
           en: "The local analysis request failed. Please try again."
-        });
+        };
+        if (pendingResult) {
+          replaceBotMessageWithPair(pendingResult, requestError);
+        } else {
+          appendBotMessage(requestError);
+        }
         statusMessage({
           ko: "로컬 분석 요청에 실패했습니다.",
           en: "The local analysis request failed."

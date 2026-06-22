@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T19:16:17+09:00`
+- Generated: `2026-06-22T19:31:16+09:00`
 - Current branch: `main`
-- Base commit: `0819322f9d1036db93148f86e49a5a1f7217161f`
+- Base commit: `e7bcd11c9683e9d1638c0624de0868ff08523c50`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -15,9 +15,10 @@
 - Clean tree gate: enforced at task start by `loop_once.sh`.
 - Machine gates: `bash scripts/agent_loop/run_gates.sh`.
 - Paper-sync status: scaffold ledgers present; no measured results claimed.
-- Fixes: added the `fink-models` local model listing/downloader CLI, kept model
-  weights outside Git, and verified `bash scripts/agent_loop/run_gates.sh`
-  ended with `GATES_OK`.
+- Fixes: quieted optional PaddleOCR-VL upload OCR logs, cached the local
+  PaddleOCR-VL backend across upload calls, added image/PDF pending and
+  friendly OCR-failure chat bubbles, and kept the work local-only with no
+  paper-template changes.
 
 ## Human Gates
 

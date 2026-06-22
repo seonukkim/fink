@@ -187,7 +187,7 @@ class ReportUITests(unittest.TestCase):
         self.assertIn("규칙 기반 검토 집중도 지수", markup)
         self.assertIn("위험 확률, 손실액, 안전 판정이 아닙니다.", markup)
         self.assertIn("물어볼 말 복사", markup)
-        self.assertIn("원문에서 보기", markup)
+        self.assertIn("원문으로 이동", markup)
         self.assertIn("통화 확인 필요", markup)
         self.assertIn('data-collapsed-badge-count="3"', markup)
         self.assertIn('<details id=', markup)

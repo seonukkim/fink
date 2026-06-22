@@ -20,6 +20,12 @@ runtime services. Runtime measurements are reported only from the local
 synthetic gate artifacts (`CLM-S7-RES-EV-OFFLINE`,
 `CLM-S7-RES-EV-PRIV`, `CLM-S7-RES-EV-LAT`, `CLM-S7-RES-EV-MEM`).
 
+For image and scanned-PDF uploads, the optional PaddleOCR-VL path remains an
+on-device runtime path: startup/inference logging is quieted, the local pipeline
+is reused across requests, and user-facing OCR failures are presented as short
+retry guidance rather than technical logs. This is a usability/privacy boundary
+note only and does not add a new OCR accuracy claim.
+
 Model-profile records are implementation metadata unless a private local
 installation passes the offline health/smoke gate in the current environment.
 No public paper section should claim an active model from metadata, shortlist,

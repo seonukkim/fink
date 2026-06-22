@@ -70,10 +70,10 @@ class WebSmokeTests(unittest.TestCase):
         self.assertNotIn("계약 금융 검토", markup)
 
         # Exactly one locale toggle button now (it flips KO<->EN); the old
-        # second "EN generated" button is gone. The label is just "EN"/"KO" with
-        # no "보기" suffix.
+        # second "EN generated" button is gone. The label is just "EN"/"KO"
+        # without the old Korean suffix.
         self.assertNotIn("EN generated", markup)
-        self.assertNotIn("보기", markup)
+        self.assertNotIn("\ubcf4\uae30", markup)
         self.assertEqual(markup.count("data-locale-button"), 1)
         self.assertIn('data-locale-toggle="true"', markup)
         self.assertIn('<span lang="ko" data-locale-text="ko">EN</span>', markup)
@@ -198,6 +198,11 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn(b"fetch(", body)
         self.assertIn(b'fetch("/api/analyze"', body)
         self.assertIn(b'fetch("/api/chat"', body)
+        self.assertIn("이미지를 읽고 분석하는 중이에요…".encode("utf-8"), body)
+        self.assertIn(b"Reading and analyzing the image", body)
+        self.assertIn("사진에서 글자를 읽지 못했어요.".encode("utf-8"), body)
+        self.assertIn(b"I couldn't read text from that image", body)
+        self.assertNotIn("\ubcf4\uae30".encode("utf-8"), body)
         self.assertIn("한눈에 정리".encode("utf-8"), body)
         self.assertIn(b'data-integrated-judgment-card', body)
         self.assertIn("검토 권장 수준".encode("utf-8"), body)

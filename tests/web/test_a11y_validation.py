@@ -132,7 +132,7 @@ class WebA11yValidationTests(unittest.TestCase):
             'data-locale-button="toggle"',
             'aria-label="한국어와 영어 전환 / Switch between Korean and English"',
             'aria-label="물어볼 말 복사 / Copy question to ask"',
-            'aria-label="원문에서 보기 / View source excerpt"',
+            'aria-label="원문 위치로 이동 / Open source excerpt"',
             'aria-label="검토 항목으로 돌아가기 / Back to finding"',
             'aria-label="출처 하이라이트 켜기 또는 끄기 / Toggle source highlights"',
             'aria-describedby="analyze-status"',
@@ -143,7 +143,7 @@ class WebA11yValidationTests(unittest.TestCase):
         for expected in (
             'button.setAttribute("aria-busy"',
             'button.setAttribute("aria-label", "물어볼 말 복사 / Copy question to ask")',
-            'link.setAttribute("aria-label", "원문에서 보기 / View source excerpt")',
+            'link.setAttribute("aria-label", "원문 위치로 이동 / Open source excerpt")',
             'workspace.setAttribute("data-reader-layout", "single-column")',
             'creatorEvidenceLabel',
             'collectAuditEvidenceIds',

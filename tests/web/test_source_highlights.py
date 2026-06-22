@@ -251,7 +251,7 @@ class SourceHighlightTests(unittest.TestCase):
         self.assertIn('data-reader-pane="source"', markup)
         self.assertIn('data-reader-pane="report"', markup)
         self.assertIn('data-mobile-reader-links="true"', markup)
-        self.assertIn("원문 보기", markup)
+        self.assertIn("원문으로 이동", markup)
         self.assertIn("검토 항목으로 돌아가기", markup)
         self.assertIn('data-source-nav="finding-to-source"', markup)
         self.assertIn('data-source-nav="source-to-finding"', markup)

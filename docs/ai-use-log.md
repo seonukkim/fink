@@ -141,3 +141,20 @@
   weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
   committed. Download targets remain outside the repository, and root
   `models/` paths stay ignored.
+
+## 2026-06-22 — Quiet image/scanned-PDF OCR upload UX
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: Quieted optional PaddleOCR-VL startup/inference log noise, cached the
+  PaddleOCR-VL backend across upload OCR calls, and updated the chat `_APP_JS`
+  upload flow to replace a visible file-analysis pending bubble with either the
+  result or short OCR retry guidance. Source-navigation copy was updated to keep
+  Korean canonical strings clear of the prohibited legacy label. No OCR
+  correctness change, model download, remote runtime API, or deployment was
+  added.
+- Verification: web gate and import checks are recorded in the Codex result for
+  this task. The rendered shell remains free of inline request code and external
+  URL strings; fetch calls remain confined to `_APP_JS`.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed. No paper-template file was touched.

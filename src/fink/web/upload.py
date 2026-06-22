@@ -24,6 +24,7 @@ PDF_MIME_TYPES = frozenset({"application/pdf"})
 IMAGE_MIME_TYPES = frozenset(
     {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 )
+_PADDLE_VL_BACKEND: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -375,11 +376,18 @@ def _paddle_vl_recognize_text(stored_path: Path) -> str | None:
     except Exception:
         return None
     try:
-        return PaddleVLOCRBackend().recognize_image_text(stored_path)
+        return _cached_paddle_vl_backend(PaddleVLOCRBackend).recognize_image_text(stored_path)
     except PaddleOCRDependencyError:
         return None
     except PaddleOCRRuntimeError:
         return None
+
+
+def _cached_paddle_vl_backend(backend_cls: Any) -> Any:
+    global _PADDLE_VL_BACKEND
+    if _PADDLE_VL_BACKEND is None:
+        _PADDLE_VL_BACKEND = backend_cls()
+    return _PADDLE_VL_BACKEND
 
 
 def _local_ocr_is_available() -> bool:

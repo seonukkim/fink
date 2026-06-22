@@ -280,8 +280,8 @@ def _source_for_finding(
             "segments": segments,
             "semantic_roles": role_ids,
             "source_link_label": {
-                "ko": "원문 보기",
-                "en": "View source",
+                "ko": "원문으로 이동",
+                "en": "Go to source",
             },
         }
     )

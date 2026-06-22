@@ -17,9 +17,14 @@ Runtime policy:
 
 from __future__ import annotations
 
+import inspect
+import logging
 import os
+import re
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 # Telemetry-off runtime flags only. The PaddleOCR-VL pipeline resolves its model
@@ -32,7 +37,40 @@ from typing import Any
 _OFFLINE_ENV_DEFAULTS = {
     "HF_HUB_DISABLE_TELEMETRY": "1",
     "DO_NOT_TRACK": "1",
+    "FLAGS_minloglevel": "2",
+    "GLOG_minloglevel": "2",
 }
+_PADDLE_LOGGER_NAMES = ("paddle", "paddleocr", "paddlex", "ppocr", "transformers")
+_NOISY_PADDLE_MESSAGE_RE = re.compile(
+    "|".join(
+        (
+            r"use GQA",
+            r"torch\.split",
+            r"torch\.max",
+            r"\bccache\b",
+            r"Creating model",
+            r"Loading weights file",
+        )
+    ),
+    re.IGNORECASE,
+)
+_QUIET_PIPELINE_FLAGS = {
+    "verbose": False,
+    "show_log": False,
+}
+_QUIET_RUNTIME_CONFIGURED = False
+
+
+class _PaddleNoiseFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            message = record.getMessage()
+        except Exception:
+            return True
+        return _NOISY_PADDLE_MESSAGE_RE.search(message) is None
+
+
+_PADDLE_NOISE_FILTER = _PaddleNoiseFilter()
 
 
 def apply_offline_env() -> None:
@@ -40,6 +78,48 @@ def apply_offline_env() -> None:
 
     for key, value in _OFFLINE_ENV_DEFAULTS.items():
         os.environ.setdefault(key, value)
+    configure_quiet_paddle_runtime()
+
+
+def configure_quiet_paddle_runtime() -> None:
+    """Best-effort suppression for noisy optional PaddleOCR-VL runtime logs."""
+
+    global _QUIET_RUNTIME_CONFIGURED
+    if not _QUIET_RUNTIME_CONFIGURED:
+        for pattern in (
+            r".*use GQA.*",
+            r".*torch\.split.*",
+            r".*torch\.max.*",
+            r".*\bccache\b.*",
+            r".*Creating model.*",
+            r".*Loading weights file.*",
+        ):
+            try:
+                warnings.filterwarnings("ignore", message=pattern, category=UserWarning)
+            except Exception:
+                continue
+        _QUIET_RUNTIME_CONFIGURED = True
+    for logger_name in _PADDLE_LOGGER_NAMES:
+        try:
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(logging.WARNING)
+            _add_paddle_noise_filter(logger)
+            for handler in logger.handlers:
+                _add_paddle_noise_filter(handler)
+        except Exception:
+            continue
+    try:
+        for handler in logging.getLogger().handlers:
+            _add_paddle_noise_filter(handler)
+    except Exception:
+        pass
+
+
+def _add_paddle_noise_filter(target: Any) -> None:
+    filters = getattr(target, "filters", ())
+    if any(isinstance(item, _PaddleNoiseFilter) for item in filters):
+        return
+    target.addFilter(_PADDLE_NOISE_FILTER)
 
 
 class PaddleOCRDependencyError(RuntimeError):
@@ -102,6 +182,7 @@ def _import_paddleocr_vl() -> Any:
         from paddleocr import PaddleOCRVL  # type: ignore import-not-found
     except Exception as exc:  # ImportError or a paddle backend load failure
         raise PaddleOCRDependencyError(INSTALL_HINT, exc) from exc
+    configure_quiet_paddle_runtime()
     return PaddleOCRVL
 
 
@@ -115,28 +196,32 @@ class PaddleVLOCRBackend:
     def __init__(self, config: PaddleVLConfig | None = None) -> None:
         self.config = config or PaddleVLConfig()
         self._pipeline: Any | None = None
+        self._pipeline_lock = Lock()
 
     def _build_pipeline(self) -> Any:
         if self._pipeline is not None:
             return self._pipeline
-        paddle_ocr_vl = _import_paddleocr_vl()
-        kwargs: dict[str, Any] = {
-            "use_doc_orientation_classify": self.config.use_doc_orientation_classify,
-            "use_doc_unwarping": self.config.use_doc_unwarping,
-        }
-        if self.config.pipeline_version:
-            kwargs["pipeline_version"] = self.config.pipeline_version
-        if self.config.vl_rec_model_dir:
-            kwargs["vl_rec_model_dir"] = self.config.vl_rec_model_dir
-        if self.config.layout_detection_model_dir:
-            kwargs["layout_detection_model_dir"] = self.config.layout_detection_model_dir
-        try:
-            self._pipeline = paddle_ocr_vl(**kwargs)
-        except Exception as exc:
-            raise PaddleOCRRuntimeError(
-                f"PaddleOCR-VL pipeline failed to initialize: {exc!r}"
-            ) from exc
-        return self._pipeline
+        with self._pipeline_lock:
+            if self._pipeline is not None:
+                return self._pipeline
+            paddle_ocr_vl = _import_paddleocr_vl()
+            kwargs: dict[str, Any] = {
+                "use_doc_orientation_classify": self.config.use_doc_orientation_classify,
+                "use_doc_unwarping": self.config.use_doc_unwarping,
+            }
+            if self.config.pipeline_version:
+                kwargs["pipeline_version"] = self.config.pipeline_version
+            if self.config.vl_rec_model_dir:
+                kwargs["vl_rec_model_dir"] = self.config.vl_rec_model_dir
+            if self.config.layout_detection_model_dir:
+                kwargs["layout_detection_model_dir"] = self.config.layout_detection_model_dir
+            try:
+                self._pipeline = _create_quiet_pipeline(paddle_ocr_vl, kwargs)
+            except Exception as exc:
+                raise PaddleOCRRuntimeError(
+                    f"PaddleOCR-VL pipeline failed to initialize: {exc!r}"
+                ) from exc
+            return self._pipeline
 
     def recognize_image_text(self, image_path: str | Path) -> str:
         """Run PaddleOCR-VL on one local image and return recovered text.
@@ -148,12 +233,42 @@ class PaddleVLOCRBackend:
         path = Path(image_path)
         if not path.is_file():
             raise PaddleOCRRuntimeError("OCR input image does not exist")
+        configure_quiet_paddle_runtime()
         pipeline = self._build_pipeline()
         try:
             outputs = pipeline.predict(str(path))
         except Exception as exc:
             raise PaddleOCRRuntimeError(f"PaddleOCR-VL inference failed: {exc!r}") from exc
         return _text_from_outputs(outputs)
+
+
+def _create_quiet_pipeline(paddle_ocr_vl: Any, kwargs: dict[str, Any]) -> Any:
+    quiet_kwargs = _with_supported_quiet_flags(paddle_ocr_vl, kwargs)
+    try:
+        return paddle_ocr_vl(**quiet_kwargs)
+    except Exception as exc:
+        if quiet_kwargs != kwargs and _looks_like_quiet_flag_mismatch(exc):
+            return paddle_ocr_vl(**kwargs)
+        raise
+
+
+def _with_supported_quiet_flags(paddle_ocr_vl: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+    quiet_kwargs = dict(kwargs)
+    try:
+        parameters = inspect.signature(paddle_ocr_vl).parameters
+    except (TypeError, ValueError):
+        return quiet_kwargs
+    for key, value in _QUIET_PIPELINE_FLAGS.items():
+        if key in parameters:
+            quiet_kwargs.setdefault(key, value)
+    return quiet_kwargs
+
+
+def _looks_like_quiet_flag_mismatch(exc: Exception) -> bool:
+    message = str(exc).lower()
+    if not any(key in message for key in _QUIET_PIPELINE_FLAGS):
+        return False
+    return any(term in message for term in ("unexpected", "unknown", "unsupported"))
 
 
 def _text_from_outputs(outputs: Any) -> str:

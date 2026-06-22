@@ -22,6 +22,7 @@ def _load_module(name: str) -> Any:
 
 WEB = _load_module("fink.web")
 UPLOAD = _load_module("fink.web.upload")
+PADDLE_VL = _load_module("fink.ocr.paddle_vl")
 
 SAMPLE_KO = (
     "제3조(정산) 정산은 매 분기 종료일로부터 90일 이내에 지급한다.\n"
@@ -174,6 +175,29 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
         self.assertEqual(payload["validation_status"], "rejected_ocr_unavailable")
         self.assertIn("붙여넣기", payload["next_action"])
         self.assertNotIn("scan.png", repr(payload))
+
+    def test_paddle_vl_backend_is_cached_across_upload_ocr_calls(self) -> None:
+        class FakePaddleBackend:
+            instances = 0
+
+            def __init__(self) -> None:
+                FakePaddleBackend.instances += 1
+
+            def recognize_image_text(self, stored_path: Path) -> str:
+                return f"recognized {stored_path.name}"
+
+        previous_backend = UPLOAD._PADDLE_VL_BACKEND
+        UPLOAD._PADDLE_VL_BACKEND = None
+        try:
+            with patch.object(PADDLE_VL, "PaddleVLOCRBackend", FakePaddleBackend):
+                first = UPLOAD._paddle_vl_recognize_text(Path("first.png"))
+                second = UPLOAD._paddle_vl_recognize_text(Path("second.png"))
+        finally:
+            UPLOAD._PADDLE_VL_BACKEND = previous_backend
+
+        self.assertEqual(first, "recognized first.png")
+        self.assertEqual(second, "recognized second.png")
+        self.assertEqual(FakePaddleBackend.instances, 1)
 
     def test_both_paste_and_file_returns_clear_validation_state(self) -> None:
         body, headers = _multipart_body(
