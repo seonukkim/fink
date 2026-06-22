@@ -59,8 +59,8 @@
 
     <section id="how" class="band">
       <h2>How it works</h2>
-      <p data-en="FInk processes the document entirely on your device. Photos and scans are read by OCR. The text is split into clauses, and each clause is matched against official-source evidence. The review order is ranked by fixed financial rules, and the low, base, and high cash-flow scenarios are computed the same way — so a re-run reproduces exactly. Optional local models assist OCR, retrieval, or explanation only when you install them yourself and they pass a health check. They never fabricate evidence, invent amounts, or change the review order."
-         data-ko="FInk은 문서를 전부 기기 안에서 처리합니다. 사진과 스캔은 OCR로 글자를 읽어 냅니다. 본문은 조항 단위로 나누고, 각 조항을 공식 출처 근거와 대조합니다. 검토 순서는 정해진 금융 규칙으로 매기고, 낮음·적정·높음 현금흐름 시나리오도 같은 규칙으로 계산합니다. 그래서 다시 돌려도 같은 결과가 나옵니다. 로컬 모델은 사용자가 직접 설치하고 상태 점검을 통과했을 때만 OCR·검색·설명을 보조합니다. 근거를 지어내거나 금액을 만들어 내지 않고, 검토 순서도 바꾸지 않습니다.">FInk processes the document entirely on your device…</p>
+      <p data-en="FInk processes the document entirely on your device. Photos and scans are read by OCR. The text is split into clauses, and each clause is matched against official-source evidence. The review order is ranked by fixed financial rules, and the low, base, and high cash-flow scenarios are computed the same way — so a re-run reproduces exactly. Optional local models assist OCR, retrieval, or explanation only when you install them yourself and they pass a health check. They never fabricate evidence, invent amounts, or change the review order. The explanation model only rewords these fixed results in plain language and can be imperfect, so the four structured outputs and the review order — not the wording — are the authoritative result."
+         data-ko="FInk은 문서를 전부 기기 안에서 처리합니다. 사진과 스캔은 OCR로 글자를 읽어 냅니다. 본문은 조항 단위로 나누고, 각 조항을 공식 출처 근거와 대조합니다. 검토 순서는 정해진 금융 규칙으로 매기고, 낮음·적정·높음 현금흐름 시나리오도 같은 규칙으로 계산합니다. 그래서 다시 돌려도 같은 결과가 나옵니다. 로컬 모델은 사용자가 직접 설치하고 상태 점검을 통과했을 때만 OCR·검색·설명을 보조합니다. 근거를 지어내거나 금액을 만들어 내지 않고, 검토 순서도 바꾸지 않습니다. 설명 모델은 이 고정된 결과를 쉬운 말로 풀어 쓸 뿐이고 표현이 완벽하지 않을 수 있으므로, 설명 문장이 아니라 네 가지 구조화된 출력과 검토 순서가 최종 기준입니다.">FInk processes the document entirely on your device…</p>
 
       <ol class="flow" aria-label="FInk pipeline">
         <li><span class="step-n">1</span><span class="step-t" data-en="Input — photo · image · PDF · clause" data-ko="입력 — 사진 · 이미지 · PDF · 조항">Input — photo · image · PDF · clause</span></li>
@@ -98,8 +98,8 @@
 
     <section id="demo" class="band">
       <h2>Demo</h2>
-      <p data-en="Run the local app, paste or upload a contract, press Analyze, and read the review. Every step runs on your own machine, with no outbound connection, using synthetic examples."
-         data-ko="로컬 앱을 실행하고 계약서를 붙여넣거나 파일로 올린 뒤 ‘분석하기’를 누르면 검토 결과가 나옵니다. 모든 과정은 외부와 연결되지 않은 채 내 기기 안에서만 이루어지고, 합성 예시 데이터를 사용합니다.">Run the local app, paste or upload a contract, press Analyze, and read the review…</p>
+      <p data-en="Run the local app, paste or upload a contract, press Analyze, and read the review. Every step runs on your own machine, with no outbound connection, using synthetic examples. The command below analyzes pasted text; photo and PDF OCR and the on-device explanation model need the optional --extra ocr and --extra chat plus a one-time model download."
+         data-ko="로컬 앱을 실행하고 계약서를 붙여넣거나 파일로 올린 뒤 ‘분석하기’를 누르면 검토 결과가 나옵니다. 모든 과정은 외부와 연결되지 않은 채 내 기기 안에서만 이루어지고, 합성 예시 데이터를 사용합니다. 아래 명령은 붙여넣은 텍스트를 분석하며, 사진·PDF OCR과 기기 내 설명 모델은 선택 확장(--extra ocr, --extra chat)과 모델 1회 다운로드가 필요합니다.">Run the local app, paste or upload a contract, press Analyze, and read the review…</p>
       <div class="run">
         <div class="run-head">
           <p class="run-title" data-en="Run it" data-ko="실행하기">Run it</p>
