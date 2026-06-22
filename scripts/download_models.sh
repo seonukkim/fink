@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
 #
-# Download all on-device FInk models into the repo-local, gitignored .fink/models
-# directory. The weights are NOT committed to git, but after `git clone` a user
-# can fetch them with a single command and the app finds them automatically.
+# Download all on-device FInk models with one command.
 #
-# Usage (from anywhere):
-#   bash scripts/download_models.sh            # download embedding, reranker, chat LLM
-#   bash scripts/download_models.sh --dry-run  # show what would be downloaded
-#   bash scripts/download_models.sh --only llm # just the chat LLM, etc.
+# Weights go to the default on-device model home (~/.local/share/fink/models),
+# which is OUTSIDE the git repository (so weights are never committed) and is
+# exactly where the app looks by default — so NO FINK_HOME is needed to run
+# afterwards.
+#
+# Usage (from the repo, after `git clone`):
+#   bash scripts/download_models.sh             # embedding, reranker, chat LLM
+#   bash scripts/download_models.sh --dry-run   # show what would be downloaded
+#   bash scripts/download_models.sh --only llm  # just the chat LLM, etc.
 #
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-# Repo-local, gitignored model home (override by exporting FINK_HOME yourself).
-export FINK_HOME="${FINK_HOME:-$REPO_ROOT/.fink}"
 export FINK_MODEL_DOWNLOAD_ALLOWED=true
 
-mkdir -p "$FINK_HOME/models"
-
-echo "FInk models -> $FINK_HOME/models   (gitignored; not committed)"
+echo "Downloading FInk models to the on-device model home (outside the repo)…"
 echo
 
 # Only huggingface_hub is needed to DOWNLOAD; the heavier llama-cpp-python build
@@ -27,8 +24,8 @@ echo
 uv run --with huggingface_hub fink-models download "$@"
 
 echo
-echo "Done. Models live in: $FINK_HOME/models"
+echo "Done. To run the chatbot against these models (no FINK_HOME needed):"
+echo "  uv sync --extra web --extra chat   # one-time: installs the LLM runtime"
+echo "  uv run fink-web --host 127.0.0.1 --port 8000"
 echo
-echo "To run the chatbot against these models:"
-echo "  uv sync --extra web --extra chat            # one-time: installs the LLM runtime"
-echo "  FINK_HOME=\"$FINK_HOME\" uv run fink-web --host 127.0.0.1 --port 8000"
+echo "For image / scanned-PDF OCR:  uv sync --extra ocr"
