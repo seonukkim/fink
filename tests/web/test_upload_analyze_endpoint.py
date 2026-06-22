@@ -173,7 +173,9 @@ class UploadAnalyzeEndpointTests(unittest.TestCase):
         self.assertEqual(status, 422)
         self.assertEqual(payload["error_code"], "OCR_NOT_INSTALLED")
         self.assertEqual(payload["validation_status"], "rejected_ocr_unavailable")
-        self.assertIn("붙여넣기", payload["next_action"])
+        self.assertIn("이미지 OCR이 이 기기에 설치되어 있지 않습니다.", payload["error"])
+        self.assertIn("uv sync --extra ocr", payload["next_action"])
+        self.assertIn("PaddleOCR-VL", payload["next_action"])
         self.assertNotIn("scan.png", repr(payload))
 
     def test_paddle_vl_backend_is_cached_across_upload_ocr_calls(self) -> None:

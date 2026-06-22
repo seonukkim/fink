@@ -40,3 +40,11 @@ Scoring weights and thresholds are heuristic. The DFL-inspired evaluation
 framing helps organize decision-relevant metrics, but it is not evidence of
 end-to-end DFL training or validated financial-loss prediction
 (`CLM-S7-METHOD-DFL`).
+
+## Demo UX Boundary
+
+The local chat demo may display bilingual clause aids, highlighted source
+snippets, and OCR setup guidance for usability. These surfaces do not add new
+score-eligible evidence, do not claim translation equivalence beyond the
+Korean-canonical/English-aid boundary, and do not change the contractual
+financial review-priority framing.

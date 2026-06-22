@@ -1,5 +1,27 @@
 # AI Use Log
 
+## 2026-06-22 — Second premium chat demo revision
+
+- Tooling: Codex GPT-5.5 xhigh in this workspace.
+- Scope: updated the local chat demo and supporting payloads for owner feedback:
+  formal privacy/advice/disclosure copy, wider send target, stacked dimension and
+  follow-up chips, semantic effort colors, score explanation text, real
+  clause-heading references, bilingual source-clause rendering aids, distinct
+  OCR-not-installed versus OCR-no-text errors, and Hanja stripping in local chat
+  replies. Also updated focused tests, `LOOP.md`, and the paper discussion note.
+  No remote runtime API, deployment, DNS, model weight, private input, or
+  paper-template change was added.
+- Verification: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/web tests/model
+  -q` passed; `PYTHONPATH=src python3 scripts/web_a11y_contrast_check.py`
+  passed; `PYTHONPATH=src python3 -c "import fink.web.app"` and matching
+  imports for `fink.web.upload` and `fink.model.explanation_llm` passed; the
+  rendered shell contains no inline `fetch(` or `https://`, with fetch calls
+  confined to `/app.js`. Bare `python3 -c "import fink..."` still fails in this
+  sandbox because the `src/` layout is not installed into the bare interpreter.
+- Privacy: no `.env`, Hugging Face token value, private books, contracts, model
+  weights, PDFs, ZIPs, `.fink` artifacts, or raw user content were read or
+  committed.
+
 ## 2026-06-22 — Chat grounding reference checkpoints
 
 - Tooling: Codex GPT-5.5 xhigh in this workspace.

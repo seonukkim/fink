@@ -6,6 +6,7 @@ from fink.model.explanation_llm import (
     ChatReply,
     FindingBrief,
     GroundedContext,
+    _sanitize,
     chat_model_available,
     generate_chat_reply,
 )
@@ -66,3 +67,9 @@ def test_no_verdict_assertions_leak(monkeypatch):
     assert "guaranteed loss" not in text
     assert "fraud probability" not in text
     assert "fink determines" not in text
+
+
+def test_sanitize_removes_stray_hanja_idempotently():
+    cleaned = _sanitize("會計年度 정산 條項은 확인하세요.")
+    assert cleaned == "정산 은 확인하세요."
+    assert _sanitize(cleaned) == cleaned

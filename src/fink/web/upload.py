@@ -245,7 +245,7 @@ def _ocr_image_upload(ingested: IngestedDocument) -> IngestedDocument:
         raise _ocr_not_installed_error()
     page = _recognize_uploaded_image(ingested.stored_path)
     if page is None:
-        raise _ocr_not_installed_error()
+        raise _ocr_no_text_error()
 
     document = ingested.document
     if document is None:
@@ -436,6 +436,21 @@ def _empty_file_error() -> AnalyzeRequestError:
     )
 
 
+def _ocr_no_text_error() -> AnalyzeRequestError:
+    return AnalyzeRequestError(
+        error_code="OCR_NO_TEXT",
+        status_code=400,
+        validation_status="rejected_empty",
+        message_ko="사진에서 글자를 읽지 못했어요. 더 선명한 사진을 올리거나 계약 문구를 붙여넣어 주세요.",
+        message_en=(
+            "I couldn't read text from that image. Try a clearer photo or paste "
+            "the contract text."
+        ),
+        action_ko="사진을 더 선명하게 다시 올리거나 계약 문구를 붙여넣어 주세요.",
+        action_en="Upload a clearer image, or paste the contract text instead.",
+    )
+
+
 def _unsupported_error() -> AnalyzeRequestError:
     return AnalyzeRequestError(
         error_code="FILE_UNSUPPORTED",
@@ -489,14 +504,14 @@ def _ocr_not_installed_error() -> AnalyzeRequestError:
         error_code="OCR_NOT_INSTALLED",
         status_code=422,
         validation_status="rejected_ocr_unavailable",
-        message_ko="이미지 또는 스캔 PDF를 읽으려면 이 기기에 로컬 OCR이 설치되어 있어야 합니다.",
-        message_en="Image or scanned-PDF analysis requires a local OCR install.",
+        message_ko="이미지 OCR이 이 기기에 설치되어 있지 않습니다.",
+        message_en="Image OCR is not installed on this device.",
         action_ko=(
-            "로컬 OCR을 설치하거나(예: uv pip install -e '.[ocr]') "
-            "PDF·이미지의 텍스트를 복사해 붙여넣기로 분석하세요."
+            "`uv sync --extra ocr`로 로컬 OCR을 설치한 뒤 다시 시도하세요. "
+            "PaddleOCR-VL은 처음 사용할 때 자동으로 내려받습니다."
         ),
         action_en=(
-            "Install local OCR (e.g. uv pip install -e '.[ocr]'), or copy the text "
-            "from the file and use paste analysis."
+            "Run `uv sync --extra ocr` to install local OCR, then try again. "
+            "PaddleOCR-VL auto-downloads on first use."
         ),
     )

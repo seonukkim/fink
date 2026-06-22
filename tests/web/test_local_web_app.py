@@ -88,27 +88,21 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn(WEB.PRIVACY_BANNER, markup)
         self.assertIn(WEB.NOT_LEGAL_ADVICE_BANNER, markup)
         self.assertNotIn("텔레메트리", markup)
-        self.assertIn("로컬 전용입니다.", markup)
-        self.assertIn("추적·클라우드 OCR·원격 LLM·외부 검색은 쓰지 않습니다.", markup)
+        self.assertIn("본 서비스는 사용자 정보를 수집·추적하거나", markup)
+        self.assertIn("클라우드 OCR·원격 LLM을 사용하지 않습니다.", markup)
+        self.assertNotIn("외부 검색", markup)
         self.assertNotIn("계약서와 OCR로 읽은 글자는 기기를 떠나지 않으며", markup)
-        self.assertIn("FInk은 돈과 관련된 조항을 먼저 확인할 순서로 정리합니다.", markup)
+        self.assertIn("FInk은 금융 관련 조항을 먼저 확인할 순서로 정리합니다.", markup)
         self.assertNotIn("검토 순서만 안내", markup)
-        for expected in (
-            "does not determine fraud, illegality, contract validity",
-            "estimates from your assumptions",
-            "marked as needing evidence confirmation",
-            "Korean is canonical",
-            "English text is an aid",
-        ):
-            self.assertIn(expected, markup)
+        self.assertIn("does not decide illegality, fraud, contract validity", markup)
+        self.assertIn("Review order and estimated amounts are not determinations", markup)
 
         # The report disclosures render bilingually: the Korean canonical line
         # leads and the English aid stays inside its locale span.
         self.assertIn(
-            "검토 순서는 위법성·사기·유효성·불공정·손실 판정이 아닙니다.",
+            "검토 순서·추정 금액은 판정이 아니며, 한국어가 기준입니다.",
             markup,
         )
-        self.assertIn("한국어가 기준이며, 영어 문구는 보조용입니다.", markup)
 
         # The chat shell has no footer: dev info and the separate footer privacy
         # paragraph are gone. The single privacy line lives in the header and the
@@ -159,6 +153,8 @@ class WebSmokeTests(unittest.TestCase):
             "계약서를 붙여넣거나 사진·PDF를 올려 주세요.",
             markup,
         )
+        self.assertIn("계약 조항을 붙여넣거나 사진·PDF를 올려 주세요", markup)
+        self.assertIn("Paste contract clauses or upload a photo/PDF", markup)
         self.assertIn('id="result"', markup)
         self.assertIn('data-analysis-result="true"', markup)
         self.assertIn('data-print-brief-root="true"', markup)
@@ -208,6 +204,8 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("검토 권장 수준".encode("utf-8"), body)
         self.assertIn(b'data-review-effort-signal', body)
         self.assertIn(b'data-effort-level", level.key', body)
+        self.assertIn("숫자가 높을수록 먼저·꼼꼼히 살펴볼 항목이 많다는 뜻이에요.".encode("utf-8"), body)
+        self.assertNotIn("위험 확률, 손실액, 안전 판정이 아닙니다.".encode("utf-8"), body)
         self.assertIn("최종 판단이 아니라 확인을 돕는 정리예요.".encode("utf-8"), body)
         self.assertIn("의견서 만들기".encode("utf-8"), body)
         self.assertIn(b"Make a review brief", body)
@@ -218,6 +216,10 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn(b"data-download-review-brief", body)
         self.assertIn(b"window.print()", body)
         self.assertIn(b"data-print-brief-document", body)
+        self.assertIn(b"function clauseReferencePair(finding, index)", body)
+        self.assertIn(b"function renderLocalizedSourceSegments(container, source)", body)
+        self.assertIn(b"followup-chip-stack", body)
+        self.assertIn(b'OCR_NO_TEXT" || code === "FILE_EMPTY"', body)
         self.assertNotIn(b"new Blob", body)
         self.assertNotIn(b"text/markdown", body)
 
@@ -375,7 +377,7 @@ class WebSmokeTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual(headers["cache-control"], "no-store")
             self.assertIn("default-src 'self'", headers["content-security-policy"])
-            self.assertIn(b"Local-only. Uploads", body)
+            self.assertIn(b"This service does not collect or track user information", body)
 
             status, _, body = asyncio.run(_asgi_get(app, "/healthz"))
             self.assertEqual(status, 200)

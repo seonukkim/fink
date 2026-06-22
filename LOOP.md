@@ -1,8 +1,8 @@
 # FInk Agent Loop Status
 
-- Generated: `2026-06-22T21:58:36+09:00`
+- Generated: `2026-06-22T22:31:53+09:00`
 - Current branch: `main`
-- Base commit: `f40f724fa8abe57ada6bfc248098effd249e8778`
+- Base commit: `468316089393fd98bc44d5abbf781e7ffe2ff7f2`
 - Latest successful commit: `b3803bfa4df0e72a1b8623e271d8f202eba3dbd1`
 - Active task: `none`
 - Round: `0`
@@ -21,8 +21,11 @@
   with a single-column messenger-style result sequence, polished the chat demo
   shell per owner feedback with a fixed bottom composer, pink theme, effort
   meter, and browser-print PDF brief, wired distilled knowledge checkpoints into
-  chatbot conversation grounding only, and kept the work local-only with no
-  paper-template changes.
+  chatbot conversation grounding only, applied the second premium owner-feedback
+  revision with bilingual source-clause aids, stacked chips, semantic
+  traffic-light effort colors, formal privacy/disclosure copy, clearer OCR
+  install guidance, and Hanja stripping in local chat replies, and kept the work
+  local-only with no paper-template changes.
 
 ## Human Gates
 
@@ -44,7 +47,7 @@
 ## Tasks
 
 - Next eligible task: `none`
-- Done count: `75`
+- Done count: `76`
 - Blocked count: `0`
 - Next task selection order: highest priority, shortest scope, lexical task ID.
 

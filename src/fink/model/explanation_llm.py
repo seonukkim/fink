@@ -41,7 +41,8 @@ SYSTEM_PROMPT_KO = (
     "2) 이 계약이 안전한지, 위법인지, 유효한지 같은 최종 판정은 내리지 마세요. 대신 어떤 조항이 "
     "창작자에게 불리하게 작용할 수 있는지와 무엇을 확인·협상하면 좋은지를 알려 주세요. "
     "3) 중요한 결정은 전문가 확인을 권하세요. "
-    "4) 짧고 쉬운 말로, 창작자가 다음에 무엇을 하면 되는지 도와주는 톤으로 말하세요."
+    "4) 짧고 쉬운 말로, 창작자가 다음에 무엇을 하면 되는지 도와주는 톤으로 말하세요. "
+    "5) 자연스러운 한국어를 한글로만 쓰고, 중국어 한자나 한자어 표기를 출력하지 마세요."
 )
 SYSTEM_PROMPT_EN = (
     "You are a financial-review assistant for creator contracts. Answer "
@@ -50,7 +51,9 @@ SYSTEM_PROMPT_EN = (
     "2) Do not issue a final ruling on whether the contract is safe, lawful, or "
     "valid; instead point out which clauses may be unfavorable to the creator and "
     "what to check or negotiate. 3) Recommend a professional for important "
-    "decisions. 4) Keep it short, plain, and oriented to the creator's next step."
+    "decisions. 4) Keep it short, plain, and oriented to the creator's next step. "
+    "5) If you answer in Korean or include Korean terms, write natural Korean in "
+    "Hangul only; do not output Chinese characters or Hanja."
 )
 
 # Mirror of the gate's forbidden assertions, used to neutralize any model output
@@ -59,6 +62,7 @@ _FORBIDDEN_OUTPUT_PATTERNS = (
     re.compile(r"FInk (determines|decides|proves|guarantees).*(fraud|illegal|valid|void|unfair|loss)", re.I),
     re.compile(r"(fraud probability|illegality probability|guaranteed loss)", re.I),
 )
+_CJK_HAN_RE = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]+")
 
 
 @dataclass(frozen=True)
@@ -370,4 +374,5 @@ def _sanitize(text: str) -> str:
     cleaned = text or ""
     for pattern in _FORBIDDEN_OUTPUT_PATTERNS:
         cleaned = pattern.sub("[검토 필요]", cleaned)
+    cleaned = _CJK_HAN_RE.sub("", cleaned)
     return cleaned.strip()

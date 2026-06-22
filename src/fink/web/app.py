@@ -22,24 +22,23 @@ DEFAULT_LOOPBACK_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
 
 PRIVACY_BANNER = (
-    "Local-only. Uploads and OCR text stay on this device; no tracking, "
-    "cloud OCR, remote LLM, or external search is used."
+    "This service does not collect or track user information or use cloud OCR "
+    "or a remote LLM."
 )
 PRIVACY_BANNER_KO = (
-    "로컬 전용입니다. 업로드와 OCR 문구는 이 기기에만 남고, 추적·클라우드 OCR·"
-    "원격 LLM·외부 검색은 쓰지 않습니다."
+    "본 서비스는 사용자 정보를 수집·추적하거나 클라우드 OCR·원격 LLM을 사용하지 않습니다."
 )
 # Value first, honest boundary second. The English aid still carries the pinned
 # phrase "Contractual Financial Review Priority". This is a disclaimer that FInk
 # does NOT determine legality/fraud/validity/etc., so it stays clear of the
 # legal_verdict_scan BAD_LEGAL_ASSERTIONS patterns.
 NOT_LEGAL_ADVICE_BANNER = (
-    "FInk organizes money-related clauses into a Contractual Financial Review "
-    "Priority. It does not determine fraud, illegality, contract validity, or "
+    "FInk organizes financial clauses as a Contractual Financial Review "
+    "Priority. It does not decide illegality, fraud, contract validity, or "
     "unfairness; confirm important decisions with a professional."
 )
 NOT_LEGAL_ADVICE_BANNER_KO = (
-    "FInk은 돈과 관련된 조항을 먼저 확인할 순서로 정리합니다. 위법성·사기·"
+    "FInk은 금융 관련 조항을 먼저 확인할 순서로 정리합니다. 위법성·사기·"
     "계약 효력·불공정 여부를 판정하지 않으니 중요한 결정은 전문가와 확인하세요."
 )
 TRUSTED_LAN_WARNING = (
@@ -47,30 +46,15 @@ TRUSTED_LAN_WARNING = (
     "network. Use it only on a network you control, and stop the server when finished."
 )
 DISCLOSURE_ITEMS = (
-    "Review priority is not a legal, fraud, validity, unfairness, or loss verdict.",
-    "Figures are estimates from your assumptions, not guaranteed losses.",
-    "Official grounding stays marked as needing evidence confirmation.",
-    "Korean is canonical; English text is an aid.",
+    "Review order and estimated amounts are not determinations; Korean is canonical.",
 )
 # Korean-canonical / English-aid pairs for the report disclosures. The English
 # aid strings stay identical to DISCLOSURE_ITEMS so the privacy payload and the
 # a11y wording pins still match; the Korean line leads as the canonical text.
 DISCLOSURE_ITEMS_BILINGUAL = (
     {
-        "ko": "검토 순서는 위법성·사기·유효성·불공정·손실 판정이 아닙니다.",
+        "ko": "검토 순서·추정 금액은 판정이 아니며, 한국어가 기준입니다.",
         "en": DISCLOSURE_ITEMS[0],
-    },
-    {
-        "ko": "금액은 입력 가정에 따른 추정치이며 확정 손실이 아닙니다.",
-        "en": DISCLOSURE_ITEMS[1],
-    },
-    {
-        "ko": "공식 근거는 확인 전까지 근거 확인 필요로 표시됩니다.",
-        "en": DISCLOSURE_ITEMS[2],
-    },
-    {
-        "ko": "한국어가 기준이며, 영어 문구는 보조용입니다.",
-        "en": DISCLOSURE_ITEMS[3],
     },
 )
 
@@ -91,6 +75,15 @@ WEB_DESIGN_TOKENS = {
     "accent": "#b91c5c",
     "accent_strong": "#b91c5c",
     "accent_tint": "#fff1f7",
+    "green_bg": "#ecfdf3",
+    "green_ink": "#166534",
+    "green_line": "#86efac",
+    "amber_bg": "#fffbeb",
+    "amber_ink": "#92400e",
+    "amber_line": "#facc15",
+    "rose_bg": "#fff1f2",
+    "rose_ink": "#9f1239",
+    "rose_line": "#fecdd3",
     "warn_bg": "#fff3cd",
     "warn_ink": "#5a4100",
     "focus_ring": "#0b57d0",
@@ -108,6 +101,9 @@ WEB_CONTRAST_CHECKS = (
     ("secondary button text", "pink_deep", "panel", 4.5),
     ("link text on panel", "pink_deep", "panel", 4.5),
     ("badge text on pink pale", "pink_deep", "pink_pale", 4.5),
+    ("calm effort text", "green_ink", "green_bg", 4.5),
+    ("attention effort text", "amber_ink", "amber_bg", 4.5),
+    ("serious effort text", "rose_ink", "rose_bg", 4.5),
     ("warning text on warning background", "warn_ink", "warn_bg", 4.5),
     ("danger action text", "danger", "panel", 4.5),
     ("focus ring on panel", "focus_ring", "panel", 3.0),
@@ -258,7 +254,7 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
               "계약서를 붙여넣거나 사진·PDF를 올려 주세요. 서명 전에 확인할 현금흐름 "
               "조항을 정리해 드릴게요.",
               "Paste your contract or drop in a photo/PDF, and I'll line up the "
-              "cash-flow clauses to check before you sign.",
+              "financial clauses to check before you sign.",
           )}</p>
           <div class="chip-row">
             <button type="button" class="example-chip" data-example-chip="true"
@@ -303,7 +299,9 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
       class="composer-input"
       data-ingest-mode="paste" data-paste-box="true"
       aria-describedby="analyze-status"
-      placeholder="제3조(정산) ..."></textarea>
+      data-placeholder-ko="계약 조항을 붙여넣거나 사진·PDF를 올려 주세요"
+      data-placeholder-en="Paste contract clauses or upload a photo/PDF"
+      placeholder="계약 조항을 붙여넣거나 사진·PDF를 올려 주세요"></textarea>
     <button type="button" id="analyze-btn" class="send-button" data-analyze-button="true"
       aria-controls="result analyze-status"
       aria-label="보내기 / Send">
@@ -1255,6 +1253,15 @@ def _css() -> str:
   --accent: {tokens["accent"]};
   --accent-strong: {tokens["accent_strong"]};
   --accent-tint: {tokens["accent_tint"]};
+  --green-bg: {tokens["green_bg"]};
+  --green-ink: {tokens["green_ink"]};
+  --green-line: {tokens["green_line"]};
+  --amber-bg: {tokens["amber_bg"]};
+  --amber-ink: {tokens["amber_ink"]};
+  --amber-line: {tokens["amber_line"]};
+  --rose-bg: {tokens["rose_bg"]};
+  --rose-ink: {tokens["rose_ink"]};
+  --rose-line: {tokens["rose_line"]};
   --warn-bg: {tokens["warn_bg"]};
   --warn-ink: {tokens["warn_ink"]};
   --focus-ring: {tokens["focus_ring"]};
@@ -1267,7 +1274,7 @@ def _css() -> str:
   --space-3: 1.5rem;
   --space-4: 2rem;
   --radius: 8px;
-  --shadow: 0 1px 2px rgba(31, 41, 55, .05), 0 12px 28px rgba(31, 41, 55, .08);
+  --shadow: 0 1px 2px rgba(31, 41, 55, .04), 0 14px 34px rgba(31, 41, 55, .07);
   --reading-measure: 66ch;
   --bubble-max: 44rem;
   --bubble-padding: 1rem;
@@ -1925,7 +1932,7 @@ footer {
   display: grid;
   gap: var(--space-1);
   padding: var(--space-1);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: 8px;
   background: #fff;
 }
@@ -1954,43 +1961,57 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: .35rem;
   padding: .5rem;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: #fbfcfe;
   color: var(--muted);
   font-size: .78rem;
-  font-weight: 700;
+  font-weight: 650;
   line-height: 1.25;
   text-align: center;
 }
 .effort-segment::before {
-  display: none;
+  content: "";
+  display: inline-block;
+  width: .5rem;
+  height: .5rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #9ca3af;
 }
 .effort-segment[data-effort-level="light"] {
-  --effort-color: var(--accent-strong);
+  --effort-bg: var(--green-bg);
+  --effort-ink: var(--green-ink);
+  --effort-line: var(--green-line);
 }
 .effort-segment[data-effort-level="careful"] {
-  --effort-color: var(--accent-strong);
+  --effort-bg: var(--amber-bg);
+  --effort-ink: var(--amber-ink);
+  --effort-line: var(--amber-line);
 }
 .effort-segment[data-effort-level="professional"] {
-  --effort-color: var(--accent-strong);
+  --effort-bg: var(--rose-bg);
+  --effort-ink: var(--rose-ink);
+  --effort-line: var(--rose-line);
 }
 .effort-segment[data-active="true"] {
-  border-color: var(--accent-strong);
-  background: var(--accent-strong);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(185, 28, 92, .16);
+  border-color: var(--effort-line);
+  background: var(--effort-bg);
+  color: var(--effort-ink);
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(31, 41, 55, .07);
 }
 .effort-segment[data-active="true"]::before {
-  display: none;
+  background: var(--effort-ink);
 }
 .review-focus-signal {
   display: grid;
   gap: .5rem;
   align-content: start;
   padding: var(--space-1);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: 8px;
   background: #fff;
 }
@@ -2041,7 +2062,7 @@ footer {
   display: grid;
   gap: .5rem;
   padding: var(--space-1);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: 8px;
   background: #fff;
 }
@@ -2058,6 +2079,19 @@ footer {
   margin: 0;
   font-size: 1rem;
 }
+.glance-concern-clause,
+.finding-line-clause {
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: .22rem .5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: #f9fafb;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 700;
+}
 .glance-concern-why {
   margin: 0;
   max-width: var(--reading-measure);
@@ -2066,7 +2100,8 @@ footer {
 .result-source-quote {
   margin: 0;
   padding: .75rem;
-  border-left: 3px solid var(--line);
+  border-left: 3px solid var(--accent-strong);
+  border-radius: 0 8px 8px 0;
   background: #f9fafb;
   color: var(--muted);
   font-size: .92rem;
@@ -2237,22 +2272,33 @@ footer {
   color: var(--ink);
 }
 .result-chip-row {
-  display: flex;
+  display: grid;
   gap: .45rem;
-  flex-wrap: wrap;
   margin: 0;
 }
 .result-chip {
-  display: inline-flex;
-  max-width: 100%;
+  display: flex;
+  width: 100%;
+  max-width: var(--reading-measure);
   align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: .3rem .6rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .45rem .65rem;
   background: #fff;
   color: var(--ink);
   font-size: .9rem;
-  font-weight: 700;
+  font-weight: 650;
+}
+.followup-chip-stack {
+  display: grid;
+  gap: .5rem;
+  margin-top: .5rem;
+}
+.followup-chip-stack .example-chip {
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: 8px;
+  text-align: left;
 }
 .audit-source-excerpts {
   display: grid;
@@ -3049,7 +3095,8 @@ footer {
   height: 1.2rem;
 }
 .send-button {
-  width: 44px;
+  width: 52px;
+  min-width: 52px;
   font-weight: 800;
 }
 .send-button:hover {
@@ -3181,11 +3228,23 @@ _APP_JS = r"""(function () {
       toggle.setAttribute("aria-pressed", locale === "en" ? "true" : "false");
       toggle.setAttribute("data-active-locale-value", locale);
     }
+    updateLocalizedPlaceholders(locale);
     writeStoredLocale(locale);
   }
 
   function activeLocale() {
     return normalizeLocale(document.documentElement.getAttribute("data-active-locale"));
+  }
+
+  function updateLocalizedPlaceholders(locale) {
+    var box = document.getElementById("paste-box");
+    if (!box) {
+      return;
+    }
+    var value = box.getAttribute(locale === "en" ? "data-placeholder-en" : "data-placeholder-ko");
+    if (value) {
+      box.setAttribute("placeholder", value);
+    }
   }
 
   function prefersReducedMotion() {
@@ -3349,6 +3408,128 @@ _APP_JS = r"""(function () {
     );
   }
 
+  function cleanClauseHeading(value) {
+    var raw = text(value).replace(/\s+/g, " ").trim();
+    if (!raw) {
+      return "";
+    }
+    var ko = raw.match(/^(제\s*\d+\s*조(?:\s*[({（][^)}）]+[)}）])?)/i);
+    if (ko) {
+      return ko[1].replace(/제\s*(\d+)\s*조/i, "제$1조").replace(/\s+([({（])/g, "$1").trim();
+    }
+    var en = raw.match(/^((?:Article|Section|Clause)\s+\d+[A-Za-z0-9_.-]*(?:\s*[({][^)}]+[)}])?)/i);
+    return en ? en[1].trim() : raw;
+  }
+
+  function clauseTopicEn(topic) {
+    var value = text(topic).toLowerCase();
+    if (!value) {
+      return "";
+    }
+    if (value.indexOf("정산") !== -1 || value.indexOf("settlement") !== -1) {
+      return "Settlement";
+    }
+    if (value.indexOf("위약") !== -1 || value.indexOf("penalty") !== -1) {
+      return "Penalty";
+    }
+    if (value.indexOf("해지") !== -1 || value.indexOf("termination") !== -1) {
+      return "Termination";
+    }
+    if (value.indexOf("독점") !== -1 || value.indexOf("exclusive") !== -1) {
+      return "Exclusivity";
+    }
+    if (value.indexOf("저작") !== -1 || value.indexOf("copyright") !== -1) {
+      return "Copyright";
+    }
+    return topic;
+  }
+
+  function clauseTopicKo(topic) {
+    var value = text(topic).toLowerCase();
+    if (!value) {
+      return "";
+    }
+    if (value.indexOf("settlement") !== -1) {
+      return "정산";
+    }
+    if (value.indexOf("penalty") !== -1) {
+      return "위약금";
+    }
+    if (value.indexOf("termination") !== -1) {
+      return "해지";
+    }
+    if (value.indexOf("exclusive") !== -1) {
+      return "독점";
+    }
+    if (value.indexOf("copyright") !== -1) {
+      return "저작권";
+    }
+    return topic;
+  }
+
+  function translateClauseHeading(heading, targetLocale) {
+    var raw = cleanClauseHeading(heading);
+    if (!raw) {
+      return "";
+    }
+    var ko = raw.match(/^제(\d+)조(?:[({（]([^)}）]+)[)}）])?/);
+    if (ko && targetLocale === "en") {
+      return "Article " + ko[1] + (ko[2] ? " (" + clauseTopicEn(ko[2]) + ")" : "");
+    }
+    var en = raw.match(/^(?:Article|Section|Clause)\s+(\d+)[A-Za-z0-9_.-]*(?:\s*[({]([^)}]+)[)}])?/i);
+    if (en && targetLocale === "ko") {
+      return "제" + en[1] + "조" + (en[2] ? "(" + clauseTopicKo(en[2]) + ")" : "");
+    }
+    return raw;
+  }
+
+  function firstClauseWords(value) {
+    var cleaned = text(value).replace(/\s+/g, " ").trim();
+    if (!cleaned) {
+      return "";
+    }
+    var heading = cleanClauseHeading(cleaned);
+    if (heading && cleaned.indexOf(heading) === 0) {
+      cleaned = cleaned.slice(heading.length).trim();
+    }
+    if (cleaned.length <= 34) {
+      return cleaned;
+    }
+    return cleaned.slice(0, 34).trim() + "...";
+  }
+
+  function clauseReferencePair(finding, index) {
+    var source = (finding && finding.source) || {};
+    var sourceText = source.exact_excerpt || "";
+    var headingKo = cleanClauseHeading(
+      source.clause_heading || source.clauseHeading || finding && finding.clause_heading
+    );
+    var headingEn = cleanClauseHeading(
+      source.clause_heading_en || source.clauseHeadingEn || finding && finding.clause_heading_en
+    );
+    if (headingKo && !headingEn) {
+      headingEn = translateClauseHeading(headingKo, "en");
+    }
+    if (headingEn && !headingKo) {
+      headingKo = translateClauseHeading(headingEn, "ko");
+    }
+    if (headingKo || headingEn) {
+      return {
+        ko: headingKo || headingEn,
+        en: headingEn || headingKo
+      };
+    }
+    var order = clauseOrderValue(finding || {});
+    var fallbackKo = order != null ? "조항 " + order : "조항 " + (index + 1);
+    var fallbackEn = order != null ? "Clause " + order : "Clause " + (index + 1);
+    var firstKo = firstClauseWords(sourceText);
+    var firstEn = firstClauseWords(deterministicClauseTranslation(sourceText, "en") || sourceText);
+    return {
+      ko: firstKo ? fallbackKo + " - " + firstKo : fallbackKo,
+      en: firstEn ? fallbackEn + " - " + firstEn : fallbackEn
+    };
+  }
+
   function findingRecords(findings) {
     return findings.map(function (finding, index) {
       return {
@@ -3402,6 +3583,7 @@ _APP_JS = r"""(function () {
     head.appendChild(badge);
     head.appendChild(bilingual("p", "finding-line-title", finding.title));
     section.appendChild(head);
+    section.appendChild(bilingual("p", "finding-line-clause", clauseReferencePair(finding, record.originalIndex)));
     section.appendChild(bilingual("p", "finding-line-why", finding.why_it_matters));
     var question = el("p", "finding-line-question", null);
     question.appendChild(
@@ -3413,9 +3595,10 @@ _APP_JS = r"""(function () {
     question.appendChild(bilingual("span", null, finding.question_to_ask));
     section.appendChild(question);
     if (Number(record.priorityRank) === 1 && finding.source && finding.source.exact_excerpt) {
-      var quote = el("blockquote", null, finding.source.exact_excerpt);
+      var quote = el("blockquote", null, null);
       quote.setAttribute("data-exact-excerpt", "true");
       quote.className = "result-source-quote";
+      renderLocalizedSourceSegments(quote, finding.source);
       section.appendChild(quote);
     }
     return section;
@@ -3442,6 +3625,271 @@ _APP_JS = r"""(function () {
       marker.className = "source-highlight";
       marker.appendChild(document.createTextNode(text(segment.text)));
       container.appendChild(marker);
+    });
+  }
+
+  function hasHangul(value) {
+    return /[가-힣]/.test(text(value));
+  }
+
+  function sourceTextFromSegments(segments) {
+    return (segments || []).map(function (segment) {
+      return text(segment.text);
+    }).join("");
+  }
+
+  function sourceOriginalLocale(source) {
+    var sourceText = sourceTextFromSegments((source && source.segments) || []);
+    if (!sourceText && source) {
+      sourceText = text(source.text_ko || source.exact_excerpt || source.source_text);
+    }
+    return hasHangul(sourceText) ? "ko" : "en";
+  }
+
+  function deterministicClauseTranslation(value, targetLocale) {
+    var raw = text(value).replace(/\s+/g, " ").trim();
+    if (!raw) {
+      return "";
+    }
+    if (targetLocale === "en") {
+      if (!hasHangul(raw)) {
+        return raw;
+      }
+      var headingEn = translateClauseHeading(cleanClauseHeading(raw), "en");
+      if (
+        raw.indexOf("정산") !== -1 &&
+        raw.indexOf("매 분기") !== -1 &&
+        raw.indexOf("90일") !== -1 &&
+        raw.indexOf("일반 경비") !== -1 &&
+        raw.indexOf("공제") !== -1
+      ) {
+        return (
+          (headingEn ? headingEn + " " : "") +
+          "Settlement is paid within 90 days after the end of each quarter, and the company may deduct general expenses."
+        );
+      }
+      if (raw.indexOf("위약금") !== -1) {
+        return (
+          (headingEn ? headingEn + " " : "") +
+          "A penalty may be charged for breach of contract."
+        );
+      }
+      return (
+        (headingEn ? headingEn + " " : "") +
+        raw
+          .replace(/^제\s*\d+\s*조(?:\s*[({（][^)}）]+[)}）])?\s*/i, "")
+          .replace(/정산/g, "settlement")
+          .replace(/매\s*분기/g, "each quarter")
+          .replace(/종료일로부터/g, "after the end")
+          .replace(/(\d+)\s*일\s*이내/g, "within $1 days")
+          .replace(/지급/g, "payment")
+          .replace(/회사/g, "company")
+          .replace(/일반\s*경비/g, "general expenses")
+          .replace(/공제/g, "deduct")
+          .replace(/할 수 있다/g, "may")
+      ).trim();
+    }
+    if (hasHangul(raw)) {
+      return raw;
+    }
+    var headingKo = translateClauseHeading(cleanClauseHeading(raw), "ko");
+    var lower = raw.toLowerCase();
+    if (
+      lower.indexOf("settlement") !== -1 &&
+      lower.indexOf("90 days") !== -1 &&
+      lower.indexOf("each quarter") !== -1 &&
+      lower.indexOf("general expenses") !== -1
+    ) {
+      return (
+        (headingKo ? headingKo + " " : "") +
+        "정산은 매 분기 종료일로부터 90일 이내에 지급되며, 회사는 일반 경비를 공제할 수 있습니다."
+      );
+    }
+    if (lower.indexOf("penalty") !== -1) {
+      return (
+        (headingKo ? headingKo + " " : "") +
+        "계약 위반 시 위약금이 부과될 수 있습니다."
+      );
+    }
+    return (
+      (headingKo ? headingKo + " " : "") +
+      raw
+        .replace(/^(?:Article|Section|Clause)\s+\d+[A-Za-z0-9_.-]*(?:\s*[({][^)}]+[)}])?\s*/i, "")
+        .replace(/settlement/gi, "정산")
+        .replace(/within\s+(\d+)\s+days?/gi, "$1일 이내")
+        .replace(/each quarter/gi, "매 분기")
+        .replace(/after the end/gi, "종료일로부터")
+        .replace(/company/gi, "회사")
+        .replace(/general expenses/gi, "일반 경비")
+        .replace(/deduct(?:ion|s)?/gi, "공제")
+        .replace(/\bmay\b/gi, "할 수 있습니다")
+    ).trim();
+  }
+
+  function translateHighlightText(value, targetLocale) {
+    var raw = text(value).replace(/\s+/g, " ").trim();
+    if (!raw) {
+      return "";
+    }
+    if (targetLocale === "en") {
+      var day = raw.match(/(\d+)\s*일\s*이내/);
+      if (day) {
+        return day[1] + " days";
+      }
+      if (raw.indexOf("매 분기") !== -1) {
+        return "each quarter";
+      }
+      if (raw.indexOf("일반 경비") !== -1) {
+        return "general expenses";
+      }
+      if (raw.indexOf("공제") !== -1) {
+        return "deduct";
+      }
+      if (raw.indexOf("할 수 있다") !== -1 || raw.indexOf("할 수 있습니다") !== -1) {
+        return "may";
+      }
+      if (raw.indexOf("위약금") !== -1) {
+        return "penalty";
+      }
+      return "";
+    }
+    var lower = raw.toLowerCase();
+    var days = lower.match(/(\d+)\s*days?/);
+    if (days) {
+      return days[1] + "일 이내";
+    }
+    if (lower.indexOf("each quarter") !== -1) {
+      return "매 분기";
+    }
+    if (lower.indexOf("general expenses") !== -1) {
+      return "일반 경비";
+    }
+    if (lower.indexOf("deduct") !== -1) {
+      return "공제";
+    }
+    if (lower.indexOf("may") !== -1) {
+      return "할 수";
+    }
+    if (lower.indexOf("penalty") !== -1) {
+      return "위약금";
+    }
+    return "";
+  }
+
+  function highlightNeedlesForTranslation(segments, targetLocale) {
+    var needles = [];
+    (segments || []).forEach(function (segment) {
+      if (!segment.highlighted) {
+        return;
+      }
+      var translated = translateHighlightText(segment.text, targetLocale);
+      if (translated) {
+        needles.push(translated);
+      }
+    });
+    return needles;
+  }
+
+  function translatedSegments(textValue, sourceSegments, targetLocale) {
+    var value = text(textValue);
+    if (!value) {
+      return [];
+    }
+    var needles = highlightNeedlesForTranslation(sourceSegments, targetLocale);
+    if (needles.length === 0) {
+      return [{ text: value, highlighted: false }];
+    }
+    var lower = value.toLowerCase();
+    var ranges = [];
+    needles.forEach(function (needle) {
+      var wanted = text(needle).toLowerCase();
+      if (!wanted) {
+        return;
+      }
+      var start = lower.indexOf(wanted);
+      while (start !== -1) {
+        ranges.push({ start: start, end: start + wanted.length });
+        start = lower.indexOf(wanted, start + wanted.length);
+      }
+    });
+    if (ranges.length === 0) {
+      return [{ text: value, highlighted: false }];
+    }
+    ranges.sort(function (left, right) {
+      return left.start === right.start ? left.end - right.end : left.start - right.start;
+    });
+    var merged = [];
+    ranges.forEach(function (range) {
+      var last = merged[merged.length - 1];
+      if (last && range.start <= last.end) {
+        last.end = Math.max(last.end, range.end);
+      } else {
+        merged.push({ start: range.start, end: range.end });
+      }
+    });
+    var parts = [];
+    var cursor = 0;
+    merged.forEach(function (range) {
+      if (range.start > cursor) {
+        parts.push({ text: value.slice(cursor, range.start), highlighted: false });
+      }
+      parts.push({ text: value.slice(range.start, range.end), highlighted: true });
+      cursor = range.end;
+    });
+    if (cursor < value.length) {
+      parts.push({ text: value.slice(cursor), highlighted: false });
+    }
+    return parts;
+  }
+
+  function translatedTextForSource(source, targetLocale) {
+    source = source || {};
+    var original = sourceTextFromSegments(source.segments || []) || text(source.exact_excerpt);
+    if (targetLocale === "en") {
+      var enText = text(
+        source.text_en_gloss ||
+          source.exact_excerpt_en_gloss ||
+          source.exact_excerpt_en ||
+          source.source_text_en
+      ).trim();
+      return enText || deterministicClauseTranslation(original || source.text_ko, "en");
+    }
+    var koText = text(source.text_ko_gloss || source.exact_excerpt_ko || source.source_text_ko).trim();
+    if (koText && hasHangul(koText)) {
+      return koText;
+    }
+    return deterministicClauseTranslation(original || source.text_ko, "ko");
+  }
+
+  function sourceSegmentsForLocale(source, locale) {
+    source = source || {};
+    locale = normalizeLocale(locale);
+    var originalSegments = source.segments || [];
+    var originalText = sourceTextFromSegments(originalSegments) || text(source.exact_excerpt);
+    var originalLocale = sourceOriginalLocale(source);
+    if (locale === originalLocale && originalSegments.length > 0) {
+      return originalSegments;
+    }
+    var directSegments = locale === "en"
+      ? source.segments_en || source.translated_segments_en
+      : source.segments_ko || source.translated_segments_ko;
+    if (directSegments && directSegments.length) {
+      return directSegments;
+    }
+    var translated = translatedTextForSource(source, locale);
+    if (translated && translated !== originalText) {
+      return translatedSegments(translated, originalSegments, locale);
+    }
+    return originalSegments.length > 0 ? originalSegments : [{ text: originalText, highlighted: false }];
+  }
+
+  function renderLocalizedSourceSegments(container, source) {
+    ["ko", "en"].forEach(function (locale) {
+      var span = el("span", null, null);
+      span.setAttribute("lang", locale);
+      span.setAttribute("data-locale-text", locale);
+      renderPlainSourceSegments(span, sourceSegmentsForLocale(source, locale));
+      container.appendChild(span);
     });
   }
 
@@ -3490,7 +3938,7 @@ _APP_JS = r"""(function () {
     if (chips.length === 0) {
       return;
     }
-    var row = el("p", "result-chip-row", null);
+    var row = el("div", "result-chip-row", null);
     row.setAttribute("data-result-dimension-chips", "true");
     chips.forEach(function (chip) {
       row.appendChild(bilingual("span", "result-chip", chip));
@@ -3519,7 +3967,7 @@ _APP_JS = r"""(function () {
         return;
       }
       var quote = el("blockquote", null, null);
-      renderPlainSourceSegments(quote, source.segments || []);
+      renderLocalizedSourceSegments(quote, source);
       if (!quote.textContent.trim() && source.exact_excerpt) {
         quote.textContent = text(source.exact_excerpt);
       }
@@ -3701,8 +4149,8 @@ _APP_JS = r"""(function () {
     section.appendChild(bar);
     section.appendChild(
       bilingual("p", "focus-score-caption", {
-        ko: "위험 확률, 손실액, 안전 판정이 아닙니다.",
-        en: "Not a risk probability, loss amount, or safety verdict."
+        ko: "숫자가 높을수록 먼저·꼼꼼히 살펴볼 항목이 많다는 뜻이에요.",
+        en: "A higher number means more items should be reviewed earlier and more carefully."
       })
     );
     return section;
@@ -3771,14 +4219,7 @@ _APP_JS = r"""(function () {
   }
 
   function briefClauseLabel(finding, index, locale) {
-    var source = (finding && finding.source) || {};
-    var order = clauseOrderValue(finding || {});
-    if (order != null) {
-      return normalizeLocale(locale) === "en" ? "Clause " + order : "조항 " + order;
-    }
-    return normalizeLocale(locale) === "en"
-      ? "Item " + (index + 1)
-      : "확인 항목 " + (index + 1);
+    return localizedFor(clauseReferencePair(finding, index), locale);
   }
 
   function briefFindingTitle(finding, index, locale) {
@@ -4084,6 +4525,7 @@ _APP_JS = r"""(function () {
           en: "First item to check"
         })
       );
+      concern.appendChild(bilingual("p", "glance-concern-clause", clauseReferencePair(finding, 0)));
       concern.appendChild(bilingual("h4", "glance-concern-title", finding.title));
       concern.appendChild(
         bilingual("p", "glance-concern-why", finding.why_it_matters)
@@ -4524,7 +4966,7 @@ _APP_JS = r"""(function () {
         en: "You could ask"
       })
     );
-    var row = el("div", "chip-row", null);
+    var row = el("div", "chip-row followup-chip-stack", null);
     suggestions.forEach(function (question) {
       var button = el("button", "example-chip", null);
       button.type = "button";
@@ -4652,7 +5094,7 @@ _APP_JS = r"""(function () {
       return false;
     }
     var code = text(data && data.error_code);
-    return code === "OCR_NOT_INSTALLED" || code === "FILE_EMPTY";
+    return code === "OCR_NO_TEXT" || code === "FILE_EMPTY";
   }
 
   function setAnalyzeBusy(isBusy) {

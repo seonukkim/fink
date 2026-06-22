@@ -269,12 +269,14 @@ def _source_for_finding(
     status = HIGHLIGHT_STATUS_VALIDATED if has_highlight else HIGHLIGHT_STATUS_MISSING
     role_ids = _roles_from_segments(segments)
     source_meta = _source_text_metadata(span_records)
+    clause_text = _clause_text_payload(clause, source_text)
 
     updated_finding["source"].update(
         {
             "anchor_id": source_anchor_id,
             "focus_anchor_id": focus_anchor_id,
             "finding_anchor_id": finding_anchor_id,
+            **clause_text,
             "highlight_status": status,
             "highlight_status_label": _status_label(status),
             "segments": segments,
@@ -296,6 +298,7 @@ def _source_for_finding(
         "status": status,
         "status_label": _status_label(status),
         **source_meta,
+        **clause_text,
         "segments": segments,
         "semantic_roles": role_ids,
         "validated_span_count": len(validated),
@@ -354,6 +357,17 @@ def _missing_source_payload(
         "semantic_roles": [],
         "validated_span_count": 0,
         "source_text_length": len(source_text),
+    }
+
+
+def _clause_text_payload(clause: Any, source_text: str) -> dict[str, str]:
+    heading = str(getattr(clause, "heading_ko", "") or "")
+    text_ko = str(getattr(clause, "text_ko", "") or source_text or "")
+    text_en_gloss = str(getattr(clause, "text_en_gloss", "") or "")
+    return {
+        "clause_heading": heading,
+        "text_ko": text_ko,
+        "text_en_gloss": text_en_gloss,
     }
 
 

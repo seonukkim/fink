@@ -228,8 +228,8 @@ _COPY: dict[str, dict[str, str]] = {
         "en": "Rule-based review focus index",
     },
     "diagnostic.rule_focus_note": {
-        "ko": "위험 확률, 손실액, 안전 판정이 아닙니다.",
-        "en": "This is not a risk probability, loss amount, or safety verdict.",
+        "ko": "숫자가 높을수록 먼저·꼼꼼히 살펴볼 항목이 많다는 뜻입니다.",
+        "en": "A higher number means more items should be reviewed earlier and more carefully.",
     },
     "finding.priority_basis.missing_protection": {
         "ko": "보호 조항이 빠졌거나 약해 보여 먼저 볼 항목으로 정렬했습니다.",
@@ -822,6 +822,7 @@ def _finding_from_ranked(
         "title": title,
         "source": {
             "clause_id": finding.clause_id,
+            "clause_heading": finding.clause_heading or "",
             "exact_excerpt": finding.exact_excerpt,
         },
         "why_it_matters": _why_it_matters(guidance, finding.risk_category),
@@ -873,6 +874,7 @@ def _finding_from_signal(
         "title": title,
         "source": {
             "clause_id": signal.clause_id,
+            "clause_heading": _clause_heading_for_signal(signal.clause_id, report),
             "exact_excerpt": excerpt,
         },
         "why_it_matters": _category_why(category),
@@ -1366,6 +1368,14 @@ def _excerpt_for_clause(clause_id: str, highlights: tuple[Any, ...]) -> str:
                 for part in (item.text_before, item.trigger_text, item.text_after)
                 if str(part).strip()
             )
+    return ""
+
+
+def _clause_heading_for_signal(clause_id: str, report: Any) -> str:
+    for clause in getattr(report.assessment, "clause_assessments", ()):
+        if clause.clause_id == clause_id:
+            heading = getattr(clause, "heading_ko", None)
+            return str(heading or "")
     return ""
 
 
