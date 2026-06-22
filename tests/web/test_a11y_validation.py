@@ -106,8 +106,11 @@ class WebA11yValidationTests(unittest.TestCase):
         )
         script = WEB.app_js()
 
-        for landmark in ("<header", "<nav", "<main", "<aside", "<footer"):
+        # The chat shell exposes header, nav (locale toggle), main (the thread),
+        # and aside (the Notice disclosure panel); it has no footer landmark.
+        for landmark in ("<header", "<nav", "<main", "<aside"):
             self.assertIn(landmark, markup)
+        self.assertNotIn("<footer", markup)
         for heading in ("<h1", "<h2", "<h3"):
             self.assertIn(heading, markup)
         self.assertNotIn('role="button"', markup)
@@ -127,17 +130,15 @@ class WebA11yValidationTests(unittest.TestCase):
             'data-copy-question="true"',
             'data-scenario-recalculate-button="true"',
             'data-finding-section="section.evidence"',
-            'data-locale-button="ko"',
-            'data-locale-button="en"',
-            'aria-label="한국어 화면 / Korean interface"',
-            'aria-label="영어 생성 화면 / English generated interface"',
+            'data-locale-button="toggle"',
+            'aria-label="한국어와 영어 전환 / Switch between Korean and English"',
             'aria-label="물어볼 말 복사 / Copy question to ask"',
             'aria-label="원문에서 보기 / View source excerpt"',
             'aria-label="검토 항목으로 돌아가기 / Back to finding"',
             'aria-label="시나리오 다시 계산 / Recalculate scenario"',
             'aria-label="출처 하이라이트 켜기 또는 끄기 / Toggle source highlights"',
             'aria-describedby="analyze-status"',
-            'aria-describedby="pdf-local-notice pdf-error-region"',
+            'aria-describedby="pdf-error-region"',
         ):
             self.assertIn(expected, markup)
 
@@ -148,7 +149,9 @@ class WebA11yValidationTests(unittest.TestCase):
             'button.setAttribute("aria-label", "시나리오 다시 계산 / Recalculate scenario")',
             "[data-source-nav], [data-reader-jump]",
             "copyQuestion(copyButton)",
-            "setLocale(button.getAttribute",
+            # The single locale toggle flips KO<->EN on click instead of reading
+            # a per-button locale value.
+            'setLocale(activeLocale() === "en" ? "ko" : "en")',
         ):
             self.assertIn(expected, script)
 
@@ -163,7 +166,10 @@ class WebA11yValidationTests(unittest.TestCase):
                 SCHEMAS.UILocale.KO,
             )
         )
-        combined = markup + report
+        # The creator flow no longer renders the empty report shell inside the
+        # index page, so the always-present "practice reference / non-scoring"
+        # non-color label is verified against the report renderer that owns it.
+        combined = markup + report + WEB.render_empty_report_shell_html()
 
         for cue in (
             'data-highlight-cue="solid underline"',

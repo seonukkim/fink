@@ -9,12 +9,7 @@ from typing import Any, Awaitable, Callable
 
 from fink.schemas import UILocale
 from fink.web.analyze import analysis_result_to_payload, run_local_analysis
-from fink.web.assumptions import EditableAssumptions, render_assumptions_panel_html
-from fink.web.ingest_ui import (
-    PAGE_OPERATIONS,
-    PDF_LOCAL_NOTICE,
-)
-from fink.web.report_ui import render_empty_report_shell_html
+from fink.web.assumptions import EditableAssumptions
 from fink.web.upload import (
     AnalyzeRequestError,
     analyze_multipart_request,
@@ -28,11 +23,28 @@ DEFAULT_PORT = 8000
 
 PRIVACY_BANNER = (
     "Local-only session. Contract uploads and OCR text stay on this device; "
-    "no telemetry, cloud OCR, remote LLM, or external legal search is used."
+    "no usage tracking, cloud OCR, remote LLM, or external legal search is used."
 )
+PRIVACY_BANNER_KO = (
+    "기록 미수집 · 기기 내 처리. 사용 기록을 수집하지 않고, 모든 분석을 이 기기 "
+    "안에서 처리합니다. 클라우드 OCR·원격 LLM·외부 법률 검색을 쓰지 않습니다."
+)
+# Value first, honest boundary second. The English aid still carries the pinned
+# phrase "Contractual Financial Review Priority". This is a disclaimer that FInk
+# does NOT determine legality/fraud/validity/etc., so it stays clear of the
+# legal_verdict_scan BAD_LEGAL_ASSERTIONS patterns.
 NOT_LEGAL_ADVICE_BANNER = (
-    "FInk reports Contractual Financial Review Priority only. It is not legal advice "
-    "and not a fraud, illegality, validity, unfairness, or guaranteed-loss verdict."
+    "FInk reads your contract to find the clauses that move money and the signals "
+    "that need attention, orders them so you check the most important first, and "
+    "explains why (a Contractual Financial Review Priority). It does not make the "
+    "final call on legality, fraud, contract validity, or unfairness, so have an "
+    "expert confirm anything important before you decide."
+)
+NOT_LEGAL_ADVICE_BANNER_KO = (
+    "FInk은 계약서에서 돈과 직결되는 조항과 주의가 필요한 신호를 찾아 "
+    "먼저 확인할 순서로 정리하고 그 이유를 설명합니다. 다만 위법성·사기·계약 효력·"
+    "불공정 여부를 최종적으로 판정하지는 않으니, 중요한 결정 전에는 전문가의 확인을 "
+    "받으세요."
 )
 TRUSTED_LAN_WARNING = (
     "Trusted-LAN mode exposes this local server only to devices on the same private "
@@ -44,27 +56,30 @@ DISCLOSURE_ITEMS = (
     "Official-source grounding is UNVERIFIED pending A0 confirmation.",
     "Korean source language is canonical; English UI text is a generated aid.",
 )
+# Korean-canonical / English-aid pairs for the report disclosures. The English
+# aid strings stay identical to DISCLOSURE_ITEMS so the privacy payload and the
+# a11y wording pins still match; the Korean line leads as the canonical text.
+DISCLOSURE_ITEMS_BILINGUAL = (
+    {
+        "ko": "검토 순서는 위법성·사기·유효성·불공정·손실 확정에 대한 판정이 아닙니다.",
+        "en": DISCLOSURE_ITEMS[0],
+    },
+    {
+        "ko": "금액은 사용자가 입력한 가정에 따른 시나리오 추정치이며 확정 손실이 아닙니다.",
+        "en": DISCLOSURE_ITEMS[1],
+    },
+    {
+        "ko": "공식 출처 근거는 공식 확인 전에는 확인 필요(UNVERIFIED)로 표시됩니다.",
+        "en": DISCLOSURE_ITEMS[2],
+    },
+    {
+        "ko": "한국어 원문이 기준이며, 영어 화면 문구는 보조용으로 생성됩니다.",
+        "en": DISCLOSURE_ITEMS[3],
+    },
+)
 
 LAN_CONFIRMATION_TEXT = "I understand this is a trusted-LAN-only local server."
 _BLOCKED_BIND_HOSTS = frozenset({"0.0.0.0", "::", ""})
-
-# Bilingual "1-2-3 how to use" strip for the creator flow. Korean is canonical;
-# English is a generated aid. Each string is short and period-free, which is
-# safe for the long-private-quotation gate.
-HOW_TO_USE_STEPS = (
-    {
-        "ko": "계약 텍스트를 붙여넣거나 업로드하세요",
-        "en": "Paste or upload the contract text",
-    },
-    {
-        "ko": "분석하기 버튼을 한 번 누르세요",
-        "en": "Press the Analyze button once",
-    },
-    {
-        "ko": "지금 먼저 확인할 것과 네 가지 카드를 확인하세요",
-        "en": "Read the check-first item and four cards",
-    },
-)
 
 WEB_DESIGN_TOKENS = {
     "ink": "#151a22",
@@ -176,17 +191,25 @@ def resolve_bind_settings(
 
 
 def render_index_html(settings: WebBindSettings | None = None) -> str:
-    """Render the local-only creator flow without external assets.
+    """Render the local-only creator chat without external assets.
 
-    The page is split into a prominent primary flow (a 1-2-3 how-to strip, one
-    input card with the paste box plus a single collapsed upload affordance,
-    and the result target) and a de-emphasized advanced-tools column where the
-    monetary-assumptions grid, the report shell, and the OCR page editor live
-    inside collapsed ``<details>`` panels. Both Korean and English
-    copy are rendered into the DOM and flipped via the ``data-active-locale``
-    attribute, so the KO/EN toggle works before any analyze call. All ``fetch``
-    and render logic lives in ``/app.js`` because the Content-Security-Policy
-    restricts scripts to ``'self'``.
+    The page is a real chat thread: a sticky top bar (title, the single KO/EN
+    toggle, and a Notice button that opens the merged disclosure panel), one
+    short privacy line, a scrolling message thread that opens with a single bot
+    greeting, and a sticky bottom composer (an attach button, a growing paste
+    box, and the send button). The analysis result and the follow-up Q&A render
+    as bot/user message bubbles appended to the thread; ``/app.js`` fills the
+    ``#result`` node that lives inside a bot bubble.
+
+    The monetary-assumptions grid and the OCR page editor are intentionally not
+    rendered here because a creator cannot fill 32 fields or hand-edit pages in
+    a browser; the assumptions request-parsing path stays available for the API.
+
+    Korean is canonical and English is a generated aid. Both locales are
+    rendered into the DOM as paired ``data-locale-text`` spans and flipped via
+    the ``data-active-locale`` attribute, so the single KO/EN toggle works
+    before any analyze call. All ``fetch`` and render logic lives in ``/app.js``
+    because the Content-Security-Policy restricts scripts to ``'self'``.
     """
 
     bind = settings or resolve_bind_settings()
@@ -195,10 +218,6 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
         f"{html.escape(bind.trusted_lan_warning)}</p>"
         if bind.lan_enabled
         else ""
-    )
-    disclosures = "\n".join(
-        f"<li>{html.escape(item)}</li>"
-        for item in (PRIVACY_BANNER, NOT_LEGAL_ADVICE_BANNER, *DISCLOSURE_ITEMS)
     )
     return f"""<!doctype html>
 <html lang="ko" data-default-locale="ko" data-active-locale="ko" data-local-only="true">
@@ -211,237 +230,130 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to workspace</a>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">FInk on-device review</p>
-      <h1>계약 금융 검토</h1>
-      <p class="subtitle">Contractual Financial Review Priority</p>
+  <header class="chat-topbar">
+    <div class="chat-title">
+      <h1>창작자 특화 금융 계약 검토</h1>
+      <p class="subtitle">Creator-focused financial contract review</p>
     </div>
-    <nav class="locale-toggle" aria-label="Locale" data-locale-toggle="true">
-      <button type="button" data-locale-button="ko" aria-pressed="true"
-        aria-label="한국어 화면 / Korean interface">KO</button>
-      <button type="button" data-locale-button="en" aria-pressed="false"
-        aria-label="영어 생성 화면 / English generated interface">EN generated</button>
-    </nav>
+    <div class="chat-topbar-actions">
+      <nav class="locale-toggle" aria-label="Locale" data-locale-toggle="true">
+        <button type="button" data-locale-button="toggle" data-active-locale-value="ko"
+          aria-pressed="false"
+          aria-label="한국어와 영어 전환 / Switch between Korean and English">
+          <span lang="ko" data-locale-text="ko">EN</span>
+          <span lang="en" data-locale-text="en">KO</span>
+        </button>
+      </nav>
+      <button type="button" class="notice-button secondary" data-notice-toggle="true"
+        aria-controls="notice-panel" aria-expanded="false"
+        aria-label="고지 열기 또는 닫기 / Open or close notice">
+        <span aria-hidden="true">ⓘ&nbsp;</span>{_bilingual("고지", "Notice")}
+      </button>
+    </div>
   </header>
 
-  <section class="disclosure-bar" aria-label="Persistent privacy and disclaimer banners">
-    <p class="banner banner-privacy">{html.escape(PRIVACY_BANNER)}</p>
-    <p class="banner banner-advice">{html.escape(NOT_LEGAL_ADVICE_BANNER)}</p>
-    {lan_warning}
-  </section>
+  <p class="chat-privacy" data-privacy-line="true">{_bilingual(PRIVACY_BANNER_KO, PRIVACY_BANNER)}</p>
 
-  <main id="workspace" class="workspace"
+  {_render_notice_panel(lan_warning)}
+
+  <main id="workspace" class="chat"
     data-responsive-validation-targets="320-no-horizontal-overflow 390x844 768x1024 1440x900 200-percent-zoom">
-    <div class="primary-flow">
-      {_render_how_to_section()}
-      {_render_input_card()}
-      {_render_result_section()}
-    </div>
-
-    <div class="advanced-tools">
-      {_render_disclosures_section(disclosures)}
-      {_render_assumptions_details()}
-      {_render_page_tools_details()}
-    </div>
+    <ol class="thread" data-chat-thread="true" aria-live="polite" aria-label="대화 / Conversation">
+      <li class="msg bot" data-message-role="bot" data-greeting="true">
+        <div class="bubble">
+          <p class="bubble-text">{_bilingual(
+              "계약서를 붙여넣거나 사진·PDF를 올려 주세요. 서명 전에 확인할 현금흐름 "
+              "조항을 정리해 드릴게요.",
+              "Paste your contract or drop in a photo/PDF, and I'll line up the "
+              "cash-flow clauses to check before you sign.",
+          )}</p>
+          <div class="chip-row">
+            <button type="button" class="example-chip" data-example-chip="true"
+              aria-label="예시로 시작 / Try an example">
+              {_bilingual("예시로 시작", "Try an example")}
+            </button>
+          </div>
+        </div>
+      </li>
+      <li class="msg bot result-msg" data-message-role="bot" data-result-message="true" hidden>
+        <div class="bubble bubble-result">
+          <section id="result" class="result-pane" aria-labelledby="result-heading"
+            aria-live="polite" role="region" data-analysis-result="true">
+            <h2 id="result-heading" class="sr-only">
+              <span lang="ko" data-locale-text="ko">검토 결과</span>
+              <span lang="en" data-locale-text="en">Review result</span>
+            </h2>
+          </section>
+        </div>
+      </li>
+    </ol>
   </main>
 
-  <footer>
-    <span>Serving from {html.escape(bind.base_url)}</span>
-    <span>{html.escape("LAN opt-in enabled" if bind.lan_enabled else "Loopback only")}</span>
-  </footer>
+  <form class="composer" data-composer="true" autocomplete="off">
+    <button type="button" class="attach-button" data-attach-button="true"
+      aria-controls="contract-file"
+      aria-label="파일 첨부 / Attach a file">
+      <span aria-hidden="true">📎</span>
+    </button>
+    <input id="contract-file" name="contract_file" type="file" class="visually-hidden-input"
+      data-file-input="true"
+      aria-describedby="pdf-error-region"
+      accept="text/plain,.txt,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.heic,.heif">
+    <label class="composer-label sr-only" for="paste-box">
+      <span lang="ko" data-locale-text="ko">계약 조항 붙여넣기</span>
+      <span lang="en" data-locale-text="en">Paste clause text</span>
+    </label>
+    <textarea id="paste-box" name="paste_text" rows="1" spellcheck="false"
+      class="composer-input"
+      data-ingest-mode="paste" data-paste-box="true"
+      aria-describedby="analyze-status"
+      placeholder="제3조(정산) ..."></textarea>
+    <button type="button" id="analyze-btn" class="send-button" data-analyze-button="true"
+      aria-controls="result analyze-status"
+      aria-label="보내기 / Send">
+      <span aria-hidden="true">↑</span>
+      <span class="send-label">{_bilingual("보내기", "Send")}</span>
+    </button>
+  </form>
+  <p class="hint sr-only" id="analyze-status" data-analyze-status="true" role="status" aria-live="polite">
+    <span lang="ko" data-locale-text="ko">계약 자료는 이 기기에서만 처리됩니다.</span>
+    <span lang="en" data-locale-text="en">Contract material is processed only on this device.</span>
+  </p>
+  <div id="pdf-error-region" class="sr-only" data-pdf-error-region="true"
+    role="alert" aria-live="assertive">
+    {_bilingual(
+        "지원하지 않거나 비어 있거나 손상·암호화·용량 초과·OCR 누락 파일은 기기 안에서 "
+        "오류로 표시되며, 어떤 내용도 전송되지 않습니다.",
+        "Files that are unsupported, empty, corrupted, encrypted, oversized, "
+        "or missing OCR text return a local error. Nothing is transmitted.",
+    )}
+  </div>
   <script src="/app.js"></script>
 </body>
 </html>
 """
 
 
-def _render_how_to_section() -> str:
-    """Render the compact 1-2-3 how-to strip that opens the primary flow."""
+def _render_notice_panel(lan_warning: str) -> str:
+    """Render the merged disclosure surface opened by the Notice button.
 
-    steps = "\n".join(_render_step(step) for step in HOW_TO_USE_STEPS)
-    return f"""<section class="how-to card" aria-labelledby="how-to-heading">
-      <div class="section-heading">
-        <p class="eyebrow">How to use</p>
-        <h2 id="how-to-heading">
-          <span lang="ko" data-locale-text="ko">사용 방법 1-2-3</span>
-          <span lang="en" data-locale-text="en">How to use 1-2-3</span>
-        </h2>
-      </div>
-      <ol class="how-to-steps" data-how-to-steps="true">
-        {steps}
-      </ol>
-    </section>"""
-
-
-def _render_input_card() -> str:
-    """Render one input area: paste text or choose one local file."""
-
-    return f"""<section class="input-pane card" aria-labelledby="input-heading">
-      <div class="section-heading">
-        <p class="eyebrow">Local input</p>
-        <h2 id="input-heading">
-          <span lang="ko" data-locale-text="ko">검토할 계약 자료</span>
-          <span lang="en" data-locale-text="en">Contract text to review</span>
-        </h2>
-      </div>
-      <label class="paste-label" for="paste-box">
-        <span lang="ko" data-locale-text="ko">계약 조항 붙여넣기</span>
-        <span lang="en" data-locale-text="en">Paste clause text</span>
-      </label>
-      <textarea id="paste-box" name="paste_text" rows="8" spellcheck="false"
-        data-ingest-mode="paste"
-        aria-describedby="analyze-status"
-        placeholder="제3조(정산) ..."></textarea>
-      <div class="file-input-row" data-upload-area="true">
-        <label class="upload-label" for="contract-file">
-          <span lang="ko" data-locale-text="ko">파일 업로드 (선택)</span>
-          <span lang="en" data-locale-text="en">Upload one file (optional)</span>
-        </label>
-        <input id="contract-file" name="contract_file" type="file" data-file-input="true"
-          aria-describedby="pdf-local-notice pdf-error-region"
-          accept="text/plain,.txt,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.heic,.heif">
-        <p id="pdf-local-notice" class="pdf-local-notice" data-pdf-local-notice="true">
-          {html.escape(PDF_LOCAL_NOTICE)}
-        </p>
-        <div id="pdf-error-region" class="local-error" data-pdf-error-region="true"
-          role="alert" aria-live="assertive">
-          unsupported, empty, corrupted, encrypted, oversized, and OCR-missing files
-          return a local structured error. Nothing is transmitted.
-        </div>
-      </div>
-      <div class="action-row">
-        <button type="button" id="analyze-btn" data-analyze-button="true"
-          aria-controls="result analyze-status">
-          분석하기 / Analyze
-        </button>
-      </div>
-      <p class="hint" id="analyze-status" data-analyze-status="true" role="status" aria-live="polite">
-        <span lang="ko" data-locale-text="ko">계약 텍스트는 이 기기에만 머무는 임시 데이터입니다.</span>
-        <span lang="en" data-locale-text="en">Contract text stays on this device as ephemeral data.</span>
-      </p>
-    </section>"""
-
-
-def _render_result_section() -> str:
-    """Render the result target that ``/app.js`` fills after Analyze."""
-
-    return """<section
-      id="result"
-      class="result-pane card"
-      aria-labelledby="result-heading"
-      aria-live="polite"
-      role="region"
-      data-analysis-result="true"
-      hidden
-    >
-      <div class="section-heading">
-        <p class="eyebrow">Review result</p>
-        <h2 id="result-heading">
-          <span lang="ko" data-locale-text="ko">지금 먼저 확인할 것</span>
-          <span lang="en" data-locale-text="en">Check first now</span>
-        </h2>
-      </div>
-      <p class="hint" data-result-placeholder="true">
-        <span lang="ko" data-locale-text="ko">분석하기를 누르면 결과가 여기에 표시됩니다.</span>
-        <span lang="en" data-locale-text="en">Press Analyze and the result appears here.</span>
-      </p>
-    </section>"""
-
-
-def _render_disclosures_section(disclosures: str) -> str:
-    """Render the always-visible report and export disclosure list."""
-
-    return f"""<aside class="export-disclosures card"
-      aria-label="Report and export disclosures">
-      <h3>Report disclosures</h3>
-      <ul>
-        {disclosures}
-      </ul>
-    </aside>"""
-
-
-def _render_assumptions_details() -> str:
-    """Wrap the optional monetary-assumptions grid and report shell in a disclosure.
-
-    The editable FIM-assumptions grid and the four-dimension report shell are
-    optional tools, so they are collapsed by default to keep the primary flow
-    uncluttered. They stay in the DOM (tests pin their elements) and keep the
-    ``Four separate dimensions`` heading inside the open panel.
+    One responsive ``<aside>`` panel holds the not-legal-advice text and the
+    report-disclosure bullets. The short privacy line lives in the page header;
+    this panel carries the rest so there is no two-column disclosure bar.
     """
 
-    return f"""<details class="tool-details" data-optional-tool="assumptions">
-      <summary>
-        <span lang="ko" data-locale-text="ko">고급 시나리오 입력</span>
-        <span lang="en" data-locale-text="en">Advanced scenario inputs</span>
-      </summary>
-      <section class="report-pane" aria-labelledby="report-heading">
-        <div class="section-heading">
-          <p class="eyebrow">Four dimensions and assumptions</p>
-          <h2 id="report-heading">Four separate dimensions</h2>
-        </div>
-        {render_assumptions_panel_html()}
-        {render_empty_report_shell_html()}
-      </section>
-    </details>"""
-
-
-def _render_page_tools_details() -> str:
-    """Wrap the OCR page editor in a collapsed disclosure.
-
-    The page reorder / rotate / delete and OCR-correction controls only matter
-    once a file is uploaded, so they are collapsed by default. The section keeps
-    its page-operation data attributes so the ingest tests still see them.
-    """
-
-    page_ops = " ".join(PAGE_OPERATIONS)
-    return f"""<details class="tool-details" data-optional-tool="page-editor">
-      <summary>
-        <span lang="ko" data-locale-text="ko">업로드한 페이지 편집</span>
-        <span lang="en" data-locale-text="en">Uploaded-page tools</span>
-      </summary>
-      <section
-        class="page-editor"
-        aria-labelledby="page-editor-heading"
-        data-page-ops="{html.escape(page_ops)}"
-        data-mobile-page-ops="enabled"
-        data-desktop-page-ops="enabled"
-      >
-        <div class="section-heading">
-          <p class="eyebrow">OCR preview</p>
-          <h2 id="page-editor-heading">Pages before analysis</h2>
-        </div>
-        <div class="thumbnail-strip"
-          aria-label="Page preview reorder rotate delete controls">
-          <article class="page-card" data-page-index="0" data-text-source="text_layer">
-            <header>
-              <span>Page 1</span>
-              <span class="source-badge">text layer</span>
-            </header>
-            <div class="page-thumb" aria-label="Page preview thumbnail">OCR preview</div>
-            <div class="page-actions" role="group" aria-label="Page operations">
-              <button type="button" data-page-action="move-up"
-                aria-label="Move page earlier">Up</button>
-              <button type="button" data-page-action="move-down"
-                aria-label="Move page later">Down</button>
-              <button type="button" data-page-action="rotate"
-                aria-label="Rotate page">Rotate</button>
-              <button type="button" class="secondary danger"
-                data-page-action="delete" aria-label="Delete page">Delete</button>
-            </div>
-            <label class="ocr-label" for="ocr-correction-0">Correct OCR text</label>
-            <textarea id="ocr-correction-0" rows="3" spellcheck="false"
-              data-ocr-correction="true"></textarea>
-          </article>
-        </div>
-        <div class="action-row page-toolbar">
-          <button type="button" class="secondary"
-            data-page-action="low-confidence-filter">Low confidence</button>
-          <button type="button" class="secondary"
-            data-page-action="apply-corrections">Apply corrections</button>
-        </div>
-      </section>
-    </details>"""
+    bullets = "\n".join(
+        f"<li>{_bilingual(item['ko'], item['en'])}</li>"
+        for item in DISCLOSURE_ITEMS_BILINGUAL
+    )
+    return f"""<aside id="notice-panel" class="notice-panel" data-notice-panel="true"
+    aria-label="고지 / Notice" hidden>
+    <p class="banner banner-advice">{_bilingual(NOT_LEGAL_ADVICE_BANNER_KO, NOT_LEGAL_ADVICE_BANNER)}</p>
+    <ul class="notice-list">
+      {bullets}
+    </ul>
+    {lan_warning}
+  </aside>"""
 
 
 def _render_ingest_mode_control(control: Any) -> str:
@@ -490,12 +402,17 @@ def _render_layout_support(layout: Any) -> str:
     )
 
 
-def _render_step(step: dict[str, str]) -> str:
+def _bilingual(ko: str, en: str) -> str:
+    """Return a Korean-canonical / English-aid pair of locale spans.
+
+    The active locale is chosen at runtime by the ``data-active-locale``
+    attribute on ``<html>``, which CSS uses to hide the inactive ``lang`` span.
+    Both strings are escaped so contract-adjacent copy cannot inject markup.
+    """
+
     return (
-        '<li class="how-to-step" data-how-to-step="true">'
-        f'<span lang="ko" data-locale-text="ko">{html.escape(step["ko"])}</span>'
-        f'<span lang="en" data-locale-text="en">{html.escape(step["en"])}</span>'
-        "</li>"
+        f'<span lang="ko" data-locale-text="ko">{html.escape(ko)}</span>'
+        f'<span lang="en" data-locale-text="en">{html.escape(en)}</span>'
     )
 
 
@@ -1292,6 +1209,13 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.6;
   overflow-wrap: anywhere;
+  /* Full-height messenger column: header, privacy line, scrolling thread, and
+     a composer pinned to the bottom. The thread is the only scroll region, so
+     the composer stays put via flex layout, no sticky positioning needed. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
 }
 img, svg, video, canvas {
   max-width: 100%;
@@ -1591,6 +1515,32 @@ textarea {
 .grounded-qa-list {
   display: grid;
   gap: var(--space-1);
+}
+.qa-followup {
+  display: grid;
+  gap: .5rem;
+  margin-bottom: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-tint);
+}
+.qa-followup-label { font-weight: 800; }
+.qa-followup-row {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.qa-followup-row input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .55rem .7rem;
+}
+.qa-followup-answer {
+  border-left: 4px solid var(--accent);
+  background: #fff;
 }
 .grounded-qa-item {
   display: grid;
@@ -2280,6 +2230,209 @@ footer {
     text-decoration-style: dotted;
   }
 }
+/* ----------------------------------------------------------------------------
+   Chat (messenger) shell: a centered full-height column with a scrolling
+   thread and a bottom composer. The thread is the only scroll region, so the
+   composer stays at the bottom through flex layout alone (no sticky needed).
+---------------------------------------------------------------------------- */
+.visually-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.chat-topbar {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: .75rem clamp(1rem, 4vw, 2rem);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.chat-title h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+.chat-title .subtitle {
+  margin: .1rem 0 0;
+  font-size: .85rem;
+}
+.chat-topbar-actions {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.notice-button {
+  display: inline-flex;
+  align-items: center;
+}
+.chat-privacy {
+  margin: 0;
+  padding: .55rem clamp(1rem, 4vw, 2rem);
+  background: var(--accent-tint);
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: .85rem;
+}
+.notice-panel {
+  margin: 0;
+  padding: var(--space-2) clamp(1rem, 4vw, 2rem);
+  background: #e8f3f4;
+  border-bottom: 1px solid var(--line);
+}
+.notice-panel[hidden] {
+  display: none;
+}
+.notice-list {
+  display: grid;
+  gap: .4rem;
+  margin: .75rem 0 0;
+  padding-left: 1.15rem;
+}
+.chat {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2) clamp(.75rem, 4vw, 2rem);
+}
+.thread {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+.msg {
+  display: flex;
+  width: 100%;
+}
+.msg.bot {
+  justify-content: flex-start;
+}
+.msg.user {
+  justify-content: flex-end;
+}
+.bubble {
+  max-width: min(100%, 46rem);
+  padding: .75rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.msg.bot .bubble {
+  border-top-left-radius: 4px;
+}
+.msg.user .bubble {
+  border-top-right-radius: 4px;
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+.bubble-text {
+  margin: 0;
+  max-width: var(--reading-measure);
+}
+.bubble-result {
+  max-width: 100%;
+  width: 100%;
+}
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-weight: 700;
+}
+.chip-row {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-top: .65rem;
+}
+.example-chip {
+  background: #fff;
+  color: var(--accent-strong);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: .4rem .85rem;
+  font-weight: 700;
+}
+.result-pane {
+  display: grid;
+  gap: var(--space-1);
+}
+.composer {
+  display: flex;
+  gap: .5rem;
+  align-items: flex-end;
+  padding: .65rem clamp(.75rem, 4vw, 2rem);
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+.composer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 40vh;
+  resize: none;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: .6rem 1rem;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+.attach-button,
+.send-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  padding: 0 .9rem;
+}
+.attach-button {
+  background: #fff;
+  color: var(--accent-strong);
+  font-size: 1.1rem;
+}
+.send-button {
+  font-weight: 800;
+}
+.send-button:hover {
+  background: var(--accent-strong);
+}
+.send-button .send-label {
+  font-size: .95rem;
+}
+@media (max-width: 480px) {
+  .send-button .send-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .chat-title h1 {
+    font-size: 1.1rem;
+  }
+}
 """
 
 
@@ -2318,11 +2471,13 @@ _APP_JS = r"""(function () {
     var root = document.documentElement;
     root.setAttribute("data-active-locale", locale);
     root.setAttribute("lang", locale);
-    var buttons = document.querySelectorAll("[data-locale-button]");
-    buttons.forEach(function (button) {
-      var active = button.getAttribute("data-locale-button") === locale;
-      button.setAttribute("aria-pressed", active ? "true" : "false");
-    });
+    // One toggle button flips KO<->EN. aria-pressed reflects "English active"
+    // and data-active-locale-value records the current locale for the handler.
+    var toggle = document.querySelector("[data-locale-button]");
+    if (toggle) {
+      toggle.setAttribute("aria-pressed", locale === "en" ? "true" : "false");
+      toggle.setAttribute("data-active-locale-value", locale);
+    }
     writeStoredLocale(locale);
   }
 
@@ -2595,6 +2750,151 @@ _APP_JS = r"""(function () {
     container.appendChild(list);
   }
 
+  function renderQaFollowUp(payload) {
+    // A conversational follow-up box. The creator types a question and FInk
+    // answers from the analysis already on screen (findings + their citations)
+    // without any network call, so the response stays grounded and local.
+    var form = el("div", "qa-followup", null);
+    form.setAttribute("data-qa-followup", "true");
+    var label = el("label", "qa-followup-label", null);
+    label.setAttribute("for", "qa-followup-input");
+    label.appendChild(
+      bilingual("span", null, {
+        ko: "이 계약에 대해 더 물어보기",
+        en: "Ask more about this contract"
+      })
+    );
+    form.appendChild(label);
+    var row = el("div", "qa-followup-row", null);
+    var input = document.createElement("input");
+    input.type = "text";
+    input.id = "qa-followup-input";
+    input.setAttribute("data-qa-followup-input", "true");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute(
+      "placeholder",
+      activeLocale() === "en"
+        ? "e.g. When does the money arrive?"
+        : "예: 정산 대금은 언제 들어오나요?"
+    );
+    input.setAttribute("aria-label", "후속 질문 입력 / Ask a follow-up question");
+    row.appendChild(input);
+    var ask = el("button", "secondary", null);
+    ask.type = "button";
+    ask.setAttribute("data-qa-followup-ask", "true");
+    ask.setAttribute("aria-label", "후속 질문하기 / Ask follow-up question");
+    ask.appendChild(bilingual("span", null, { ko: "질문하기", en: "Ask" }));
+    row.appendChild(ask);
+    form.appendChild(row);
+    form.appendChild(
+      bilingual("p", "hint", {
+        ko: "답변은 화면의 분석 결과와 연결된 근거에서만 가져옵니다.",
+        en: "Answers are drawn only from the on-screen analysis and its grounded evidence."
+      })
+    );
+    return form;
+  }
+
+  function scoreFindingForQuestion(finding, terms) {
+    var haystack = [
+      localized(finding.title),
+      localized(finding.why_it_matters),
+      localized(finding.cash_flow_consequence),
+      localized(finding.question_to_ask),
+      finding.source && finding.source.exact_excerpt ? finding.source.exact_excerpt : "",
+      finding.source && finding.source.clause_id ? finding.source.clause_id : ""
+    ]
+      .join(" ")
+      .toLowerCase();
+    var score = 0;
+    terms.forEach(function (term) {
+      if (term && haystack.indexOf(term) !== -1) {
+        score += 1;
+      }
+    });
+    return score;
+  }
+
+  function answerFollowUpQuestion(question) {
+    var payload = lastResultPayload;
+    var list = document.querySelector("[data-qa-answer-list]");
+    if (!payload || !list) {
+      return;
+    }
+    var asked = String(question || "").trim();
+    if (asked === "") {
+      return;
+    }
+    var findings = payload.findings || [];
+    var terms = asked
+      .toLowerCase()
+      .split(/[\s,.;:!?()/]+/)
+      .filter(function (term) {
+        return term.length >= 2;
+      });
+    var best = null;
+    var bestScore = 0;
+    findings.forEach(function (finding) {
+      var score = scoreFindingForQuestion(finding, terms);
+      if (score > bestScore) {
+        bestScore = score;
+        best = finding;
+      }
+    });
+    if (!best && findings.length > 0) {
+      best = findings[0];
+    }
+
+    var card = el("article", "grounded-qa-item qa-followup-answer", null);
+    card.setAttribute("data-qa-followup-answer", "true");
+    if (best) {
+      card.setAttribute("data-finding-id", best.finding_id);
+    }
+    var body = el("section", "qa-body", null);
+    var askedPair = { ko: asked, en: asked };
+    body.appendChild(bilingual("h4", null, askedPair));
+    if (best) {
+      body.appendChild(bilingual("p", null, best.cash_flow_consequence));
+      body.appendChild(bilingual("p", "hint", best.why_it_matters));
+      if (best.source && best.source.exact_excerpt) {
+        var quote = el("blockquote", null, best.source.exact_excerpt);
+        quote.setAttribute("data-exact-excerpt", "true");
+        body.appendChild(quote);
+      }
+      if (best.citations && best.citations.length > 0) {
+        var citationList = el("ul", "qa-citations", null);
+        best.citations.forEach(function (citation) {
+          var citationItem = el("li", null, null);
+          citationItem.setAttribute("data-qa-citation", "true");
+          citationItem.appendChild(el("code", null, citation.evidence_id || ""));
+          citationList.appendChild(citationItem);
+        });
+        body.appendChild(citationList);
+      } else {
+        body.appendChild(
+          bilingual("p", "hint", {
+            ko: "이 답변은 분석된 발견사항에서 가져왔으며 외부 근거는 연결되지 않았습니다.",
+            en: "This answer is drawn from the analyzed finding; no external evidence is linked."
+          })
+        );
+      }
+    } else {
+      body.appendChild(
+        bilingual("p", null, {
+          ko: "화면의 분석 결과에서 관련 항목을 찾지 못했습니다. 먼저 계약을 분석해 보세요.",
+          en: "No related item was found in the on-screen analysis. Try analyzing the contract first."
+        })
+      );
+    }
+    card.appendChild(body);
+    list.insertBefore(card, list.firstChild);
+    card.scrollIntoView(scrollOptions("center"));
+    qaStatusMessage({
+      ko: "후속 질문에 분석 결과로 답했습니다.",
+      en: "Answered your follow-up from the analysis."
+    });
+  }
+
   function renderGroundedQa(container, payload) {
     var qa = payload.grounded_qa || {};
     var items = qa.items || [];
@@ -2640,6 +2940,8 @@ _APP_JS = r"""(function () {
     actionsRow.appendChild(exportButton);
     section.appendChild(actionsRow);
 
+    section.appendChild(renderQaFollowUp(payload));
+
     var status = el("p", "hint", "Q&A 확인 표시는 이 브라우저 세션에만 남습니다.");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
@@ -2647,6 +2949,7 @@ _APP_JS = r"""(function () {
     section.appendChild(status);
 
     var list = el("div", "grounded-qa-list", null);
+    list.setAttribute("data-qa-answer-list", "true");
     items.forEach(function (item) {
       var card = el("article", "grounded-qa-item", null);
       card.id = item.qa_id;
@@ -3083,13 +3386,77 @@ _APP_JS = r"""(function () {
     container.appendChild(details);
   }
 
+  function threadElement() {
+    return document.querySelector("[data-chat-thread]");
+  }
+
+  function scrollThreadToLatest(node) {
+    var target = node || (threadElement() && threadElement().lastElementChild);
+    if (target && target.scrollIntoView) {
+      target.scrollIntoView(scrollOptions("end"));
+    }
+  }
+
+  function revealResultMessage() {
+    // The result bubble lives in the thread shell; reveal it and move it to the
+    // end so the freshest analysis sits at the bottom like a chat reply.
+    var bubble = document.querySelector("[data-result-message]");
+    var thread = threadElement();
+    if (bubble && thread) {
+      bubble.hidden = false;
+      thread.appendChild(bubble);
+    }
+    return bubble;
+  }
+
+  function appendUserMessage(content, isFile) {
+    var thread = threadElement();
+    if (!thread) {
+      return;
+    }
+    var item = el("li", "msg user", null);
+    item.setAttribute("data-message-role", "user");
+    var bubble = el("div", "bubble", null);
+    if (isFile) {
+      var chip = el("span", "file-chip", null);
+      chip.setAttribute("data-file-chip", "true");
+      chip.appendChild(el("span", null, "📎"));
+      chip.appendChild(el("span", null, text(content)));
+      bubble.appendChild(chip);
+    } else {
+      bubble.appendChild(el("p", "bubble-text", text(content)));
+    }
+    item.appendChild(bubble);
+    thread.appendChild(item);
+    scrollThreadToLatest(item);
+  }
+
+  function appendBotMessage(pair) {
+    var thread = threadElement();
+    if (!thread) {
+      return null;
+    }
+    var item = el("li", "msg bot", null);
+    item.setAttribute("data-message-role", "bot");
+    var bubble = el("div", "bubble", null);
+    bubble.appendChild(bilingual("p", "bubble-text", pair));
+    item.appendChild(bubble);
+    thread.appendChild(item);
+    scrollThreadToLatest(item);
+    return item;
+  }
+
   function renderResult(payload) {
     var container = document.getElementById("result");
     if (!container) {
       return;
     }
-    container.hidden = false;
+    var bubble = revealResultMessage();
     clearNode(container);
+    var heading = el("h2", "sr-only", null);
+    heading.id = "result-heading";
+    heading.appendChild(bilingual("span", null, { ko: "검토 결과", en: "Review result" }));
+    container.appendChild(heading);
 
     container.appendChild(renderReaderShortcutNav());
 
@@ -3140,6 +3507,7 @@ _APP_JS = r"""(function () {
 
     setLocale(activeLocale());
     container.scrollIntoView(scrollOptions("start"));
+    scrollThreadToLatest(bubble || document.querySelector("[data-result-message]"));
   }
 
   function collectAssumptions() {
@@ -3276,6 +3644,15 @@ _APP_JS = r"""(function () {
         en: "Recalculating the scenario."
       });
     } else {
+      // Echo the creator's turn as a user bubble before sending, then clear the
+      // composer so it behaves like a chat input.
+      if (file) {
+        appendUserMessage(file.name || "첨부 파일", true);
+      } else {
+        appendUserMessage(pasteText, false);
+        box.value = "";
+        autoGrowComposer();
+      }
       statusMessage({ ko: "로컬에서 분석 중입니다.", en: "Analyzing locally." });
     }
     setAnalyzeBusy(true);
@@ -3292,14 +3669,14 @@ _APP_JS = r"""(function () {
       })
       .then(function (result) {
         if (!result.ok) {
-          var message =
-            result.data && result.data.error
-              ? result.data.error
-              : "analysis failed";
-          if (activeLocale() === "en" && result.data && result.data.error_en) {
-            message = result.data.error_en;
-          }
-          statusMessage({ ko: "오류: " + message, en: "Error: " + message });
+          var errorKo =
+            result.data && result.data.error ? result.data.error : "분석에 실패했습니다.";
+          var errorEn =
+            result.data && result.data.error_en
+              ? result.data.error_en
+              : "Analysis failed.";
+          appendBotMessage({ ko: errorKo, en: errorEn });
+          statusMessage({ ko: "오류: " + errorKo, en: "Error: " + errorEn });
           return;
         }
         if (options.scenarioRecompute) {
@@ -3315,6 +3692,10 @@ _APP_JS = r"""(function () {
         lastSubmittedAssumptions = request.assumptions;
       })
       .catch(function () {
+        appendBotMessage({
+          ko: "로컬 분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+          en: "The local analysis request failed. Please try again."
+        });
         statusMessage({
           ko: "로컬 분석 요청에 실패했습니다.",
           en: "The local analysis request failed."
@@ -3336,9 +3717,13 @@ _APP_JS = r"""(function () {
     }
     var container = document.getElementById("result");
     if (container) {
-      container.hidden = true;
       clearNode(container);
     }
+    var resultMessage = document.querySelector("[data-result-message]");
+    if (resultMessage) {
+      resultMessage.hidden = true;
+    }
+    autoGrowComposer();
     lastResultPayload = null;
     lastSubmittedAssumptions = {};
     statusMessage({
@@ -3493,13 +3878,50 @@ _APP_JS = r"""(function () {
     }
   }
 
+  function autoGrowComposer() {
+    var box = document.getElementById("paste-box");
+    if (!box) {
+      return;
+    }
+    box.style.height = "auto";
+    box.style.height = Math.min(box.scrollHeight, window.innerHeight * 0.4) + "px";
+  }
+
+  function fillExample() {
+    var box = document.getElementById("paste-box");
+    if (!box) {
+      return;
+    }
+    var input = document.getElementById("contract-file");
+    if (input) {
+      input.value = "";
+    }
+    box.value =
+      activeLocale() === "en"
+        ? "Section 3 (Settlement) Payment is made within 90 days after the end of each quarter; the company may deduct general expenses."
+        : "제3조(정산) 정산은 매 분기 종료일로부터 90일 이내에 지급하며, 회사는 일반 경비를 공제할 수 있다.";
+    autoGrowComposer();
+    box.focus();
+  }
+
+  function toggleNotice() {
+    var button = document.querySelector("[data-notice-toggle]");
+    var panel = document.getElementById("notice-panel");
+    if (!button || !panel) {
+      return;
+    }
+    var open = panel.hidden;
+    panel.hidden = !open;
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
   function init() {
     var toggle = document.querySelector("[data-locale-toggle]");
     if (toggle) {
       toggle.addEventListener("click", function (event) {
         var button = event.target.closest("[data-locale-button]");
         if (button) {
-          setLocale(button.getAttribute("data-locale-button"));
+          setLocale(activeLocale() === "en" ? "ko" : "en");
         }
       });
     }
@@ -3509,10 +3931,30 @@ _APP_JS = r"""(function () {
         analyze();
       });
     }
+    var attachButton = document.querySelector("[data-attach-button]");
+    var fileInput = document.getElementById("contract-file");
+    if (attachButton && fileInput) {
+      attachButton.addEventListener("click", function () {
+        fileInput.click();
+      });
+    }
+    var composerInput = document.getElementById("paste-box");
+    if (composerInput) {
+      composerInput.addEventListener("input", autoGrowComposer);
+      autoGrowComposer();
+    }
     document.addEventListener("click", function (event) {
       var target = event.target;
       if (!target || !target.closest) {
         return;
+      }
+      var noticeButton = target.closest("[data-notice-toggle]");
+      if (noticeButton) {
+        toggleNotice();
+      }
+      var exampleChip = target.closest("[data-example-chip]");
+      if (exampleChip) {
+        fillExample();
       }
       var scenarioButton = target.closest("[data-scenario-recalculate-button]");
       if (scenarioButton) {
@@ -3537,6 +3979,15 @@ _APP_JS = r"""(function () {
         event.preventDefault();
         exportQa(exportQaButton);
       }
+      var followUpButton = target.closest("[data-qa-followup-ask]");
+      if (followUpButton) {
+        event.preventDefault();
+        var followUpInput = document.querySelector("[data-qa-followup-input]");
+        if (followUpInput) {
+          answerFollowUpQuestion(followUpInput.value);
+          followUpInput.value = "";
+        }
+      }
       var highlightToggle = target.closest("[data-source-highlight-toggle]");
       if (highlightToggle) {
         var sourceSection = highlightToggle.closest("[data-source-highlights]");
@@ -3556,6 +4007,39 @@ _APP_JS = r"""(function () {
       var qaCheck = target.closest("[data-qa-check-state]");
       if (qaCheck) {
         updateQaCheckState(qaCheck);
+      }
+      // Picking a file in the composer sends it straight away, like attaching in
+      // a chat. A pasted draft and a file cannot be sent together, so clear the
+      // draft first.
+      var picked = target.closest("[data-file-input]");
+      if (picked && picked.files && picked.files.length > 0) {
+        var box = document.getElementById("paste-box");
+        if (box) {
+          box.value = "";
+          autoGrowComposer();
+        }
+        analyze();
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+      if (event.key === "Enter" && target.closest("[data-qa-followup-input]")) {
+        event.preventDefault();
+        answerFollowUpQuestion(target.value);
+        target.value = "";
+        return;
+      }
+      // Enter sends; Shift+Enter inserts a newline in the composer.
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        target.closest("[data-paste-box]")
+      ) {
+        event.preventDefault();
+        analyze();
       }
     });
     setLocale(readStoredLocale() || activeLocale());

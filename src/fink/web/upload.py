@@ -242,12 +242,9 @@ def _ocr_image_upload(ingested: IngestedDocument) -> IngestedDocument:
         raise _unsupported_error()
     if not _local_ocr_is_available():
         raise _ocr_not_installed_error()
-    try:
-        page = LocalOCREngine().recognize_image(ingested.stored_path, page_index=0)
-    except OCRBackendUnavailable as exc:
-        raise _ocr_not_installed_error() from exc
-    except OCRError as exc:
-        raise _ocr_not_installed_error() from exc
+    page = _recognize_uploaded_image(ingested.stored_path)
+    if page is None:
+        raise _ocr_not_installed_error()
 
     document = ingested.document
     if document is None:
@@ -339,8 +336,60 @@ def _base_content_type(content_type: str | None) -> str:
     return content_type.split(";", 1)[0].strip().lower()
 
 
+def _recognize_uploaded_image(stored_path: Path) -> Any | None:
+    """Recognize one uploaded image into an OCRPage, or None if no backend works.
+
+    The PaddleOCR-VL backend (the ``ocr`` extra) is preferred when installed; its
+    recovered text flows through the shared OCRPage schema path so downstream
+    extraction and gates are identical. If that runtime is unavailable, FInk
+    falls back to a local Tesseract binary, and finally returns None so the
+    caller can show the honest "OCR not installed" message.
+    """
+
+    paddle_text = _paddle_vl_recognize_text(stored_path)
+    if paddle_text is not None and paddle_text.strip():
+        return LocalOCREngine().recognize_image(
+            stored_path, page_index=0, text_hint=paddle_text
+        )
+    if shutil.which(LocalOCRConfig().tesseract_cmd) is not None:
+        try:
+            return LocalOCREngine().recognize_image(stored_path, page_index=0)
+        except (OCRBackendUnavailable, OCRError):
+            return None
+    return None
+
+
+def _paddle_vl_recognize_text(stored_path: Path) -> str | None:
+    """Return PaddleOCR-VL text for an image, or None when the runtime is absent.
+
+    Import is deferred and guarded so the ``ocr`` extra stays optional: a minimal
+    install without paddle simply skips this backend.
+    """
+
+    try:
+        from fink.ocr.paddle_vl import (
+            PaddleOCRDependencyError,
+            PaddleOCRRuntimeError,
+            PaddleVLOCRBackend,
+        )
+    except Exception:
+        return None
+    try:
+        return PaddleVLOCRBackend().recognize_image_text(stored_path)
+    except PaddleOCRDependencyError:
+        return None
+    except PaddleOCRRuntimeError:
+        return None
+
+
 def _local_ocr_is_available() -> bool:
-    return shutil.which(LocalOCRConfig().tesseract_cmd) is not None
+    if shutil.which(LocalOCRConfig().tesseract_cmd) is not None:
+        return True
+    try:
+        from fink.ocr.paddle_vl import paddle_runtime_available
+    except Exception:
+        return False
+    return paddle_runtime_available()
 
 
 def _request_invalid_error() -> AnalyzeRequestError:
@@ -434,6 +483,12 @@ def _ocr_not_installed_error() -> AnalyzeRequestError:
         validation_status="rejected_ocr_unavailable",
         message_ko="이미지 또는 스캔 PDF를 읽으려면 이 기기에 로컬 OCR이 설치되어 있어야 합니다.",
         message_en="Image or scanned-PDF analysis requires a local OCR install.",
-        action_ko="로컬 OCR을 설치하거나 PDF/이미지의 텍스트를 복사해 붙여넣기로 분석하세요.",
-        action_en="Install local OCR, or copy the text from the file and use paste analysis.",
+        action_ko=(
+            "로컬 OCR을 설치하거나(예: uv pip install -e '.[ocr]') "
+            "PDF·이미지의 텍스트를 복사해 붙여넣기로 분석하세요."
+        ),
+        action_en=(
+            "Install local OCR (e.g. uv pip install -e '.[ocr]'), or copy the text "
+            "from the file and use paste analysis."
+        ),
     )

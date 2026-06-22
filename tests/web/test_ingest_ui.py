@@ -87,10 +87,14 @@ class IngestUITests(unittest.TestCase):
         self.assertNotIn('data-ui-ingest-modes="camera image pdf paste"', markup)
         self.assertNotIn('class="upload-tile"', markup)
         self.assertIn('data-ingest-mode="paste"', markup)
-        self.assertIn('data-mobile-page-ops="enabled"', markup)
-        self.assertIn('data-desktop-page-ops="enabled"', markup)
-        for operation in WEB.PAGE_OPERATIONS:
-            self.assertIn(operation, markup)
+        # The in-browser OCR page editor is intentionally not rendered in the
+        # creator flow (a creator cannot reorder, rotate, or delete pages in the
+        # browser), so the page-operation controls no longer appear in the
+        # shell. The page-operation capability is still asserted at the layout
+        # level above (layout.page_operations == WEB.PAGE_OPERATIONS).
+        self.assertNotIn('data-mobile-page-ops="enabled"', markup)
+        self.assertNotIn('data-desktop-page-ops="enabled"', markup)
+        self.assertNotIn('class="page-editor"', markup)
 
     def test_ui_ingest_tests_all_modes_reach_valid_reports(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

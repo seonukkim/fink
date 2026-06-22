@@ -62,21 +62,62 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("min-height: 44px", markup)
         self.assertIn("skip-link", markup)
         self.assertIn('data-default-locale="ko"', markup)
-        self.assertIn("EN generated", markup)
-        self.assertIn("계약 금융 검토", markup)
+        # The title is now creator-focused; the pinned review-priority phrase is
+        # kept inside the not-legal-advice banner's English aid text.
+        self.assertIn("창작자 특화 금융 계약 검토", markup)
+        self.assertIn("Creator-focused financial contract review", markup)
         self.assertIn("Contractual Financial Review Priority", markup)
+        self.assertNotIn("계약 금융 검토", markup)
 
+        # Exactly one locale toggle button now (it flips KO<->EN); the old
+        # second "EN generated" button is gone. The label is just "EN"/"KO" with
+        # no "보기" suffix.
+        self.assertNotIn("EN generated", markup)
+        self.assertNotIn("보기", markup)
+        self.assertEqual(markup.count("data-locale-button"), 1)
+        self.assertIn('data-locale-toggle="true"', markup)
+        self.assertIn('<span lang="ko" data-locale-text="ko">EN</span>', markup)
+        self.assertIn('<span lang="en" data-locale-text="en">KO</span>', markup)
+
+        # The chat shell shows the short reworded privacy line in the header and
+        # folds the not-legal-advice text into the Notice panel. Korean is
+        # canonical and the English text is an aid kept inside its locale span.
+        # The reworded privacy line leads with "기록 미수집 · 기기 내 처리" and drops
+        # the old "읽은 글자는 기기를 떠나지 않으며" phrasing; "텔레메트리" is gone.
         self.assertIn(WEB.PRIVACY_BANNER, markup)
         self.assertIn(WEB.NOT_LEGAL_ADVICE_BANNER, markup)
+        self.assertNotIn("텔레메트리", markup)
+        self.assertIn("기록 미수집 · 기기 내 처리", markup)
+        self.assertIn("사용 기록을 수집하지 않고", markup)
+        self.assertNotIn("계약서와 OCR로 읽은 글자는 기기를 떠나지 않으며", markup)
+        self.assertIn("FInk은 계약서에서 돈과 직결되는 조항과 주의가 필요한 신호를 찾아", markup)
+        self.assertNotIn("검토 순서만 안내", markup)
         for expected in (
-            "not a legal, fraud, validity, unfairness, or guaranteed-loss verdict",
-            "not legal advice",
+            "does not make the final call on legality, fraud, contract validity",
             "scenario estimates",
             "UNVERIFIED pending A0",
             "Korean source language is canonical",
             "English UI text is a generated aid",
         ):
             self.assertIn(expected, markup)
+
+        # The report disclosures render bilingually: the Korean canonical line
+        # leads and the English aid stays inside its locale span.
+        self.assertIn(
+            "검토 순서는 위법성·사기·유효성·불공정·손실 확정에 대한 판정이 아닙니다.",
+            markup,
+        )
+        self.assertIn("한국어 원문이 기준이며, 영어 화면 문구는 보조용으로 생성됩니다.", markup)
+
+        # The chat shell has no footer: dev info and the separate footer privacy
+        # paragraph are gone. The single privacy line lives in the header and the
+        # rest of the disclosures sit in the Notice panel.
+        self.assertNotIn("Serving from", markup)
+        self.assertNotIn("Loopback only", markup)
+        self.assertNotIn("LAN opt-in enabled", markup)
+        self.assertNotIn("<footer", markup)
+        self.assertNotIn("계약서와 분석 결과는 이 기기에서만 처리됩니다.", markup)
+        self.assertIn('data-notice-panel="true"', markup)
 
         blocked_external_patterns = (
             "https://",
@@ -89,9 +130,11 @@ class WebSmokeTests(unittest.TestCase):
         for pattern in blocked_external_patterns:
             self.assertNotIn(pattern, normalized)
 
-        # New single-button creator flow hooks. The Analyze button and the
-        # external /app.js script must be present, the locale toggle must expose
-        # an active-locale attribute, and the 1-2-3 how-to strip must render.
+        # New chat-shell hooks. The composer's send button (id="analyze-btn"),
+        # the file input, the paste box, the chat thread, and the external
+        # /app.js script must be present, and the locale toggle must expose an
+        # active-locale attribute. The 1-2-3 how-to strip is gone, replaced by a
+        # single bot greeting; the result renders inside a bot message bubble.
         self.assertIn('id="analyze-btn"', markup)
         self.assertEqual(markup.count('id="analyze-btn"'), 1)
         self.assertIn('id="contract-file"', markup)
@@ -99,16 +142,42 @@ class WebSmokeTests(unittest.TestCase):
         self.assertNotIn('data-ui-ingest-modes="camera image pdf paste"', markup)
         self.assertIn('<script src="/app.js">', markup)
         self.assertIn('data-active-locale', markup)
-        self.assertIn('data-how-to-steps="true"', markup)
-        self.assertIn("사용 방법 1-2-3", markup)
-        self.assertIn("How to use 1-2-3", markup)
-        self.assertIn("지금 먼저 확인할 것", markup)
-        self.assertIn("Check first now", markup)
+        self.assertNotIn('data-how-to-steps="true"', markup)
+        self.assertNotIn("사용 방법 1-2-3", markup)
+        self.assertNotIn("How to use 1-2-3", markup)
+        self.assertIn('data-chat-thread="true"', markup)
+        self.assertIn('data-composer="true"', markup)
+        self.assertIn('data-paste-box="true"', markup)
+        self.assertIn('data-analyze-button="true"', markup)
+        self.assertIn(
+            "계약서를 붙여넣거나 사진·PDF를 올려 주세요.",
+            markup,
+        )
         self.assertIn('id="result"', markup)
-        self.assertIn("고급 시나리오 입력", markup)
-        self.assertIn('data-live-recompute="false"', markup)
-        self.assertIn('data-recompute-trigger="explicit"', markup)
-        self.assertIn("시나리오 다시 계산", markup)
+        self.assertIn('data-analysis-result="true"', markup)
+
+        # The composer's send button label is a Korean-canonical / English-aid
+        # pair of locale spans ("보내기"/"Send"), not the old Analyze label.
+        self.assertNotIn("분석하기 / Analyze", markup)
+        self.assertIn(
+            '<span lang="ko" data-locale-text="ko">보내기</span>'
+            '<span lang="en" data-locale-text="en">Send</span>',
+            markup,
+        )
+
+        # The 32-field assumptions grid and the OCR page editor are not rendered
+        # in the creator flow: a creator cannot fill those fields or hand-edit
+        # pages. The /api/analyze assumptions parsing path stays available and is
+        # exercised by the analyze endpoint tests, not by this shell.
+        self.assertNotIn("고급 시나리오 입력", markup)
+        self.assertNotIn("시나리오 다시 계산", markup)
+        self.assertNotIn("data-live-recompute", markup)
+        self.assertNotIn("data-recompute-trigger", markup)
+        self.assertNotIn("업로드한 페이지 편집", markup)
+        self.assertNotIn("Pages before analysis", markup)
+        self.assertNotIn('data-optional-tool="assumptions"', markup)
+        self.assertNotIn('data-optional-tool="page-editor"', markup)
+
         for forbidden in ("Decision Brief", "브리프", "local-first", "우선도"):
             self.assertNotIn(forbidden, markup)
 
