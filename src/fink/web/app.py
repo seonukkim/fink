@@ -320,9 +320,9 @@ def render_index_html(settings: WebBindSettings | None = None) -> str:
       class="composer-input"
       data-ingest-mode="paste" data-paste-box="true"
       aria-describedby="analyze-status"
-      data-placeholder-ko="계약 조항을 붙여넣거나 사진·PDF를 올려 주세요"
-      data-placeholder-en="Paste contract clauses or upload a photo/PDF"
-      placeholder="계약 조항을 붙여넣거나 사진·PDF를 올려 주세요"></textarea>
+      data-placeholder-ko="입력"
+      data-placeholder-en="Input"
+      placeholder="입력"></textarea>
     <button type="button" id="analyze-btn" class="send-button" data-analyze-button="true"
       aria-controls="result analyze-status"
       aria-label="보내기 / Send">
@@ -4768,7 +4768,7 @@ _APP_JS = r"""(function () {
     );
     article.appendChild(
       bilingual("p", "print-brief-disclaimer", {
-        ko: "이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.",
+        ko: "이 의견서는 서명 결정을 돕기 위한 분석이며 법률 자문이 아닙니다.",
         en: "This review brief organizes points to support a signing decision and is not legal advice."
       })
     );

@@ -157,8 +157,8 @@ class WebSmokeTests(unittest.TestCase):
             "계약서를 붙여넣거나 사진·PDF를 올려 주세요.",
             markup,
         )
-        self.assertIn("계약 조항을 붙여넣거나 사진·PDF를 올려 주세요", markup)
-        self.assertIn("Paste contract clauses or upload a photo/PDF", markup)
+        self.assertIn('placeholder="입력"', markup)
+        self.assertIn('data-placeholder-en="Input"', markup)
         self.assertIn('id="result"', markup)
         self.assertIn('data-analysis-result="true"', markup)
         self.assertIn('data-print-brief-root="true"', markup)
@@ -216,7 +216,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("참고용일 뿐 확실한 법리적 판단은 아니에요.".encode("utf-8"), body)
         self.assertIn("의견서 만들기".encode("utf-8"), body)
         self.assertIn(b"Make a review brief", body)
-        self.assertIn("이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.".encode("utf-8"), body)
+        self.assertIn("이 의견서는 서명 결정을 돕기 위한 분석이며 법률 자문이 아닙니다.".encode("utf-8"), body)
         self.assertIn(b"data-finding-checklist", body)
         self.assertNotIn(b"finding-checklist-note", body)
         self.assertIn("다운로드하기".encode("utf-8"), body)
@@ -307,7 +307,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('en: "You could ask"', script)
         self.assertIn('ko: "의견서 만들기"', script)
         self.assertIn('en: "Make a review brief"', script)
-        self.assertIn("이 의견서는 서명 결정을 돕기 위한 정리이며 법률 자문이 아닙니다.", script)
+        self.assertIn("이 의견서는 서명 결정을 돕기 위한 분석이며 법률 자문이 아닙니다.", script)
         self.assertIn('ko: "다운로드하기"', script)
         self.assertIn("window.print()", script)
         self.assertNotIn("new Blob", script)
