@@ -2195,6 +2195,39 @@ footer {
   color: var(--ink-soft);
   font-family: var(--serif);
 }
+.glance-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.glance-list-label {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: .75rem;
+  font-weight: 700;
+}
+.glance-list-items {
+  margin: 0;
+  padding-left: 1.35rem;
+  display: grid;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: .95rem;
+  line-height: 1.5;
+}
+.glance-list-items li::marker {
+  color: var(--pink-ink);
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: .85rem;
+}
+.glance-caution {
+  margin-top: 16px;
+}
 .result-source-quote {
   margin: .4rem 0 0;
   padding: 14px 16px;
@@ -5023,6 +5056,21 @@ _APP_JS = r"""(function () {
       );
     }
     card.appendChild(concern);
+    if (findings.length > 1) {
+      var glanceList = el("section", "glance-list", null);
+      glanceList.setAttribute("data-glance-list", "true");
+      glanceList.appendChild(
+        bilingual("p", "glance-list-label", { ko: "확인할 항목", en: "Items to check" })
+      );
+      var glanceItems = el("ol", "glance-list-items", null);
+      findings.forEach(function (item) {
+        var entry = el("li", null, null);
+        entry.appendChild(bilingual("span", null, item.title));
+        glanceItems.appendChild(entry);
+      });
+      glanceList.appendChild(glanceItems);
+      card.appendChild(glanceList);
+    }
     card.appendChild(
       bilingual("p", "glance-caution", {
         ko: "참고용일 뿐 확실한 법리적 판단은 아니에요. 중요한 결정 전에는 전문가와 상담하세요.",
