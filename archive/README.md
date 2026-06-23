@@ -10,5 +10,9 @@ record but not part of the shipped product.
   original detailed specifications.
 - `prompts/` — build and audit prompts.
 - `tests/` — tests for the build harness and gates.
+- `paper/` — the LaTeX paper source, ICML template, figures, and a built PDF.
+  The paper is now authored externally; the published PDF is served at
+  `site/fink-paper.pdf`.
+- `docs/paper/` — section draft notes and the result/claim ledgers.
 
-The shipped product lives in `src/fink/`, `site/`, and `paper/`.
+The shipped product lives in `src/fink/` and `site/`.
