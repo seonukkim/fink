@@ -1,8 +1,7 @@
 
 # FInk local-only inputs and run artifacts
 .fink/
-# Never publish source scans or archives
-*.pdf
+# Never publish source archives
 *.zip
 # Environment files — never commit; loaders read them from outside Git only.
 .env

@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use FInk, please cite it as below."
+title: "FInk: An On-Device, Evidence-Gated Retrieval System for Financial-Risk Review of Creator Contracts"
+authors:
+  - family-names: Kim
+    given-names: Seonuk
+    affiliation: "Department of Industrial Engineering, UNIST, Ulsan, Korea"
+    email: seonuk.kim@unist.ac.kr
+year: 2026
+url: "https://fink.seonukkim.com"
+repository-code: "https://github.com/seonukkim/fink"
+notes: "UNIST IE412 AI for Finance (2026 Spring) final project."

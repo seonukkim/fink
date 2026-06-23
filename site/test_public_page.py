@@ -12,22 +12,21 @@ def main() -> None:
     html = INDEX.read_text(encoding="utf-8")
     normalized = re.sub(r"\s+", " ", html)
 
-    # The page keeps its safe framing and disclaimer.
-    for snippet in ("Contractual Financial Review Priority", "not legal advice"):
+    # The page keeps its safe framing, disclaimer, and run commands.
+    for snippet in ("not legal advice", "uv sync --extra web", "uv run fink-web"):
         if snippet not in normalized:
             raise AssertionError(f"required page text missing: {snippet}")
     if 'data-public-safe="true"' not in html:
         raise AssertionError("public-safe attribute missing")
-    for snippet in (
+    # The page must use the current product framing, not the retired one,
+    # and must not carry stale runtime/model claims.
+    for stale in (
+        "PYTHONPATH=src", "PaddleOCR-VL", "Qwen3", "BGE-M3",
+        "Contractual Financial Review Priority",
         "Selective, Evidence-Gated Cash-Flow Triage",
-        "uv sync --extra web",
-        "uv run fink-web",
     ):
-        if snippet not in normalized:
-            raise AssertionError(f"canonical page text missing: {snippet}")
-    for stale in ("PYTHONPATH=src", "PaddleOCR-VL", "Qwen3", "BGE-M3"):
         if stale in normalized:
-            raise AssertionError(f"stale runtime/model claim present: {stale}")
+            raise AssertionError(f"stale runtime/model/framing claim present: {stale}")
 
     # Public-safety scans over the page assets.
     page_text = "\n".join(
