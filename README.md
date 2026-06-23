@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="site/assets/images/fink-hero.png" alt="FInk" width="760" />
+  <img src="site/assets/images/fink-hero.png" alt="FInk" width="100%" />
 </p>
 
 <h1 align="center">FInk</h1>
@@ -8,7 +8,13 @@
   <strong>A Financial-Risk Review Assistant for Creator Contracts</strong><br /><br />
   <em>UNIST · IE412 AI for Finance · 2026 Spring · Final Project</em><br /><br />
   <a href="https://fink.seonukkim.com"><img src="https://img.shields.io/badge/Project_Page-fink.seonukkim.com-a31e4e.svg" alt="Project Page" /></a>
-  <a href="https://fink.seonukkim.com/fink-paper.pdf"><img src="https://img.shields.io/badge/Paper-PDF-b31b1b.svg" alt="Paper" /></a>
+  <a href="https://fink.seonukkim.com/fink_paper.pdf"><img src="https://img.shields.io/badge/Paper-PDF-b31b1b.svg" alt="Paper" /></a>
+</p>
+
+<p align="center">
+  <img src="site/assets/images/demo-en-1-input.webp" alt="Paste a contract and start the on-device review" width="30%" />
+  <img src="site/assets/images/demo-en-2-verdict.webp" alt="Review-attention score, recommended effort, and the top finding" width="30%" />
+  <img src="site/assets/images/demo-en-3-detail.webp" alt="Ranked items to check, each tied to its clause" width="30%" />
 </p>
 
 FInk is an on-device assistant that reviews a creator's contract for financial
